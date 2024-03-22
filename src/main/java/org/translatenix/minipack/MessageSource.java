@@ -4,6 +4,8 @@
  */
 package org.translatenix.minipack;
 
+import java.io.EOFException;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public interface MessageSource {
@@ -16,5 +18,20 @@ public interface MessageSource {
    *
    * <p>Throws {@link ReaderException} if an error occurs during reading.
    */
-  void read(ByteBuffer buffer, int minBytes);
+  void read(ByteBuffer buffer, int minBytes) throws IOException;
+
+  static IllegalArgumentException arrayBackedBufferRequired() {
+    return new IllegalArgumentException(
+        "This message source requires a ByteBuffer backed by an accessible array"
+            + " (buffer.hasArray()).");
+  }
+
+  static EOFException prematureEndOfInput(int minBytes, int bytesRead) {
+    return new EOFException(
+        "Expected at least "
+            + minBytes
+            + " more bytes, but reached end of input after "
+            + bytesRead
+            + " bytes.");
+  }
 }

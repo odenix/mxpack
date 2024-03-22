@@ -4,21 +4,20 @@
  */
 package org.translatenix.minipack;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public interface MessageSink {
-  /**
-   * Writes the {@linkplain ByteBuffer#remaining() remaining} bytes of the given buffer.
-   *
-   * <p>Throws {@link WriterException} if an error occurs during writing.
-   */
+  /** Writes the {@linkplain ByteBuffer#remaining() remaining} bytes of the given buffer. */
   // Any benefit in changing this to writeBuffer(buffer, minBytes)?
-  void writeBuffer(ByteBuffer buffer);
+  void writeBuffer(ByteBuffer buffer) throws IOException;
 
-  /**
-   * Flushes this sink.
-   *
-   * <p>Throws {@link WriterException} if an error occurs during flushing.
-   */
-  void flush();
+  /** Flushes this sink. */
+  void flush() throws IOException;
+
+  static IllegalArgumentException arrayBackedBufferRequired() {
+    return new IllegalArgumentException(
+        "This message sink requires a ByteBuffer backed by an accessible array"
+            + " (buffer.hasArray()).");
+  }
 }

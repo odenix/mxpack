@@ -18,24 +18,16 @@ final class MessageSinks {
     }
 
     @Override
-    public void writeBuffer(ByteBuffer buffer) {
+    public void writeBuffer(ByteBuffer buffer) throws IOException {
       if (!buffer.hasArray()) {
-        throw WriterException.arrayBackedBufferRequired();
+        throw MessageSink.arrayBackedBufferRequired();
       }
-      try {
-        out.write(buffer.array(), buffer.arrayOffset() + buffer.position(), buffer.remaining());
-      } catch (IOException e) {
-        throw WriterException.ioError(e);
-      }
+      out.write(buffer.array(), buffer.arrayOffset() + buffer.position(), buffer.remaining());
     }
 
     @Override
-    public void flush() {
-      try {
-        out.flush();
-      } catch (IOException e) {
-        throw WriterException.ioError(e);
-      }
+    public void flush() throws IOException {
+      out.flush();
     }
   }
 
@@ -47,15 +39,11 @@ final class MessageSinks {
     }
 
     @Override
-    public void writeBuffer(ByteBuffer buffer) {
-      try {
-        while (buffer.hasRemaining()) channel.write(buffer);
-      } catch (IOException e) {
-        throw WriterException.ioError(e);
-      }
+    public void writeBuffer(ByteBuffer buffer) throws IOException {
+      while (buffer.hasRemaining()) channel.write(buffer);
     }
 
     @Override
-    public void flush() {}
+    public void flush() {} // nothing to do
   }
 }

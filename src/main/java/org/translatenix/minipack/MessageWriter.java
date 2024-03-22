@@ -4,6 +4,7 @@
  */
 package org.translatenix.minipack;
 
+import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
@@ -15,7 +16,8 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>To create a {@code MessageWriter}, use a {@linkplain #builder() builder}. To write a message,
  * call one of the {@code write()} or {@code writeXYZ()} methods. To flush the underlying message
- * {@linkplain MessageSink sink}, call {@link #flush()}.
+ * {@linkplain MessageSink sink}, call {@link #flush()}. If an error occurs when writing a message,
+ * a {@link WriterException} is thrown.
  */
 public final class MessageWriter {
   private static final int MIN_BUFFER_SIZE = 9;
@@ -258,12 +260,16 @@ public final class MessageWriter {
 
   public void writeBinaryPayload(ByteBuffer buffer) {
     writeBuffer();
-    sink.writeBuffer(buffer);
+    doWriteBuffer(buffer);
   }
 
   public void flush() {
     writeBuffer();
-    sink.flush();
+    try {
+      sink.flush();
+    } catch (IOException e) {
+      throw WriterException.ioErrorFlushingSink(e);
+    }
   }
 
   private void writeStringAscii(CharSequence str) {
@@ -335,8 +341,16 @@ public final class MessageWriter {
 
   private void writeBuffer() {
     buffer.flip();
-    sink.writeBuffer(buffer);
+    doWriteBuffer(buffer);
     buffer.clear();
+  }
+
+  private void doWriteBuffer(ByteBuffer buffer) {
+    try {
+      sink.writeBuffer(buffer);
+    } catch (IOException e) {
+      throw WriterException.ioErrorWritingToSink(e);
+    }
   }
 
   private void writeFixInt(byte value) {

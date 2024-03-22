@@ -18,29 +18,25 @@ final class MessageSources {
     }
 
     @Override
-    public void read(ByteBuffer buffer, int minBytes) {
+    public void read(ByteBuffer buffer, int minBytes) throws IOException {
       assert minBytes > 0;
       assert minBytes <= buffer.remaining();
-      if (!buffer.hasArray()) throw ReaderException.arrayBackedBufferRequired();
+      if (!buffer.hasArray()) throw MessageSource.arrayBackedBufferRequired();
 
-      var minMoreBytesToRead = minBytes;
-      try {
-        while (minMoreBytesToRead > 0) {
-          var optimalBytesToRead =
-              in.available() >= minMoreBytesToRead
-                  ? Math.min(in.available(), buffer.remaining())
-                  : buffer.remaining();
-          var bytesRead =
-              in.read(buffer.array(), buffer.arrayOffset() + buffer.position(), optimalBytesToRead);
-          if (bytesRead == -1) {
-            throw ReaderException.prematureEndOfInput(minBytes, minBytes - minMoreBytesToRead);
-          }
-          assert bytesRead <= optimalBytesToRead;
-          buffer.position(buffer.position() + bytesRead);
-          minMoreBytesToRead -= bytesRead;
+      var totalBytesRead = 0;
+      while (totalBytesRead < minBytes) {
+        var bytesToRead =
+            in.available() >= (minBytes - totalBytesRead)
+                ? Math.min(in.available(), buffer.remaining())
+                : buffer.remaining();
+        var bytesRead =
+            in.read(buffer.array(), buffer.arrayOffset() + buffer.position(), bytesToRead);
+        if (bytesRead == -1) {
+          throw MessageSource.prematureEndOfInput(minBytes, totalBytesRead);
         }
-      } catch (IOException e) {
-        throw ReaderException.ioError(e);
+        assert bytesRead <= bytesToRead;
+        buffer.position(buffer.position() + bytesRead);
+        totalBytesRead += bytesRead;
       }
     }
   }
@@ -53,18 +49,14 @@ final class MessageSources {
     }
 
     @Override
-    public void read(ByteBuffer buffer, int minBytes) {
+    public void read(ByteBuffer buffer, int minBytes) throws IOException {
       var totalBytesRead = 0;
-      try {
-        while (totalBytesRead < minBytes) {
-          var bytesRead = channel.read(buffer);
-          if (bytesRead == -1) {
-            throw ReaderException.prematureEndOfInput(minBytes, totalBytesRead);
-          }
-          totalBytesRead += bytesRead;
+      while (totalBytesRead < minBytes) {
+        var bytesRead = channel.read(buffer);
+        if (bytesRead == -1) {
+          throw MessageSource.prematureEndOfInput(minBytes, totalBytesRead);
         }
-      } catch (IOException e) {
-        throw ReaderException.ioError(e);
+        totalBytesRead += bytesRead;
       }
     }
   }

@@ -4,6 +4,7 @@
  */
 package org.translatenix.minipack;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
@@ -16,7 +17,7 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>To create a {@code MessageReader}, use a {@linkplain #builder() builder}. To read a message,
  * call one of the {@code readXYZ()} methods. To peek at the next message type, call {@link
- * #nextType()}.
+ * #nextType()}. If an error occurs when reading a message, a {@link ReaderException} is thrown.
  */
 public final class MessageReader {
   private static final int MIN_BUFFER_SIZE = 9;
@@ -545,7 +546,7 @@ public final class MessageReader {
    * the buffer's current {@linkplain ByteBuffer#position() position}.
    */
   public void readPayload(ByteBuffer buffer) {
-    source.read(buffer, buffer.remaining());
+    readFromSource(buffer, buffer.remaining());
   }
 
   /**
@@ -553,8 +554,16 @@ public final class MessageReader {
    * given buffer, starting at the buffer's current {@linkplain ByteBuffer#position() position}.
    */
   public void readPayload(ByteBuffer buffer, int minBytes) {
+    readFromSource(buffer, minBytes);
+  }
+
+  private void readFromSource(ByteBuffer buffer, int minBytes) {
     assert minBytes <= buffer.remaining();
-    source.read(buffer, minBytes);
+    try {
+      source.read(buffer, minBytes);
+    } catch (IOException e) {
+      throw ReaderException.ioErrorReadingFromSource(e);
+    }
   }
 
   // for testing only
@@ -579,7 +588,7 @@ public final class MessageReader {
     tempBuffer.put(0, buffer, buffer.position(), transferLength);
     if (transferLength < length) {
       tempBuffer.position(transferLength);
-      source.read(tempBuffer, tempBuffer.remaining());
+      readFromSource(tempBuffer, tempBuffer.remaining());
       tempBuffer.position(0);
     }
     buffer.position(buffer.position() + transferLength);
@@ -597,10 +606,10 @@ public final class MessageReader {
   }
 
   private void ensureRemaining(int length, ByteBuffer buffer) {
-    int minBytesToRead = length - buffer.remaining();
-    if (minBytesToRead > 0) {
+    int minBytes = length - buffer.remaining();
+    if (minBytes > 0) {
       buffer.compact();
-      source.read(buffer, minBytesToRead);
+      readFromSource(buffer, minBytes);
       buffer.flip();
       assert buffer.remaining() >= length;
     }
