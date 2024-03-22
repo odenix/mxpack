@@ -76,29 +76,29 @@ final class Format {
     return format & ~FIXMAP_MASK;
   }
 
-  static MessageType toType(byte format) {
+  static ValueType toType(byte format) {
     return switch (format) {
-      case NIL -> MessageType.NIL;
-      case TRUE, FALSE -> MessageType.BOOLEAN;
-      case INT8, UINT8, INT16, UINT16, INT32, UINT32, INT64, UINT64 -> MessageType.INTEGER;
-      case FLOAT32, FLOAT64 -> MessageType.FLOAT;
-      case STR8, STR16, STR32 -> MessageType.STRING;
-      case ARRAY16, ARRAY32 -> MessageType.ARRAY;
-      case MAP16, MAP32 -> MessageType.MAP;
-      case BIN8, BIN16, BIN32 -> MessageType.BINARY;
-      case FIXEXT1, FIXEXT2, FIXEXT4, FIXEXT8, EXT8, EXT16, EXT32 -> MessageType.EXTENSION;
+      case NIL -> ValueType.NIL;
+      case TRUE, FALSE -> ValueType.BOOLEAN;
+      case INT8, UINT8, INT16, UINT16, INT32, UINT32, INT64, UINT64 -> ValueType.INTEGER;
+      case FLOAT32, FLOAT64 -> ValueType.FLOAT;
+      case STR8, STR16, STR32 -> ValueType.STRING;
+      case ARRAY16, ARRAY32 -> ValueType.ARRAY;
+      case MAP16, MAP32 -> ValueType.MAP;
+      case BIN8, BIN16, BIN32 -> ValueType.BINARY;
+      case FIXEXT1, FIXEXT2, FIXEXT4, FIXEXT8, EXT8, EXT16, EXT32 -> ValueType.EXTENSION;
       default ->
           Format.isFixInt(format)
-              ? MessageType.INTEGER
+              ? ValueType.INTEGER
               : Format.isFixStr(format)
-                  ? MessageType.STRING
+                  ? ValueType.STRING
                   : Format.isFixArray(format)
-                      ? MessageType.ARRAY
-                      : Format.isFixMap(format) ? MessageType.MAP : invalidFormat(format);
+                      ? ValueType.ARRAY
+                      : Format.isFixMap(format) ? ValueType.MAP : invalidFormat(format);
     };
   }
 
-  private static MessageType invalidFormat(byte format) {
+  private static ValueType invalidFormat(byte format) {
     throw ReaderException.invalidFormat(format);
   }
 }

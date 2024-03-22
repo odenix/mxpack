@@ -19,6 +19,20 @@ public class ReaderException extends RuntimeException {
     super(message, cause);
   }
 
+  static IllegalStateException sourceRequired() {
+    return new IllegalStateException("MessageReader.Builder.source() must be set.");
+  }
+
+  static IllegalStateException bufferTooSmall(int capacity, int minCapacity) {
+    return new IllegalStateException(
+        "The minimum supported ByteBuffer capacity is " + minCapacity + ", but got: " + capacity);
+  }
+
+  static IllegalArgumentException invalidAllocatorCapacitu(int minCapacity, int maxCapacity) {
+    return new IllegalArgumentException(
+        "Invalid allocator capacity: minCapacity=" + minCapacity + ", maxCapacity=" + maxCapacity);
+  }
+
   static ReaderException wrongFormat(byte format, JavaType javaType) {
     return new ReaderException(
         "MessagePack type `"
@@ -33,27 +47,13 @@ public class ReaderException extends RuntimeException {
         "Value `" + value + "` does not fit into Java type `" + javaType + "`.");
   }
 
-  static ReaderException bufferTooSmall(int capacity, int minCapacity) {
-    return new ReaderException(
-        "The minimum supported ByteBuffer capacity is " + minCapacity + ", but got: " + capacity);
-  }
-
   static ReaderException stringTooLarge(long length, int maxLength) {
     return new ReaderException(
         "The maximum supported String length is " + maxLength + ", but got: " + length);
   }
 
-  static ReaderException tooLargeBinary(long length) {
+  static ReaderException binaryTooLarge(long length) {
     return new ReaderException("TODO");
-  }
-
-  static IllegalStateException sourceRequired() {
-    return new IllegalStateException("MessageReader.Builder.source() must be set.");
-  }
-
-  static IllegalArgumentException invalidAllocatorCapacitu(int minCapacity, int maxCapacity) {
-    return new IllegalArgumentException(
-        "Invalid allocator capacity: minCapacity=" + minCapacity + ", maxCapacity=" + maxCapacity);
   }
 
   static ReaderException invalidFormat(byte format) {

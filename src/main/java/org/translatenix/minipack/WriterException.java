@@ -19,13 +19,13 @@ public class WriterException extends RuntimeException {
     super(message, cause);
   }
 
+  static IllegalStateException sinkRequired() {
+    throw new IllegalStateException("MessageWriter.Builder.sink() must be set.");
+  }
+
   static WriterException invalidSurrogatePair(int position) {
     return new WriterException(
         "Refusing to write string with invalid surrogate pair at position " + position + ".");
-  }
-
-  static IllegalStateException sinkRequired() {
-    throw new IllegalStateException("MessageWriter.Builder.sink() must be set.");
   }
 
   static WriterException ioErrorWritingToSink(IOException e) {

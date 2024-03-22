@@ -15,8 +15,8 @@ import org.jspecify.annotations.Nullable;
  * Reads messages encoded in the <a href="https://msgpack.org/">MessagePack</a> binary serialization
  * format.
  *
- * <p>To create a {@code MessageReader}, use a {@linkplain #builder() builder}. To read a message,
- * call one of the {@code readXYZ()} methods. To peek at the next message type, call {@link
+ * <p>To create a new {@code MessageReader}, use a {@linkplain #builder() builder}. To read a
+ * message, call one of the {@code readXYZ()} methods. To peek at the next message type, call {@link
  * #nextType()}. If an error occurs when reading a message, a {@link ReaderException} is thrown.
  */
 public final class MessageReader {
@@ -54,9 +54,9 @@ public final class MessageReader {
     }
 
     /**
-     * Sets the buffer to use for reading from the underlying source. The buffer's {@linkplain
-     * ByteBuffer#capacity() capacity} determines the maximum number of bytes that will be read at
-     * once from the source.
+     * Sets the buffer to use for reading from the underlying message {@linkplain MessageSource
+     * source}. The buffer's {@linkplain ByteBuffer#capacity() capacity} determines the maximum
+     * number of bytes that will be read at once from the source.
      *
      * <p>If not set, defaults to {@code ByteBuffer.allocate(8192)}.
      */
@@ -96,12 +96,13 @@ public final class MessageReader {
       return this;
     }
 
-    /** Creates a {@code MessageReader} from this builder's current settings. */
+    /** Creates a new {@code MessageReader} from this builder's current state. */
     public MessageReader build() {
       return new MessageReader(this);
     }
   }
 
+  /** Creates a new {@code MessageWriter} builder. */
   public static Builder builder() {
     return new Builder();
   }
@@ -122,13 +123,14 @@ public final class MessageReader {
     this.allocator =
         builder.allocator != null
             ? builder.allocator
-            : new BufferAllocators.DefaultAllocator(
+            : BufferAllocators.defaultAllocator(
                 Math.min(builder.defaultAllocatorMaxCapacity, buffer.capacity() * 2),
                 builder.defaultAllocatorMaxCapacity);
   }
 
-  /** Returns the next message type. */
-  public MessageType nextType() {
+  // TODO handle EOF
+  /** Returns the type of the next value to be read. */
+  public ValueType nextType() {
     ensureRemaining(1);
     // don't change position
     return Format.toType(buffer.get(buffer.position()));
@@ -385,21 +387,12 @@ public final class MessageReader {
   }
 
   /**
-   * Reads a string.
+   * Reads a string value.
    *
    * <p>The maximum UTF-8 string length is determined by the {@link BufferAllocator} that this
    * reader was built with. The default maximum UTF-8 string length is 1 MiB (1024 * 1024 bytes).
    *
-   * <p>An alternative way to read strings is {@link #readRawStringHeader()} and {@link
-   * #readPayload}. This alternative can be useful in the following cases:
-   *
-   * <ul>
-   *   <li>There is no need to convert UTF-8 MessagePack strings to {@code java.lang.String}.
-   *   <li>More control over conversion from UTF-8 MessagePack strings to {@code java.lang.String}
-   *       is required.
-   * </ul>
-   *
-   * .
+   * <p>For a lower-level way to read strings, see {@link #readRawStringHeader()}.
    */
   public String readString() {
     ensureRemaining(1);
@@ -428,10 +421,10 @@ public final class MessageReader {
   }
 
   /**
-   * Expects an array and returns its number of elements.
+   * Starts writing an array value.
    *
-   * <p>A call to this method that returns {@code n} MUST be followed by {@code n} calls to {@code
-   * readXYZ} methods that read the array's elements.
+   * <p>A call to this method MUST be followed by {@code n} calls that read the array's elements,
+   * where {@code n} is the number of array elements returned by this method.
    */
   public int readArrayHeader() {
     ensureRemaining(1);
@@ -455,10 +448,10 @@ public final class MessageReader {
   }
 
   /**
-   * Expects a map and returns its number of entries.
+   * Starts reading a map value.
    *
-   * <p>A call to this method that returns {@code n} MUST be followed by {@code n*2} calls to {@code
-   * readXYZ} methods that alternately read the map's keys and values.
+   * <p>A call to this method MUST be followed by {@code n*2} calls that alternately read the map's
+   * keys and values, where {@code n} is the number of map entries returned by this method.
    */
   public int readMapHeader() {
     ensureRemaining(1);
@@ -482,7 +475,7 @@ public final class MessageReader {
   }
 
   /**
-   * Expects a binary and returns its length.
+   * Starts reading a binary value.
    *
    * <p>A call to this method MUST be followed by one or more calls to {@link #readPayload} that
    * read <i>exactly</i> the number of bytes returned by this method.
@@ -502,7 +495,7 @@ public final class MessageReader {
       case Format.BIN32 -> {
         ensureRemaining(4);
         var result = buffer.getInt();
-        if (result < 0) throw ReaderException.tooLargeBinary(result);
+        if (result < 0) throw ReaderException.binaryTooLarge(result);
         yield result;
       }
       default -> throw ReaderException.wrongFormat(format, JavaType.STRING);
@@ -510,10 +503,19 @@ public final class MessageReader {
   }
 
   /**
-   * Expects a string and returns its length.
+   * Starts reading a string value.
    *
    * <p>A call to this method MUST be followed by one or more calls to {@link #readPayload} that
    * read <i>exactly</i> the number of bytes returned by this method.
+   *
+   * <p>This method is a low-level alternative to {@link #readString()}. It can be useful in the
+   * following cases:
+   *
+   * <ul>
+   *   <li>There is no need to convert a MessagePack string's UTF-8 payload to {@code
+   *       java.lang.String}.
+   *   <li>Full control over conversion from UTF-8 to {@code java.lang.String} is required.
+   * </ul>
    */
   public int readRawStringHeader() {
     ensureRemaining(1);
@@ -544,6 +546,9 @@ public final class MessageReader {
   /**
    * Reads {@linkplain ByteBuffer#remaining() remaining} bytes into the given buffer, starting at
    * the buffer's current {@linkplain ByteBuffer#position() position}.
+   *
+   * <p>This method is used together with {@link #readBinaryHeader()} or {@link
+   * #readRawStringHeader()}.
    */
   public void readPayload(ByteBuffer buffer) {
     readFromSource(buffer, buffer.remaining());
@@ -552,6 +557,9 @@ public final class MessageReader {
   /**
    * Reads between {@code minBytes} and {@linkplain ByteBuffer#remaining() remaining} bytes into the
    * given buffer, starting at the buffer's current {@linkplain ByteBuffer#position() position}.
+   *
+   * <p>This method is used together with {@link #readBinaryHeader()} or {@link
+   * #readRawStringHeader()}.
    */
   public void readPayload(ByteBuffer buffer, int minBytes) {
     readFromSource(buffer, minBytes);

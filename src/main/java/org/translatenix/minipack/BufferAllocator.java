@@ -6,6 +6,9 @@ package org.translatenix.minipack;
 
 import java.nio.ByteBuffer;
 
+/**
+ * Allocates {@linkplain ByteBuffer byte buffers} on demand.
+ */
 public interface BufferAllocator {
   /**
    * Returns a {@code ByteBuffer} that is backed by an accessible array and has at least the given

@@ -14,12 +14,12 @@ public final class BufferAllocators {
     return new DefaultAllocator(minCapacity, maxCapacity);
   }
 
-  static final class DefaultAllocator implements BufferAllocator {
+  private static final class DefaultAllocator implements BufferAllocator {
     private final int minCapacity;
     private final int maxCapacity;
     private @Nullable ByteBuffer currentBuffer;
 
-    DefaultAllocator(int minCapacity, int maxCapacity) {
+    private DefaultAllocator(int minCapacity, int maxCapacity) {
       if (minCapacity <= 0 || maxCapacity <= 0 || minCapacity > maxCapacity) {
         throw ReaderException.invalidAllocatorCapacitu(minCapacity, maxCapacity);
       }

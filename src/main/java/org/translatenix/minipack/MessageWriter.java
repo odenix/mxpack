@@ -14,10 +14,10 @@ import org.jspecify.annotations.Nullable;
  * Writes messages encoded in the <a href="https://msgpack.org/">MessagePack</a> binary
  * serialization format.
  *
- * <p>To create a {@code MessageWriter}, use a {@linkplain #builder() builder}. To write a message,
- * call one of the {@code write()} or {@code writeXYZ()} methods. To flush the underlying message
- * {@linkplain MessageSink sink}, call {@link #flush()}. If an error occurs when writing a message,
- * a {@link WriterException} is thrown.
+ * <p>To create a new {@code MessageWriter}, use a {@linkplain #builder() builder}. To write a
+ * message, call one of the {@code write()} or {@code writeXYZ()} methods. To flush the underlying
+ * message {@linkplain MessageSink sink}, call {@link #flush()}. If an error occurs when writing a
+ * message, a {@link WriterException} is thrown.
  */
 public final class MessageWriter {
   private static final int MIN_BUFFER_SIZE = 9;
@@ -26,37 +26,46 @@ public final class MessageWriter {
   private final MessageSink sink;
   private final ByteBuffer buffer;
 
+  /** A builder of {@code MessageWriter}. */
   public static final class Builder {
     private Builder() {}
 
     private @Nullable MessageSink sink;
     private @Nullable ByteBuffer buffer;
 
+    /** Sets the message sink to write to. */
     public Builder sink(OutputStream stream) {
       sink = new MessageSinks.OutputStreamSink(stream);
       return this;
     }
 
+    /** Sets the message sink to write to. */
     public Builder sink(WritableByteChannel channel) {
       sink = new MessageSinks.ChannelSink(channel);
       return this;
     }
 
+    /** Sets the message sink to write to. */
     public Builder sink(MessageSink sink) {
       this.sink = sink;
       return this;
     }
 
+    /**
+     * Sets the buffer to use for writing to the underlying message {@linkplain MessageSink sink}.
+     */
     public Builder buffer(ByteBuffer buffer) {
       this.buffer = buffer;
       return this;
     }
 
+    /** Creates a new {@code MessageWriter} from this builder's current state. */
     public MessageWriter build() {
       return new MessageWriter(this);
     }
   }
 
+  /** Creates a new {@code MessageWriter} builder. */
   public static Builder builder() {
     return new Builder();
   }
@@ -74,16 +83,19 @@ public final class MessageWriter {
     }
   }
 
+  /** Writes a nil (null) value. */
   public void writeNil() {
     ensureRemaining(1);
     buffer.put(Format.NIL);
   }
 
+  /** Writes a boolean value. */
   public void write(boolean value) {
     ensureRemaining(1);
     buffer.put(value ? Format.TRUE : Format.FALSE);
   }
 
+  /** Writes an integer value that fits into a Java byte. */
   public void write(byte value) {
     if (value < -(1 << 5)) {
       writeInt8(value);
@@ -92,6 +104,7 @@ public final class MessageWriter {
     }
   }
 
+  /** Writes an integer value that fits into a Java short. */
   public void write(short value) {
     if (value < -(1 << 5)) {
       if (value < -(1 << 7)) {
@@ -110,6 +123,7 @@ public final class MessageWriter {
     }
   }
 
+  /** Writes an integer value that fits into a Java int. */
   public void write(int value) {
     if (value < -(1 << 5)) {
       if (value < -(1 << 15)) {
@@ -136,6 +150,7 @@ public final class MessageWriter {
     }
   }
 
+  /** Writes an integer value that fits into a Java long. */
   public void write(long value) {
     if (value < -(1L << 5)) {
       if (value < -(1L << 31)) {
@@ -170,29 +185,38 @@ public final class MessageWriter {
     }
   }
 
+  /** Writes a floating point value that fits into a Java float. */
   public void write(float value) {
     ensureRemaining(5);
     buffer.put(Format.FLOAT32);
     buffer.putFloat(value);
   }
 
+  /** Writes a floating point value that fits into a Java double. */
   public void write(double value) {
     ensureRemaining(9);
     buffer.put(Format.FLOAT64);
     buffer.putDouble(value);
   }
 
+  /** Writes a string value. */
   public void write(CharSequence str) {
     var utf8Length = countUtf8Length(str);
     if (utf8Length < 0) {
-      writeStringHeader(-utf8Length);
+      writeRawStringHeader(-utf8Length);
       writeStringAscii(str);
     } else {
-      writeStringHeader(utf8Length);
+      writeRawStringHeader(utf8Length);
       writeStringNonAscii(str);
     }
   }
 
+  /**
+   * Starts writing an array value with the given number of elements.
+   *
+   * <p>A call to this method MUST be followed by {@code length} calls that write the array's
+   * elements.
+   */
   public void writeArrayHeader(int length) {
     if (length < (1 << 4)) {
       ensureRemaining(1);
@@ -208,6 +232,12 @@ public final class MessageWriter {
     }
   }
 
+  /**
+   * Starts writing a map value with the given number of entries.
+   *
+   * <p>A call to this method MUST be followed by {@code size*2} calls that alternately write the
+   * map's keys and values.
+   */
   public void writeMapHeader(int size) {
     if (size < (1 << 4)) {
       ensureRemaining(1);
@@ -223,7 +253,21 @@ public final class MessageWriter {
     }
   }
 
-  public void writeStringHeader(int utf8Length) {
+  /**
+   * Starts writing a string value with the given number of bytes.
+   *
+   * <p>A call to this method MUST be followed by one or more calls to {@link #writePayload} that
+   * write exactly {@code utf8Length} bytes in total.
+   *
+   * <p>This method is a low-level alternative to {@link #write(CharSequence)}. It can be useful in
+   * the following cases:
+   *
+   * <ul>
+   *   <li>The string to write is already available in UTF-8 encoding.
+   *   <li>Full control over conversion from {@code java.lang.String} to UTF-8 is required.
+   * </ul>
+   */
+  public void writeRawStringHeader(int utf8Length) {
     if (utf8Length < (1 << 5)) {
       ensureRemaining(1);
       buffer.put((byte) (Format.FIXSTR_PREFIX | utf8Length));
@@ -242,6 +286,12 @@ public final class MessageWriter {
     }
   }
 
+  /**
+   * Starts writing a binary value with the given number of bytes.
+   *
+   * <p>A call to this method MUST be followed by one or more calls to {@link #writePayload} that
+   * write exactly {@code length} bytes in total.
+   */
   public void writeBinaryHeader(int length) {
     if (length < (1 << 8)) {
       ensureRemaining(2);
@@ -258,11 +308,19 @@ public final class MessageWriter {
     }
   }
 
-  public void writeBinaryPayload(ByteBuffer buffer) {
+  /**
+   * Writes the given buffer's {@linkplain ByteBuffer#remaining() remaining} bytes, starting at the
+   * buffer's current {@linkplain ByteBuffer#position() position}.
+   *
+   * <p>This method is used together with {@link #writeBinaryHeader} or {@link
+   * #writeRawStringHeader}.
+   */
+  public void writePayload(ByteBuffer buffer) {
     writeBuffer();
     doWriteBuffer(buffer);
   }
 
+  /** Flushes the underlying message {@linkplain MessageSink sink}. */
   public void flush() {
     writeBuffer();
     try {
