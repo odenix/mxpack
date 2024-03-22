@@ -4,6 +4,7 @@
  */
 package org.translatenix.minipack;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
@@ -17,9 +18,9 @@ import org.jspecify.annotations.Nullable;
  * <p>To create a new {@code MessageWriter}, use a {@linkplain #builder() builder}. To write a
  * message, call one of the {@code write()} or {@code writeXYZ()} methods. To flush the underlying
  * message {@linkplain MessageSink sink}, call {@link #flush()}. If an error occurs when writing a
- * message, a {@link WriterException} is thrown.
+ * value, a {@link WriterException} is thrown.
  */
-public final class MessageWriter {
+public final class MessageWriter implements Closeable {
   private static final int MIN_BUFFER_SIZE = 9;
   private static final int DEFAULT_BUFFER_SIZE = 1 << 13;
 
@@ -34,21 +35,19 @@ public final class MessageWriter {
     private @Nullable ByteBuffer buffer;
 
     /** Sets the message sink to write to. */
-    public Builder sink(OutputStream stream) {
-      sink = new MessageSinks.OutputStreamSink(stream);
-      return this;
-    }
-
-    /** Sets the message sink to write to. */
-    public Builder sink(WritableByteChannel channel) {
-      sink = new MessageSinks.ChannelSink(channel);
-      return this;
-    }
-
-    /** Sets the message sink to write to. */
     public Builder sink(MessageSink sink) {
       this.sink = sink;
       return this;
+    }
+
+    /** Shorthand for {@code sink(MessageSink.of(stream))}. */
+    public Builder sink(OutputStream stream) {
+      return sink(MessageSink.of(stream));
+    }
+
+    /** Shorthand for {@code sink(MessageSink.of(channel))}. */
+    public Builder sink(WritableByteChannel channel) {
+      return sink(MessageSink.of(channel));
     }
 
     /**
@@ -72,12 +71,13 @@ public final class MessageWriter {
 
   private MessageWriter(Builder builder) {
     if (builder.sink == null) {
-      throw WriterException.sinkRequired();
+      throw Exceptions.sinkRequired();
     }
     sink = builder.sink;
     buffer =
         builder.buffer != null ? builder.buffer.clear() : ByteBuffer.allocate(DEFAULT_BUFFER_SIZE);
     if (buffer.capacity() < MIN_BUFFER_SIZE) {
+      // TODO: move to Exceptions
       throw new IllegalArgumentException(
           "MessageWriter requires a buffer with a capacity of at least " + MIN_BUFFER_SIZE + ".");
     }
@@ -86,13 +86,13 @@ public final class MessageWriter {
   /** Writes a nil (null) value. */
   public void writeNil() {
     ensureRemaining(1);
-    buffer.put(Format.NIL);
+    buffer.put(ValueFormat.NIL);
   }
 
   /** Writes a boolean value. */
   public void write(boolean value) {
     ensureRemaining(1);
-    buffer.put(value ? Format.TRUE : Format.FALSE);
+    buffer.put(value ? ValueFormat.TRUE : ValueFormat.FALSE);
   }
 
   /** Writes an integer value that fits into a Java byte. */
@@ -188,14 +188,14 @@ public final class MessageWriter {
   /** Writes a floating point value that fits into a Java float. */
   public void write(float value) {
     ensureRemaining(5);
-    buffer.put(Format.FLOAT32);
+    buffer.put(ValueFormat.FLOAT32);
     buffer.putFloat(value);
   }
 
   /** Writes a floating point value that fits into a Java double. */
   public void write(double value) {
     ensureRemaining(9);
-    buffer.put(Format.FLOAT64);
+    buffer.put(ValueFormat.FLOAT64);
     buffer.putDouble(value);
   }
 
@@ -220,14 +220,14 @@ public final class MessageWriter {
   public void writeArrayHeader(int length) {
     if (length < (1 << 4)) {
       ensureRemaining(1);
-      buffer.put((byte) (Format.FIXARRAY_PREFIX | length));
+      buffer.put((byte) (ValueFormat.FIXARRAY_PREFIX | length));
     } else if (length < (1 << 16)) {
       ensureRemaining(3);
-      buffer.put(Format.ARRAY16);
+      buffer.put(ValueFormat.ARRAY16);
       buffer.putShort((short) length);
     } else {
       ensureRemaining(5);
-      buffer.put(Format.ARRAY32);
+      buffer.put(ValueFormat.ARRAY32);
       buffer.putInt(length);
     }
   }
@@ -241,14 +241,14 @@ public final class MessageWriter {
   public void writeMapHeader(int size) {
     if (size < (1 << 4)) {
       ensureRemaining(1);
-      buffer.put((byte) (Format.FIXMAP_PREFIX | size));
+      buffer.put((byte) (ValueFormat.FIXMAP_PREFIX | size));
     } else if (size < (1 << 16)) {
       ensureRemaining(3);
-      buffer.put(Format.MAP16);
+      buffer.put(ValueFormat.MAP16);
       buffer.putShort((short) size);
     } else {
       ensureRemaining(5);
-      buffer.put(Format.MAP32);
+      buffer.put(ValueFormat.MAP32);
       buffer.putInt(size);
     }
   }
@@ -270,18 +270,18 @@ public final class MessageWriter {
   public void writeRawStringHeader(int utf8Length) {
     if (utf8Length < (1 << 5)) {
       ensureRemaining(1);
-      buffer.put((byte) (Format.FIXSTR_PREFIX | utf8Length));
+      buffer.put((byte) (ValueFormat.FIXSTR_PREFIX | utf8Length));
     } else if (utf8Length < (1 << 8)) {
       ensureRemaining(2);
-      buffer.put(Format.STR8);
+      buffer.put(ValueFormat.STR8);
       buffer.put((byte) utf8Length);
     } else if (utf8Length < (1 << 16)) {
       ensureRemaining(3);
-      buffer.put(Format.STR16);
+      buffer.put(ValueFormat.STR16);
       buffer.putShort((short) utf8Length);
     } else {
       ensureRemaining(5);
-      buffer.put(Format.STR32);
+      buffer.put(ValueFormat.STR32);
       buffer.putInt(utf8Length);
     }
   }
@@ -295,15 +295,15 @@ public final class MessageWriter {
   public void writeBinaryHeader(int length) {
     if (length < (1 << 8)) {
       ensureRemaining(2);
-      buffer.put(Format.BIN8);
+      buffer.put(ValueFormat.BIN8);
       buffer.put((byte) length);
     } else if (length < (1 << 16)) {
       ensureRemaining(3);
-      buffer.put(Format.BIN16);
+      buffer.put(ValueFormat.BIN16);
       buffer.putShort((short) length);
     } else {
       ensureRemaining(5);
-      buffer.put(Format.BIN32);
+      buffer.put(ValueFormat.BIN32);
       buffer.putInt(length);
     }
   }
@@ -320,13 +320,30 @@ public final class MessageWriter {
     doWriteBuffer(buffer);
   }
 
-  /** Flushes the underlying message {@linkplain MessageSink sink}. */
+  /**
+   * Writes any data remaining in this writer's buffer and flushes the underlying message
+   * {@linkplain MessageSink sink}.
+   */
   public void flush() {
     writeBuffer();
     try {
       sink.flush();
     } catch (IOException e) {
-      throw WriterException.ioErrorFlushingSink(e);
+      throw Exceptions.ioErrorFlushingSink(e);
+    }
+  }
+
+  /**
+   * {@linkplain #flush() Flushes} this writer and {@linkplain MessageSink#close() closes} the
+   * underlying message {@linkplain MessageSink sink}.
+   */
+  @Override
+  public void close() {
+    flush();
+    try {
+      sink.close();
+    } catch (IOException e) {
+      throw Exceptions.ioErrorClosingSink(e);
     }
   }
 
@@ -356,7 +373,7 @@ public final class MessageWriter {
       } else if (Character.isSurrogate(ch)) { // 4 bytes
         char ch2;
         if (++i == length || !Character.isSurrogatePair(ch, ch2 = str.charAt(i))) {
-          throw WriterException.invalidSurrogatePair(i);
+          throw Exceptions.invalidSurrogatePair(i);
         }
         var cp = Character.toCodePoint(ch, ch2);
         buffer.put((byte) (0xf0 | cp >>> 18));
@@ -405,9 +422,9 @@ public final class MessageWriter {
 
   private void doWriteBuffer(ByteBuffer buffer) {
     try {
-      sink.writeBuffer(buffer);
+      sink.write(buffer);
     } catch (IOException e) {
-      throw WriterException.ioErrorWritingToSink(e);
+      throw Exceptions.ioErrorWritingToSink(e);
     }
   }
 
@@ -418,49 +435,49 @@ public final class MessageWriter {
 
   private void writeInt8(byte value) {
     ensureRemaining(2);
-    buffer.put(Format.INT8);
+    buffer.put(ValueFormat.INT8);
     buffer.put(value);
   }
 
   private void writeUInt8(byte value) {
     ensureRemaining(2);
-    buffer.put(Format.UINT8);
+    buffer.put(ValueFormat.UINT8);
     buffer.put(value);
   }
 
   private void writeInt16(short value) {
     ensureRemaining(3);
-    buffer.put(Format.INT16);
+    buffer.put(ValueFormat.INT16);
     buffer.putShort(value);
   }
 
   private void writeUInt16(short value) {
     ensureRemaining(3);
-    buffer.put(Format.UINT16);
+    buffer.put(ValueFormat.UINT16);
     buffer.putShort(value);
   }
 
   private void writeInt32(int value) {
     ensureRemaining(5);
-    buffer.put(Format.INT32);
+    buffer.put(ValueFormat.INT32);
     buffer.putInt(value);
   }
 
   private void writeUInt32(int value) {
     ensureRemaining(5);
-    buffer.put(Format.UINT32);
+    buffer.put(ValueFormat.UINT32);
     buffer.putInt(value);
   }
 
   private void writeInt64(long value) {
     ensureRemaining(9);
-    buffer.put(Format.INT64);
+    buffer.put(ValueFormat.INT64);
     buffer.putLong(value);
   }
 
   private void writeUInt64(long value) {
     ensureRemaining(9);
-    buffer.put(Format.UINT64);
+    buffer.put(ValueFormat.UINT64);
     buffer.putLong(value);
   }
 

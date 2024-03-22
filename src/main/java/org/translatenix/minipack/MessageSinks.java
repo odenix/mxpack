@@ -10,6 +10,8 @@ import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
 
 final class MessageSinks {
+  private MessageSinks() {}
+
   static final class OutputStreamSink implements MessageSink {
     private final OutputStream out;
 
@@ -18,9 +20,9 @@ final class MessageSinks {
     }
 
     @Override
-    public void writeBuffer(ByteBuffer buffer) throws IOException {
+    public void write(ByteBuffer buffer) throws IOException {
       if (!buffer.hasArray()) {
-        throw MessageSink.arrayBackedBufferRequired();
+        throw Exceptions.arrayBackedBufferRequired();
       }
       out.write(buffer.array(), buffer.arrayOffset() + buffer.position(), buffer.remaining());
     }
@@ -28,6 +30,11 @@ final class MessageSinks {
     @Override
     public void flush() throws IOException {
       out.flush();
+    }
+
+    @Override
+    public void close() throws IOException {
+      out.close();
     }
   }
 
@@ -39,11 +46,16 @@ final class MessageSinks {
     }
 
     @Override
-    public void writeBuffer(ByteBuffer buffer) throws IOException {
+    public void write(ByteBuffer buffer) throws IOException {
       while (buffer.hasRemaining()) channel.write(buffer);
     }
 
     @Override
     public void flush() {} // nothing to do
+
+    @Override
+    public void close() throws IOException {
+      channel.close();
+    }
   }
 }

@@ -35,7 +35,7 @@ public class MessageWriterReaderTest {
   public void writeReadNil() {
     writer.writeNil();
     writer.flush();
-    assertThat(reader.nextFormat()).isEqualTo(Format.NIL);
+    assertThat(reader.nextFormat()).isEqualTo(ValueFormat.NIL);
     assertThat(reader.nextType()).isEqualTo(ValueType.NIL);
     assertThatNoException().isThrownBy(reader::readNil);
   }
@@ -44,7 +44,7 @@ public class MessageWriterReaderTest {
   public void writeReadBoolean(@ForAll boolean input) {
     writer.write(input);
     writer.flush();
-    assertThat(reader.nextFormat()).isEqualTo(input ? Format.TRUE : Format.FALSE);
+    assertThat(reader.nextFormat()).isEqualTo(input ? ValueFormat.TRUE : ValueFormat.FALSE);
     assertThat(reader.nextType()).isEqualTo(ValueType.BOOLEAN);
     var output = reader.readBoolean();
     assertThat(output).isEqualTo(input);
@@ -56,8 +56,9 @@ public class MessageWriterReaderTest {
     writer.flush();
     assertThat(reader.nextFormat())
         .satisfiesAnyOf(
-            format -> assertThat(Format.isFixInt(format)).isTrue(),
-            format -> assertThat(format).isEqualTo(input >= 0 ? Format.UINT8 : Format.INT8));
+            format -> assertThat(ValueFormat.isFixInt(format)).isTrue(),
+            format ->
+                assertThat(format).isEqualTo(input >= 0 ? ValueFormat.UINT8 : ValueFormat.INT8));
     assertThat(reader.nextType()).isEqualTo(ValueType.INTEGER);
     var output = reader.readByte();
     assertThat(output).isEqualTo(input);
@@ -69,9 +70,11 @@ public class MessageWriterReaderTest {
     writer.flush();
     assertThat(reader.nextFormat())
         .satisfiesAnyOf(
-            format -> assertThat(Format.isFixInt(format)).isTrue(),
-            format -> assertThat(format).isEqualTo(input >= 0 ? Format.UINT8 : Format.INT8),
-            format -> assertThat(format).isEqualTo(input >= 0 ? Format.UINT16 : Format.INT16));
+            format -> assertThat(ValueFormat.isFixInt(format)).isTrue(),
+            format ->
+                assertThat(format).isEqualTo(input >= 0 ? ValueFormat.UINT8 : ValueFormat.INT8),
+            format ->
+                assertThat(format).isEqualTo(input >= 0 ? ValueFormat.UINT16 : ValueFormat.INT16));
     assertThat(reader.nextType()).isEqualTo(ValueType.INTEGER);
     var output = reader.readShort();
     assertThat(output).isEqualTo(input);
@@ -83,10 +86,13 @@ public class MessageWriterReaderTest {
     writer.flush();
     assertThat(reader.nextFormat())
         .satisfiesAnyOf(
-            format -> assertThat(Format.isFixInt(format)).isTrue(),
-            format -> assertThat(format).isEqualTo(input >= 0 ? Format.UINT8 : Format.INT8),
-            format -> assertThat(format).isEqualTo(input >= 0 ? Format.UINT16 : Format.INT16),
-            format -> assertThat(format).isEqualTo(input >= 0 ? Format.UINT32 : Format.INT32));
+            format -> assertThat(ValueFormat.isFixInt(format)).isTrue(),
+            format ->
+                assertThat(format).isEqualTo(input >= 0 ? ValueFormat.UINT8 : ValueFormat.INT8),
+            format ->
+                assertThat(format).isEqualTo(input >= 0 ? ValueFormat.UINT16 : ValueFormat.INT16),
+            format ->
+                assertThat(format).isEqualTo(input >= 0 ? ValueFormat.UINT32 : ValueFormat.INT32));
     assertThat(reader.nextType()).isEqualTo(ValueType.INTEGER);
     var output = reader.readInt();
     assertThat(output).isEqualTo(input);
@@ -98,11 +104,15 @@ public class MessageWriterReaderTest {
     writer.flush();
     assertThat(reader.nextFormat())
         .satisfiesAnyOf(
-            format -> assertThat(Format.isFixInt(format)).isTrue(),
-            format -> assertThat(format).isEqualTo(input >= 0 ? Format.UINT8 : Format.INT8),
-            format -> assertThat(format).isEqualTo(input >= 0 ? Format.UINT16 : Format.INT16),
-            format -> assertThat(format).isEqualTo(input >= 0 ? Format.UINT32 : Format.INT32),
-            format -> assertThat(format).isEqualTo(input >= 0 ? Format.UINT64 : Format.INT64));
+            format -> assertThat(ValueFormat.isFixInt(format)).isTrue(),
+            format ->
+                assertThat(format).isEqualTo(input >= 0 ? ValueFormat.UINT8 : ValueFormat.INT8),
+            format ->
+                assertThat(format).isEqualTo(input >= 0 ? ValueFormat.UINT16 : ValueFormat.INT16),
+            format ->
+                assertThat(format).isEqualTo(input >= 0 ? ValueFormat.UINT32 : ValueFormat.INT32),
+            format ->
+                assertThat(format).isEqualTo(input >= 0 ? ValueFormat.UINT64 : ValueFormat.INT64));
     assertThat(reader.nextType()).isEqualTo(ValueType.INTEGER);
     var output = reader.readLong();
     assertThat(output).isEqualTo(input);
@@ -112,7 +122,7 @@ public class MessageWriterReaderTest {
   public void writeReadFloat(@ForAll float input) {
     writer.write(input);
     writer.flush();
-    assertThat(reader.nextFormat()).isEqualTo(Format.FLOAT32);
+    assertThat(reader.nextFormat()).isEqualTo(ValueFormat.FLOAT32);
     assertThat(reader.nextType()).isEqualTo(ValueType.FLOAT);
     var output = reader.readFloat();
     assertThat(output).isEqualTo(input);
@@ -122,7 +132,7 @@ public class MessageWriterReaderTest {
   public void writeReadDouble(@ForAll double input) {
     writer.write(input);
     writer.flush();
-    assertThat(reader.nextFormat()).isEqualTo(Format.FLOAT64);
+    assertThat(reader.nextFormat()).isEqualTo(ValueFormat.FLOAT64);
     assertThat(reader.nextType()).isEqualTo(ValueType.FLOAT);
     var output = reader.readDouble();
     assertThat(output).isEqualTo(input);
@@ -272,10 +282,10 @@ public class MessageWriterReaderTest {
     writer.flush();
     assertThat(reader.nextFormat())
         .satisfiesAnyOf(
-            format -> assertThat(Format.isFixStr(format)).isTrue(),
-            format -> assertThat(format).isEqualTo(Format.STR8),
-            format -> assertThat(format).isEqualTo(Format.STR16),
-            format -> assertThat(format).isEqualTo(Format.STR32));
+            format -> assertThat(ValueFormat.isFixStr(format)).isTrue(),
+            format -> assertThat(format).isEqualTo(ValueFormat.STR8),
+            format -> assertThat(format).isEqualTo(ValueFormat.STR16),
+            format -> assertThat(format).isEqualTo(ValueFormat.STR32));
     assertThat(reader.nextType()).isEqualTo(ValueType.STRING);
     var output = reader.readString();
     assertThat(output).isEqualTo(input);

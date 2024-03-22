@@ -4,6 +4,7 @@
  */
 package org.translatenix.minipack;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -17,12 +18,12 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>To create a new {@code MessageReader}, use a {@linkplain #builder() builder}. To read a
  * message, call one of the {@code readXYZ()} methods. To peek at the next message type, call {@link
- * #nextType()}. If an error occurs when reading a message, a {@link ReaderException} is thrown.
+ * #nextType()}. If an error occurs when reading a value, a {@link ReaderException} is thrown.
  */
-public final class MessageReader {
-  private static final int MIN_BUFFER_SIZE = 9;
-  private static final int DEFAULT_BUFFER_SIZE = 1 << 13;
-  private static final int DEFAULT_MAX_BUFFER_SIZE = 1 << 20;
+public final class MessageReader implements Closeable {
+  private static final int MIN_BUFFER_CAPACITY = 9;
+  private static final int DEFAULT_BUFFER_CAPACITY = 1 << 13;
+  private static final int DEFAULT_MAX_ALLOCATOR_CAPACITY = 1 << 20;
 
   private final MessageSource source;
   private final ByteBuffer buffer;
@@ -33,7 +34,7 @@ public final class MessageReader {
     private @Nullable MessageSource source;
     private @Nullable ByteBuffer buffer;
     private @Nullable BufferAllocator allocator;
-    private int defaultAllocatorMaxCapacity = DEFAULT_MAX_BUFFER_SIZE;
+    private int maxAllocatorCapacity = DEFAULT_MAX_ALLOCATOR_CAPACITY;
 
     /** Sets the underlying source to read from. */
     public Builder source(MessageSource source) {
@@ -41,16 +42,14 @@ public final class MessageReader {
       return this;
     }
 
-    /** Sets the underlying source to read from. */
+    /** Shorthand for {@code source(MessageSource.of(stream))}. */
     public Builder source(InputStream stream) {
-      source = new MessageSources.InputStreamSource(stream);
-      return this;
+      return source(MessageSource.of(stream));
     }
 
-    /** Sets the underlying source to read from. */
+    /** Shorthand for {@code source(MessageSource.of(channel))}. */
     public Builder source(ReadableByteChannel channel) {
-      source = new MessageSources.Channel(channel);
-      return this;
+      return source(MessageSource.of(channel));
     }
 
     /**
@@ -84,15 +83,14 @@ public final class MessageReader {
     }
 
     /**
-     * Sets a {@linkplain BufferAllocators.DefaultAllocator default} buffer allocator.
-     *
-     * <p>The {@code maxCapacity} argument determines the maximum UTF-8 length of strings read with
-     * {@link #readString()}.
+     * Shorthand for {@code allocator(BufferAllocator.withCapacity(buffer.capacity() * 2,
+     * maxCapacity))}, where {@code buffer} is the meassage reader's regular {@linkplain
+     * #buffer(ByteBuffer) buffer}.
      *
      * @see #allocator(BufferAllocator)
      */
-    public Builder defaultAllocator(int maxCapacity) {
-      defaultAllocatorMaxCapacity = maxCapacity;
+    public Builder allocatorCapacity(int maxCapacity) {
+      maxAllocatorCapacity = maxCapacity;
       return this;
     }
 
@@ -109,23 +107,23 @@ public final class MessageReader {
 
   private MessageReader(Builder builder) {
     if (builder.source == null) {
-      throw ReaderException.sourceRequired();
+      throw Exceptions.sourceRequired();
     }
     this.source = builder.source;
     this.buffer =
         builder.buffer != null
             ? builder.buffer.position(0).limit(0)
-            : ByteBuffer.allocate(DEFAULT_BUFFER_SIZE).limit(0);
+            : ByteBuffer.allocate(DEFAULT_BUFFER_CAPACITY).limit(0);
     assert this.buffer.remaining() == 0;
-    if (buffer.capacity() < MIN_BUFFER_SIZE) {
-      throw ReaderException.bufferTooSmall(buffer.capacity(), MIN_BUFFER_SIZE);
+    if (buffer.capacity() < MIN_BUFFER_CAPACITY) {
+      throw Exceptions.bufferTooSmall(buffer.capacity(), MIN_BUFFER_CAPACITY);
     }
     this.allocator =
         builder.allocator != null
             ? builder.allocator
-            : BufferAllocators.defaultAllocator(
-                Math.min(builder.defaultAllocatorMaxCapacity, buffer.capacity() * 2),
-                builder.defaultAllocatorMaxCapacity);
+            : BufferAllocator.withCapacity(
+                Math.min(builder.maxAllocatorCapacity, buffer.capacity() * 2),
+                builder.maxAllocatorCapacity);
   }
 
   // TODO handle EOF
@@ -133,15 +131,15 @@ public final class MessageReader {
   public ValueType nextType() {
     ensureRemaining(1);
     // don't change position
-    return Format.toType(buffer.get(buffer.position()));
+    return ValueFormat.toType(buffer.get(buffer.position()));
   }
 
   /** Reads a nil (null) value. */
   public void readNil() {
     ensureRemaining(1);
     var format = buffer.get();
-    if (format != Format.NIL) {
-      throw ReaderException.wrongFormat(format, JavaType.VOID);
+    if (format != ValueFormat.NIL) {
+      throw Exceptions.wrongJavaType(format, JavaType.VOID);
     }
   }
 
@@ -150,9 +148,9 @@ public final class MessageReader {
     ensureRemaining(1);
     var format = buffer.get();
     return switch (format) {
-      case Format.TRUE -> true;
-      case Format.FALSE -> false;
-      default -> throw ReaderException.wrongFormat(format, JavaType.BOOLEAN);
+      case ValueFormat.TRUE -> true;
+      case ValueFormat.FALSE -> false;
+      default -> throw Exceptions.wrongJavaType(format, JavaType.BOOLEAN);
     };
   }
 
@@ -161,55 +159,55 @@ public final class MessageReader {
     ensureRemaining(1);
     var format = buffer.get();
     return switch (format) {
-      case Format.INT8 -> {
+      case ValueFormat.INT8 -> {
         ensureRemaining(1);
         yield buffer.get();
       }
-      case Format.INT16 -> {
+      case ValueFormat.INT16 -> {
         ensureRemaining(2);
         var value = buffer.getShort();
         if (value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE) yield (byte) value;
-        throw ReaderException.overflow(value, format, JavaType.BYTE);
+        throw Exceptions.integerOverflow(value, format, JavaType.BYTE);
       }
-      case Format.INT32 -> {
+      case ValueFormat.INT32 -> {
         ensureRemaining(4);
         var value = buffer.getInt();
         if (value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE) yield (byte) value;
-        throw ReaderException.overflow(value, format, JavaType.BYTE);
+        throw Exceptions.integerOverflow(value, format, JavaType.BYTE);
       }
-      case Format.INT64 -> {
+      case ValueFormat.INT64 -> {
         ensureRemaining(8);
         var value = buffer.getLong();
         if (value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE) yield (byte) value;
-        throw ReaderException.overflow(value, format, JavaType.BYTE);
+        throw Exceptions.integerOverflow(value, format, JavaType.BYTE);
       }
-      case Format.UINT8 -> {
+      case ValueFormat.UINT8 -> {
         ensureRemaining(1);
         var value = buffer.get();
         if (value >= 0) yield value;
-        throw ReaderException.overflow(value, format, JavaType.BYTE);
+        throw Exceptions.integerOverflow(value, format, JavaType.BYTE);
       }
-      case Format.UINT16 -> {
+      case ValueFormat.UINT16 -> {
         ensureRemaining(2);
         var value = buffer.getShort();
         if (value >= 0 && value <= Byte.MAX_VALUE) yield (byte) value;
-        throw ReaderException.overflow(value, format, JavaType.BYTE);
+        throw Exceptions.integerOverflow(value, format, JavaType.BYTE);
       }
-      case Format.UINT32 -> {
+      case ValueFormat.UINT32 -> {
         ensureRemaining(4);
         var value = buffer.getInt();
         if (value >= 0 && value <= Byte.MAX_VALUE) yield (byte) value;
-        throw ReaderException.overflow(value, format, JavaType.BYTE);
+        throw Exceptions.integerOverflow(value, format, JavaType.BYTE);
       }
-      case Format.UINT64 -> {
+      case ValueFormat.UINT64 -> {
         ensureRemaining(8);
         var value = buffer.getLong();
         if (value >= 0 && value <= Byte.MAX_VALUE) yield (byte) value;
-        throw ReaderException.overflow(value, format, JavaType.BYTE);
+        throw Exceptions.integerOverflow(value, format, JavaType.BYTE);
       }
       default -> {
-        if (Format.isFixInt(format)) yield format;
-        throw ReaderException.wrongFormat(format, JavaType.BYTE);
+        if (ValueFormat.isFixInt(format)) yield format;
+        throw Exceptions.wrongJavaType(format, JavaType.BYTE);
       }
     };
   }
@@ -219,51 +217,51 @@ public final class MessageReader {
     ensureRemaining(1);
     var format = buffer.get();
     return switch (format) {
-      case Format.INT8 -> {
+      case ValueFormat.INT8 -> {
         ensureRemaining(1);
         yield buffer.get();
       }
-      case Format.INT16 -> {
+      case ValueFormat.INT16 -> {
         ensureRemaining(2);
         yield buffer.getShort();
       }
-      case Format.INT32 -> {
+      case ValueFormat.INT32 -> {
         ensureRemaining(4);
         var value = buffer.getInt();
         if (value >= Short.MIN_VALUE && value <= Short.MAX_VALUE) yield (short) value;
-        throw ReaderException.overflow(value, format, JavaType.SHORT);
+        throw Exceptions.integerOverflow(value, format, JavaType.SHORT);
       }
-      case Format.INT64 -> {
+      case ValueFormat.INT64 -> {
         ensureRemaining(8);
         var value = buffer.getLong();
         if (value >= Short.MIN_VALUE && value <= Short.MAX_VALUE) yield (short) value;
-        throw ReaderException.overflow(value, format, JavaType.SHORT);
+        throw Exceptions.integerOverflow(value, format, JavaType.SHORT);
       }
-      case Format.UINT8 -> {
+      case ValueFormat.UINT8 -> {
         ensureRemaining(1);
         yield (short) (buffer.get() & 0xff);
       }
-      case Format.UINT16 -> {
+      case ValueFormat.UINT16 -> {
         ensureRemaining(2);
         var value = buffer.getShort();
         if (value >= 0) yield value;
-        throw ReaderException.overflow(value, format, JavaType.SHORT);
+        throw Exceptions.integerOverflow(value, format, JavaType.SHORT);
       }
-      case Format.UINT32 -> {
+      case ValueFormat.UINT32 -> {
         ensureRemaining(4);
         var value = buffer.getInt();
         if (value >= 0 && value <= Short.MAX_VALUE) yield (short) value;
-        throw ReaderException.overflow(value, format, JavaType.SHORT);
+        throw Exceptions.integerOverflow(value, format, JavaType.SHORT);
       }
-      case Format.UINT64 -> {
+      case ValueFormat.UINT64 -> {
         ensureRemaining(8);
         var value = buffer.getLong();
         if (value >= 0 && value <= Short.MAX_VALUE) yield (short) value;
-        throw ReaderException.overflow(value, format, JavaType.SHORT);
+        throw Exceptions.integerOverflow(value, format, JavaType.SHORT);
       }
       default -> {
-        if (Format.isFixInt(format)) yield format;
-        throw ReaderException.wrongFormat(format, JavaType.SHORT);
+        if (ValueFormat.isFixInt(format)) yield format;
+        throw Exceptions.wrongJavaType(format, JavaType.SHORT);
       }
     };
   }
@@ -273,47 +271,47 @@ public final class MessageReader {
     ensureRemaining(1);
     var format = buffer.get();
     return switch (format) {
-      case Format.INT8 -> {
+      case ValueFormat.INT8 -> {
         ensureRemaining(1);
         yield buffer.get();
       }
-      case Format.INT16 -> {
+      case ValueFormat.INT16 -> {
         ensureRemaining(2);
         yield buffer.getShort();
       }
-      case Format.INT32 -> {
+      case ValueFormat.INT32 -> {
         ensureRemaining(4);
         yield buffer.getInt();
       }
-      case Format.INT64 -> {
+      case ValueFormat.INT64 -> {
         ensureRemaining(8);
         var value = buffer.getLong();
         if (value >= Integer.MIN_VALUE && value <= Integer.MAX_VALUE) yield (int) value;
-        throw ReaderException.overflow(value, format, JavaType.INT);
+        throw Exceptions.integerOverflow(value, format, JavaType.INT);
       }
-      case Format.UINT8 -> {
+      case ValueFormat.UINT8 -> {
         ensureRemaining(1);
         yield buffer.get() & 0xff;
       }
-      case Format.UINT16 -> {
+      case ValueFormat.UINT16 -> {
         ensureRemaining(2);
         yield buffer.getShort() & 0xffff;
       }
-      case Format.UINT32 -> {
+      case ValueFormat.UINT32 -> {
         ensureRemaining(4);
         var value = buffer.getInt();
         if (value >= 0) yield value;
-        throw ReaderException.overflow(value, format, JavaType.INT);
+        throw Exceptions.integerOverflow(value, format, JavaType.INT);
       }
-      case Format.UINT64 -> {
+      case ValueFormat.UINT64 -> {
         ensureRemaining(8);
         var value = buffer.getLong();
         if (value >= 0 && value <= Integer.MAX_VALUE) yield (int) value;
-        throw ReaderException.overflow(value, format, JavaType.INT);
+        throw Exceptions.integerOverflow(value, format, JavaType.INT);
       }
       default -> {
-        if (Format.isFixInt(format)) yield format;
-        throw ReaderException.wrongFormat(format, JavaType.INT);
+        if (ValueFormat.isFixInt(format)) yield format;
+        throw Exceptions.wrongJavaType(format, JavaType.INT);
       }
     };
   }
@@ -323,43 +321,43 @@ public final class MessageReader {
     ensureRemaining(1);
     var format = buffer.get();
     return switch (format) {
-      case Format.INT8 -> {
+      case ValueFormat.INT8 -> {
         ensureRemaining(1);
         yield buffer.get();
       }
-      case Format.INT16 -> {
+      case ValueFormat.INT16 -> {
         ensureRemaining(2);
         yield buffer.getShort();
       }
-      case Format.INT32 -> {
+      case ValueFormat.INT32 -> {
         ensureRemaining(4);
         yield buffer.getInt();
       }
-      case Format.INT64 -> {
+      case ValueFormat.INT64 -> {
         ensureRemaining(8);
         yield buffer.getLong();
       }
-      case Format.UINT8 -> {
+      case ValueFormat.UINT8 -> {
         ensureRemaining(1);
         yield buffer.get() & 0xff;
       }
-      case Format.UINT16 -> {
+      case ValueFormat.UINT16 -> {
         ensureRemaining(2);
         yield buffer.getShort() & 0xffff;
       }
-      case Format.UINT32 -> {
+      case ValueFormat.UINT32 -> {
         ensureRemaining(4);
         yield buffer.getInt() & 0xffffffffL;
       }
-      case Format.UINT64 -> {
+      case ValueFormat.UINT64 -> {
         ensureRemaining(8);
         var value = buffer.getLong();
         if (value >= 0) yield value;
-        throw ReaderException.overflow(value, format, JavaType.LONG);
+        throw Exceptions.integerOverflow(value, format, JavaType.LONG);
       }
       default -> {
-        if (Format.isFixInt(format)) yield format;
-        throw ReaderException.wrongFormat(format, JavaType.INT);
+        if (ValueFormat.isFixInt(format)) yield format;
+        throw Exceptions.wrongJavaType(format, JavaType.INT);
       }
     };
   }
@@ -368,22 +366,22 @@ public final class MessageReader {
   public float readFloat() {
     ensureRemaining(1);
     var format = buffer.get();
-    if (format == Format.FLOAT32) {
+    if (format == ValueFormat.FLOAT32) {
       ensureRemaining(4);
       return buffer.getFloat();
     }
-    throw ReaderException.wrongFormat(format, JavaType.FLOAT);
+    throw Exceptions.wrongJavaType(format, JavaType.FLOAT);
   }
 
   /** Reads a floating point value that fits into a Java double. */
   public double readDouble() {
     ensureRemaining(1);
     var format = buffer.get();
-    if (format == Format.FLOAT64) {
+    if (format == ValueFormat.FLOAT64) {
       ensureRemaining(8);
       return buffer.getDouble();
     }
-    throw ReaderException.wrongFormat(format, JavaType.DOUBLE);
+    throw Exceptions.wrongJavaType(format, JavaType.DOUBLE);
   }
 
   /**
@@ -398,23 +396,23 @@ public final class MessageReader {
     ensureRemaining(1);
     var format = buffer.get();
     return switch (format) {
-      case Format.STR8 -> {
+      case ValueFormat.STR8 -> {
         ensureRemaining(1);
         yield readString(buffer.get() & 0xff);
       }
-      case Format.STR16 -> {
+      case ValueFormat.STR16 -> {
         ensureRemaining(2);
         yield readString(buffer.getShort() & 0xffff);
       }
-      case Format.STR32 -> {
+      case ValueFormat.STR32 -> {
         ensureRemaining(4);
         yield readString(buffer.getInt());
       }
       default -> {
-        if (Format.isFixStr(format)) {
-          yield readString(Format.getFixStrLength(format));
+        if (ValueFormat.isFixStr(format)) {
+          yield readString(ValueFormat.getFixStrLength(format));
         } else {
-          throw ReaderException.wrongFormat(format, JavaType.STRING);
+          throw Exceptions.wrongJavaType(format, JavaType.STRING);
         }
       }
     };
@@ -430,19 +428,19 @@ public final class MessageReader {
     ensureRemaining(1);
     var format = buffer.get();
     return switch (format) {
-      case Format.ARRAY16 -> {
+      case ValueFormat.ARRAY16 -> {
         ensureRemaining(2);
         yield buffer.getShort();
       }
-      case Format.ARRAY32 -> {
+      case ValueFormat.ARRAY32 -> {
         ensureRemaining(4);
         yield buffer.getInt();
       }
       default -> {
-        if (Format.isFixArray(format)) {
-          yield Format.getFixArrayLength(format);
+        if (ValueFormat.isFixArray(format)) {
+          yield ValueFormat.getFixArrayLength(format);
         }
-        throw ReaderException.wrongFormat(format, JavaType.MAP);
+        throw Exceptions.wrongJavaType(format, JavaType.MAP);
       }
     };
   }
@@ -457,19 +455,19 @@ public final class MessageReader {
     ensureRemaining(1);
     var format = buffer.get();
     return switch (format) {
-      case Format.MAP16 -> {
+      case ValueFormat.MAP16 -> {
         ensureRemaining(2);
         yield buffer.getShort();
       }
-      case Format.MAP32 -> {
+      case ValueFormat.MAP32 -> {
         ensureRemaining(4);
         yield buffer.getInt();
       }
       default -> {
-        if (Format.isFixMap(format)) {
-          yield Format.getFixMapLength(format);
+        if (ValueFormat.isFixMap(format)) {
+          yield ValueFormat.getFixMapLength(format);
         }
-        throw ReaderException.wrongFormat(format, JavaType.MAP);
+        throw Exceptions.wrongJavaType(format, JavaType.MAP);
       }
     };
   }
@@ -484,21 +482,21 @@ public final class MessageReader {
     ensureRemaining(1);
     var format = buffer.get();
     return switch (format) {
-      case Format.BIN8 -> {
+      case ValueFormat.BIN8 -> {
         ensureRemaining(1);
         yield buffer.get() & 0xff;
       }
-      case Format.BIN16 -> {
+      case ValueFormat.BIN16 -> {
         ensureRemaining(2);
         yield buffer.getShort() & 0xffff;
       }
-      case Format.BIN32 -> {
+      case ValueFormat.BIN32 -> {
         ensureRemaining(4);
         var result = buffer.getInt();
-        if (result < 0) throw ReaderException.binaryTooLarge(result);
+        if (result < 0) throw Exceptions.binaryTooLarge(result);
         yield result;
       }
-      default -> throw ReaderException.wrongFormat(format, JavaType.STRING);
+      default -> throw Exceptions.wrongJavaType(format, JavaType.STRING);
     };
   }
 
@@ -521,23 +519,23 @@ public final class MessageReader {
     ensureRemaining(1);
     var format = buffer.get();
     return switch (format) {
-      case Format.STR8 -> {
+      case ValueFormat.STR8 -> {
         ensureRemaining(1);
         yield buffer.get() & 0xff;
       }
-      case Format.STR16 -> {
+      case ValueFormat.STR16 -> {
         ensureRemaining(2);
         yield buffer.getShort() & 0xffff;
       }
-      case Format.STR32 -> {
+      case ValueFormat.STR32 -> {
         ensureRemaining(4);
         yield buffer.getInt();
       }
       default -> {
-        if (Format.isFixStr(format)) {
-          yield Format.getFixStrLength(format);
+        if (ValueFormat.isFixStr(format)) {
+          yield ValueFormat.getFixStrLength(format);
         } else {
-          throw ReaderException.wrongFormat(format, JavaType.STRING);
+          throw Exceptions.wrongJavaType(format, JavaType.STRING);
         }
       }
     };
@@ -565,12 +563,22 @@ public final class MessageReader {
     readFromSource(buffer, minBytes);
   }
 
+  /** Closes the underlying message {@linkplain MessageSource source}. */
+  @Override
+  public void close() {
+    try {
+      source.close();
+    } catch (IOException e) {
+      throw Exceptions.ioErrorClosingSource(e);
+    }
+  }
+
   private void readFromSource(ByteBuffer buffer, int minBytes) {
     assert minBytes <= buffer.remaining();
     try {
       source.read(buffer, minBytes);
     } catch (IOException e) {
-      throw ReaderException.ioErrorReadingFromSource(e);
+      throw Exceptions.ioErrorReadingFromSource(e);
     }
   }
 
@@ -583,7 +591,7 @@ public final class MessageReader {
 
   private String readString(int length) {
     if (length < 0) {
-      throw ReaderException.stringTooLarge(length & 0xffffffffL, Integer.MAX_VALUE);
+      throw Exceptions.stringTooLarge(length & 0xffffffffL, Integer.MAX_VALUE);
     }
     if (length <= buffer.capacity() && buffer.hasArray()) {
       ensureRemaining(length, buffer);

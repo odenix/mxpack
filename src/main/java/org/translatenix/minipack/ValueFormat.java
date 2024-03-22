@@ -5,8 +5,8 @@
 package org.translatenix.minipack;
 
 // https://github.com/msgpack/msgpack/blob/master/spec.md#formats
-final class Format {
-  private Format() {}
+final class ValueFormat {
+  private ValueFormat() {}
 
   static final byte NIL = (byte) 0xc0;
   static final byte NEVER_USED = (byte) 0xc1;
@@ -88,17 +88,17 @@ final class Format {
       case BIN8, BIN16, BIN32 -> ValueType.BINARY;
       case FIXEXT1, FIXEXT2, FIXEXT4, FIXEXT8, EXT8, EXT16, EXT32 -> ValueType.EXTENSION;
       default ->
-          Format.isFixInt(format)
+          ValueFormat.isFixInt(format)
               ? ValueType.INTEGER
-              : Format.isFixStr(format)
+              : ValueFormat.isFixStr(format)
                   ? ValueType.STRING
-                  : Format.isFixArray(format)
+                  : ValueFormat.isFixArray(format)
                       ? ValueType.ARRAY
-                      : Format.isFixMap(format) ? ValueType.MAP : invalidFormat(format);
+                      : ValueFormat.isFixMap(format) ? ValueType.MAP : invalidFormat(format);
     };
   }
 
   private static ValueType invalidFormat(byte format) {
-    throw ReaderException.invalidFormat(format);
+    throw Exceptions.invalidValueFormat(format);
   }
 }

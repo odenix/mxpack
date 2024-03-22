@@ -4,35 +4,13 @@
  */
 package org.translatenix.minipack;
 
-import java.io.IOException;
-
+/** Indicates an error writing a MessagePack value. */
 public class WriterException extends RuntimeException {
-  private WriterException(String message) {
+  WriterException(String message) {
     super(message);
   }
 
-  private WriterException(Throwable cause) {
-    super(cause);
-  }
-
-  private WriterException(String message, Throwable cause) {
+  WriterException(String message, Throwable cause) {
     super(message, cause);
-  }
-
-  static IllegalStateException sinkRequired() {
-    throw new IllegalStateException("MessageWriter.Builder.sink() must be set.");
-  }
-
-  static WriterException invalidSurrogatePair(int position) {
-    return new WriterException(
-        "Refusing to write string with invalid surrogate pair at position " + position + ".");
-  }
-
-  static WriterException ioErrorWritingToSink(IOException e) {
-    return new WriterException("I/O error writing to message sink.", e);
-  }
-
-  static WriterException ioErrorFlushingSink(IOException e) {
-    return new WriterException("I/O error flushing message sink.", e);
   }
 }

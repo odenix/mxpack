@@ -10,6 +10,8 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
 
 final class MessageSources {
+  private MessageSources() {}
+
   static final class InputStreamSource implements MessageSource {
     private final InputStream in;
 
@@ -21,7 +23,7 @@ final class MessageSources {
     public void read(ByteBuffer buffer, int minBytes) throws IOException {
       assert minBytes > 0;
       assert minBytes <= buffer.remaining();
-      if (!buffer.hasArray()) throw MessageSource.arrayBackedBufferRequired();
+      if (!buffer.hasArray()) throw Exceptions.arrayBackedBufferRequired();
 
       var totalBytesRead = 0;
       while (totalBytesRead < minBytes) {
@@ -32,12 +34,17 @@ final class MessageSources {
         var bytesRead =
             in.read(buffer.array(), buffer.arrayOffset() + buffer.position(), bytesToRead);
         if (bytesRead == -1) {
-          throw MessageSource.prematureEndOfInput(minBytes, totalBytesRead);
+          throw Exceptions.prematureEndOfInput(minBytes, totalBytesRead);
         }
         assert bytesRead <= bytesToRead;
         buffer.position(buffer.position() + bytesRead);
         totalBytesRead += bytesRead;
       }
+    }
+
+    @Override
+    public void close() throws IOException {
+      in.close();
     }
   }
 
@@ -54,10 +61,15 @@ final class MessageSources {
       while (totalBytesRead < minBytes) {
         var bytesRead = channel.read(buffer);
         if (bytesRead == -1) {
-          throw MessageSource.prematureEndOfInput(minBytes, totalBytesRead);
+          throw Exceptions.prematureEndOfInput(minBytes, totalBytesRead);
         }
         totalBytesRead += bytesRead;
       }
+    }
+
+    @Override
+    public void close() throws IOException {
+      channel.close();
     }
   }
 }
