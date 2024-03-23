@@ -79,9 +79,6 @@ public final class MessageReader implements Closeable {
     }
   }
 
-  /** The header of a MessagePack extension value. */
-  public record ExtensionHeader(int length, byte type) {}
-
   /** Creates a new {@code MessageWriter} builder. */
   public static Builder builder() {
     return new Builder();
@@ -393,17 +390,18 @@ public final class MessageReader implements Closeable {
     };
   }
 
-  public ExtensionHeader readExtensionHeader() {
+  public ExtensionType.Header readExtensionHeader() {
     var format = getByte();
     return switch (format) {
-      case ValueFormat.FIXEXT1 -> new ExtensionHeader(1, getByte());
-      case ValueFormat.FIXEXT2 -> new ExtensionHeader(2, getByte());
-      case ValueFormat.FIXEXT4 -> new ExtensionHeader(4, getByte());
-      case ValueFormat.FIXEXT8 -> new ExtensionHeader(8, getByte());
-      case ValueFormat.FIXEXT16 -> new ExtensionHeader(16, getByte());
-      case ValueFormat.EXT8 -> new ExtensionHeader(getLength8(), getByte());
-      case ValueFormat.EXT16 -> new ExtensionHeader(getLength16(), getByte());
-      case ValueFormat.EXT32 -> new ExtensionHeader(getLength32(ValueType.EXTENSION), getByte());
+      case ValueFormat.FIXEXT1 -> new ExtensionType.Header(1, getByte());
+      case ValueFormat.FIXEXT2 -> new ExtensionType.Header(2, getByte());
+      case ValueFormat.FIXEXT4 -> new ExtensionType.Header(4, getByte());
+      case ValueFormat.FIXEXT8 -> new ExtensionType.Header(8, getByte());
+      case ValueFormat.FIXEXT16 -> new ExtensionType.Header(16, getByte());
+      case ValueFormat.EXT8 -> new ExtensionType.Header(getLength8(), getByte());
+      case ValueFormat.EXT16 -> new ExtensionType.Header(getLength16(), getByte());
+      case ValueFormat.EXT32 ->
+          new ExtensionType.Header(getLength32(ValueType.EXTENSION), getByte());
       default -> throw Exceptions.typeMismatch(format, RequestedType.EXTENSION);
     };
   }

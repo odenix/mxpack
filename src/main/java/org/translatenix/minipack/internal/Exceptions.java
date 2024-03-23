@@ -6,29 +6,20 @@ package org.translatenix.minipack.internal;
 
 import java.io.EOFException;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import org.translatenix.minipack.ReaderException;
 import org.translatenix.minipack.ValueType;
 import org.translatenix.minipack.WriterException;
 
-/** Exceptions thrown by message readers, writers, sources, sinks, and buffer allocators. */
+/** Exceptions thrown by the minipack library. */
 public final class Exceptions {
   private Exceptions() {}
 
-  /**
-   * Creates an exception to be thrown by message sources and sinks that only accept byte buffers
-   * backed by an {@linkplain ByteBuffer#hasArray() accessible array}.
-   */
   public static IllegalArgumentException arrayBackedBufferRequired() {
     return new IllegalArgumentException(
         "This message source/sink requires a ByteBuffer backed by an accessible array"
             + " (buffer.hasArray()).");
   }
 
-  /**
-   * Creates an exception to be thrown when the requested buffer capacity exceeds an allocator's
-   * maximum allowed capacity.
-   */
   public static ReaderException stringTooLarge(int requestedCapacity, int maxCapacity) {
     // tailor message to current use of BufferAllocator
     return new ReaderException(

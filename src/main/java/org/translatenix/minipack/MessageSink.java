@@ -9,7 +9,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
-import org.translatenix.minipack.internal.MessageSinks;
+import org.translatenix.minipack.internal.ChannelSink;
+import org.translatenix.minipack.internal.OutputStreamSink;
 
 /** The underlying sink of a {@link MessageWriter}. */
 public interface MessageSink extends Closeable {
@@ -26,11 +27,11 @@ public interface MessageSink extends Closeable {
 
   /** Returns a message sink that writes to the given stream. */
   static MessageSink of(OutputStream stream) {
-    return new MessageSinks.OutputStreamSink(stream);
+    return new OutputStreamSink(stream);
   }
 
   /** Returns a message sink that writes to the given channel. */
   static MessageSink of(WritableByteChannel channel) {
-    return new MessageSinks.ChannelSink(channel);
+    return new ChannelSink(channel);
   }
 }

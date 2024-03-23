@@ -344,12 +344,10 @@ public final class MessageWriter implements Closeable {
   }
 
   /**
-   * {@linkplain #flush() Flushes} this writer and {@linkplain MessageSink#close() closes} the
-   * underlying message {@linkplain MessageSink sink}.
+   * {@linkplain MessageSink#close() Closes} the underlying message {@linkplain MessageSink sink}.
    */
   @Override
   public void close() {
-    flush();
     try {
       sink.close();
     } catch (IOException e) {

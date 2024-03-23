@@ -6,7 +6,10 @@ package org.translatenix.minipack.internal;
 
 import org.translatenix.minipack.ValueType;
 
-// https://github.com/msgpack/msgpack/blob/master/spec.md#formats
+/**
+ * The <a href="https://github.com/msgpack/msgpack/blob/master/spec.md#formats">format</a> of a
+ * MessagePack value.
+ */
 public final class ValueFormat {
   private ValueFormat() {}
 
