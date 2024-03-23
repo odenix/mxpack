@@ -137,7 +137,7 @@ public final class MessageReader implements Closeable {
   public void readNil() {
     var format = getByte();
     if (format != ValueFormat.NIL) {
-      throw Exceptions.wrongJavaType(format, JavaType.VOID);
+      throw Exceptions.typeMismatch(format, RequestedType.NIL);
     }
   }
 
@@ -147,7 +147,7 @@ public final class MessageReader implements Closeable {
     return switch (format) {
       case ValueFormat.TRUE -> true;
       case ValueFormat.FALSE -> false;
-      default -> throw Exceptions.wrongJavaType(format, JavaType.BOOLEAN);
+      default -> throw Exceptions.typeMismatch(format, RequestedType.BOOLEAN);
     };
   }
 
@@ -159,41 +159,41 @@ public final class MessageReader implements Closeable {
       case ValueFormat.INT16 -> {
         var value = getShort();
         if (value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE) yield (byte) value;
-        throw Exceptions.integerOverflow(value, format, JavaType.BYTE);
+        throw Exceptions.integerOverflow(value, format, RequestedType.BYTE);
       }
       case ValueFormat.INT32 -> {
         var value = getInt();
         if (value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE) yield (byte) value;
-        throw Exceptions.integerOverflow(value, format, JavaType.BYTE);
+        throw Exceptions.integerOverflow(value, format, RequestedType.BYTE);
       }
       case ValueFormat.INT64 -> {
         var value = getLong();
         if (value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE) yield (byte) value;
-        throw Exceptions.integerOverflow(value, format, JavaType.BYTE);
+        throw Exceptions.integerOverflow(value, format, RequestedType.BYTE);
       }
       case ValueFormat.UINT8 -> {
         var value = getByte();
         if (value >= 0) yield value;
-        throw Exceptions.integerOverflow(value, format, JavaType.BYTE);
+        throw Exceptions.integerOverflow(value, format, RequestedType.BYTE);
       }
       case ValueFormat.UINT16 -> {
         var value = getShort();
         if (value >= 0 && value <= Byte.MAX_VALUE) yield (byte) value;
-        throw Exceptions.integerOverflow(value, format, JavaType.BYTE);
+        throw Exceptions.integerOverflow(value, format, RequestedType.BYTE);
       }
       case ValueFormat.UINT32 -> {
         var value = getInt();
         if (value >= 0 && value <= Byte.MAX_VALUE) yield (byte) value;
-        throw Exceptions.integerOverflow(value, format, JavaType.BYTE);
+        throw Exceptions.integerOverflow(value, format, RequestedType.BYTE);
       }
       case ValueFormat.UINT64 -> {
         var value = getLong();
         if (value >= 0 && value <= Byte.MAX_VALUE) yield (byte) value;
-        throw Exceptions.integerOverflow(value, format, JavaType.BYTE);
+        throw Exceptions.integerOverflow(value, format, RequestedType.BYTE);
       }
       default -> {
         if (ValueFormat.isFixInt(format)) yield format;
-        throw Exceptions.wrongJavaType(format, JavaType.BYTE);
+        throw Exceptions.typeMismatch(format, RequestedType.BYTE);
       }
     };
   }
@@ -207,32 +207,32 @@ public final class MessageReader implements Closeable {
       case ValueFormat.INT32 -> {
         var value = getInt();
         if (value >= Short.MIN_VALUE && value <= Short.MAX_VALUE) yield (short) value;
-        throw Exceptions.integerOverflow(value, format, JavaType.SHORT);
+        throw Exceptions.integerOverflow(value, format, RequestedType.SHORT);
       }
       case ValueFormat.INT64 -> {
         var value = getLong();
         if (value >= Short.MIN_VALUE && value <= Short.MAX_VALUE) yield (short) value;
-        throw Exceptions.integerOverflow(value, format, JavaType.SHORT);
+        throw Exceptions.integerOverflow(value, format, RequestedType.SHORT);
       }
       case ValueFormat.UINT8 -> getUByte();
       case ValueFormat.UINT16 -> {
         var value = getShort();
         if (value >= 0) yield value;
-        throw Exceptions.integerOverflow(value, format, JavaType.SHORT);
+        throw Exceptions.integerOverflow(value, format, RequestedType.SHORT);
       }
       case ValueFormat.UINT32 -> {
         var value = getInt();
         if (value >= 0 && value <= Short.MAX_VALUE) yield (short) value;
-        throw Exceptions.integerOverflow(value, format, JavaType.SHORT);
+        throw Exceptions.integerOverflow(value, format, RequestedType.SHORT);
       }
       case ValueFormat.UINT64 -> {
         var value = getLong();
         if (value >= 0 && value <= Short.MAX_VALUE) yield (short) value;
-        throw Exceptions.integerOverflow(value, format, JavaType.SHORT);
+        throw Exceptions.integerOverflow(value, format, RequestedType.SHORT);
       }
       default -> {
         if (ValueFormat.isFixInt(format)) yield format;
-        throw Exceptions.wrongJavaType(format, JavaType.SHORT);
+        throw Exceptions.typeMismatch(format, RequestedType.SHORT);
       }
     };
   }
@@ -247,23 +247,23 @@ public final class MessageReader implements Closeable {
       case ValueFormat.INT64 -> {
         var value = getLong();
         if (value >= Integer.MIN_VALUE && value <= Integer.MAX_VALUE) yield (int) value;
-        throw Exceptions.integerOverflow(value, format, JavaType.INT);
+        throw Exceptions.integerOverflow(value, format, RequestedType.INT);
       }
       case ValueFormat.UINT8 -> getUByte();
       case ValueFormat.UINT16 -> getUShort();
       case ValueFormat.UINT32 -> {
         var value = getInt();
         if (value >= 0) yield value;
-        throw Exceptions.integerOverflow(value, format, JavaType.INT);
+        throw Exceptions.integerOverflow(value, format, RequestedType.INT);
       }
       case ValueFormat.UINT64 -> {
         var value = getLong();
         if (value >= 0 && value <= Integer.MAX_VALUE) yield (int) value;
-        throw Exceptions.integerOverflow(value, format, JavaType.INT);
+        throw Exceptions.integerOverflow(value, format, RequestedType.INT);
       }
       default -> {
         if (ValueFormat.isFixInt(format)) yield format;
-        throw Exceptions.wrongJavaType(format, JavaType.INT);
+        throw Exceptions.typeMismatch(format, RequestedType.INT);
       }
     };
   }
@@ -282,11 +282,11 @@ public final class MessageReader implements Closeable {
       case ValueFormat.UINT64 -> {
         var value = getLong();
         if (value >= 0) yield value;
-        throw Exceptions.integerOverflow(value, ValueFormat.UINT64, JavaType.LONG);
+        throw Exceptions.integerOverflow(value, ValueFormat.UINT64, RequestedType.LONG);
       }
       default -> {
         if (ValueFormat.isFixInt(format)) yield format;
-        throw Exceptions.wrongJavaType(format, JavaType.INT);
+        throw Exceptions.typeMismatch(format, RequestedType.INT);
       }
     };
   }
@@ -295,14 +295,14 @@ public final class MessageReader implements Closeable {
   public float readFloat() {
     var format = getByte();
     if (format == ValueFormat.FLOAT32) return getFloat();
-    throw Exceptions.wrongJavaType(format, JavaType.FLOAT);
+    throw Exceptions.typeMismatch(format, RequestedType.FLOAT);
   }
 
   /** Reads a floating point value that fits into a Java double. */
   public double readDouble() {
     var format = getByte();
     if (format == ValueFormat.FLOAT64) return getDouble();
-    throw Exceptions.wrongJavaType(format, JavaType.DOUBLE);
+    throw Exceptions.typeMismatch(format, RequestedType.DOUBLE);
   }
 
   /**
@@ -323,7 +323,7 @@ public final class MessageReader implements Closeable {
         if (ValueFormat.isFixStr(format)) {
           yield readString(ValueFormat.getFixStrLength(format));
         } else {
-          throw Exceptions.wrongJavaType(format, JavaType.STRING);
+          throw Exceptions.typeMismatch(format, RequestedType.STRING);
         }
       }
     };
@@ -344,7 +344,7 @@ public final class MessageReader implements Closeable {
         if (ValueFormat.isFixArray(format)) {
           yield ValueFormat.getFixArrayLength(format);
         }
-        throw Exceptions.wrongJavaType(format, JavaType.MAP);
+        throw Exceptions.typeMismatch(format, RequestedType.MAP);
       }
     };
   }
@@ -364,7 +364,7 @@ public final class MessageReader implements Closeable {
         if (ValueFormat.isFixMap(format)) {
           yield ValueFormat.getFixMapLength(format);
         }
-        throw Exceptions.wrongJavaType(format, JavaType.MAP);
+        throw Exceptions.typeMismatch(format, RequestedType.MAP);
       }
     };
   }
@@ -381,7 +381,7 @@ public final class MessageReader implements Closeable {
       case ValueFormat.BIN8 -> getLength8();
       case ValueFormat.BIN16 -> getLength16();
       case ValueFormat.BIN32 -> getLength32(ValueType.BINARY);
-      default -> throw Exceptions.wrongJavaType(format, JavaType.BINARY_HEADER);
+      default -> throw Exceptions.typeMismatch(format, RequestedType.BINARY);
     };
   }
 
@@ -410,7 +410,7 @@ public final class MessageReader implements Closeable {
         if (ValueFormat.isFixStr(format)) {
           yield ValueFormat.getFixStrLength(format);
         } else {
-          throw Exceptions.wrongJavaType(format, JavaType.STRING);
+          throw Exceptions.typeMismatch(format, RequestedType.STRING);
         }
       }
     };
@@ -427,7 +427,7 @@ public final class MessageReader implements Closeable {
       case ValueFormat.EXT8 -> new ExtensionHeader(getLength8(), getByte());
       case ValueFormat.EXT16 -> new ExtensionHeader(getLength16(), getByte());
       case ValueFormat.EXT32 -> new ExtensionHeader(getLength32(ValueType.EXTENSION), getByte());
-      default -> throw Exceptions.wrongJavaType(format, JavaType.EXTENSION_HEADER);
+      default -> throw Exceptions.typeMismatch(format, RequestedType.EXTENSION);
     };
   }
 

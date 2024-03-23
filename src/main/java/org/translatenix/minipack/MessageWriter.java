@@ -85,22 +85,20 @@ public final class MessageWriter implements Closeable {
 
   /** Writes a nil (null) value. */
   public void writeNil() {
-    ensureRemaining(1);
-    buffer.put(ValueFormat.NIL);
+    putByte(ValueFormat.NIL);
   }
 
   /** Writes a boolean value. */
   public void write(boolean value) {
-    ensureRemaining(1);
-    buffer.put(value ? ValueFormat.TRUE : ValueFormat.FALSE);
+    putByte(value ? ValueFormat.TRUE : ValueFormat.FALSE);
   }
 
   /** Writes an integer value that fits into a Java byte. */
   public void write(byte value) {
     if (value < -(1 << 5)) {
-      writeInt8(value);
+      putByte(ValueFormat.INT8, value);
     } else {
-      writeFixInt(value);
+      putByte(value);
     }
   }
 
@@ -108,17 +106,17 @@ public final class MessageWriter implements Closeable {
   public void write(short value) {
     if (value < -(1 << 5)) {
       if (value < -(1 << 7)) {
-        writeInt16(value);
+        putShort(ValueFormat.INT16, value);
       } else {
-        writeInt8((byte) value);
+        putByte(ValueFormat.INT8, (byte) value);
       }
     } else if (value < (1 << 7)) {
-      writeFixInt((byte) value);
+      putByte((byte) value);
     } else {
       if (value < (1 << 8)) {
-        writeUInt8((byte) value);
+        putByte(ValueFormat.UINT8, (byte) value);
       } else {
-        writeUInt16(value);
+        putShort(ValueFormat.UINT16, value);
       }
     }
   }
@@ -127,25 +125,25 @@ public final class MessageWriter implements Closeable {
   public void write(int value) {
     if (value < -(1 << 5)) {
       if (value < -(1 << 15)) {
-        writeInt32(value);
+        putInt(ValueFormat.INT32, value);
       } else {
         if (value < -(1 << 7)) {
-          writeInt16((short) value);
+          putShort(ValueFormat.INT16, (short) value);
         } else {
-          writeInt8((byte) value);
+          putByte(ValueFormat.INT8, (byte) value);
         }
       }
     } else if (value < (1 << 7)) {
-      writeFixInt((byte) value);
+      putByte((byte) value);
     } else {
       if (value < (1 << 16)) {
         if (value < (1 << 8)) {
-          writeUInt8((byte) value);
+          putByte(ValueFormat.UINT8, (byte) value);
         } else {
-          writeUInt16((short) value);
+          putShort(ValueFormat.UINT16, (short) value);
         }
       } else {
-        writeUInt32(value);
+        putInt(ValueFormat.UINT32, value);
       }
     }
   }
@@ -154,33 +152,33 @@ public final class MessageWriter implements Closeable {
   public void write(long value) {
     if (value < -(1L << 5)) {
       if (value < -(1L << 31)) {
-        writeInt64(value);
+        putLong(ValueFormat.INT64, value);
       } else {
         if (value < -(1L << 15)) {
-          writeInt32((int) value);
+          putInt(ValueFormat.INT32, (int) value);
         } else {
           if (value < -(1L << 7)) {
-            writeInt16((short) value);
+            putShort(ValueFormat.INT16, (short) value);
           } else {
-            writeInt8((byte) value);
+            putByte(ValueFormat.INT8, (byte) value);
           }
         }
       }
     } else if (value < (1L << 7)) {
-      writeFixInt((byte) value);
+      putByte((byte) value);
     } else {
       if (value < (1L << 32)) {
         if (value < (1L << 16)) {
           if (value < (1L << 8)) {
-            writeUInt8((byte) value);
+            putByte(ValueFormat.UINT8, (byte) value);
           } else {
-            writeUInt16((short) value);
+            putShort(ValueFormat.UINT16, (short) value);
           }
         } else {
-          writeUInt32((int) value);
+          putInt(ValueFormat.UINT32, (int) value);
         }
       } else {
-        writeUInt64(value);
+        putLong(ValueFormat.UINT64, value);
       }
     }
   }
@@ -218,17 +216,13 @@ public final class MessageWriter implements Closeable {
    * elements.
    */
   public void writeArrayHeader(int length) {
+    assert length >= 0;
     if (length < (1 << 4)) {
-      ensureRemaining(1);
-      buffer.put((byte) (ValueFormat.FIXARRAY_PREFIX | length));
+      putByte((byte) (ValueFormat.FIXARRAY_PREFIX | length));
     } else if (length < (1 << 16)) {
-      ensureRemaining(3);
-      buffer.put(ValueFormat.ARRAY16);
-      buffer.putShort((short) length);
+      putShort(ValueFormat.ARRAY16, (short) length);
     } else {
-      ensureRemaining(5);
-      buffer.put(ValueFormat.ARRAY32);
-      buffer.putInt(length);
+      putInt(ValueFormat.ARRAY32, length);
     }
   }
 
@@ -239,17 +233,13 @@ public final class MessageWriter implements Closeable {
    * map's keys and values.
    */
   public void writeMapHeader(int size) {
+    assert size >= 0;
     if (size < (1 << 4)) {
-      ensureRemaining(1);
-      buffer.put((byte) (ValueFormat.FIXMAP_PREFIX | size));
+      putByte((byte) (ValueFormat.FIXMAP_PREFIX | size));
     } else if (size < (1 << 16)) {
-      ensureRemaining(3);
-      buffer.put(ValueFormat.MAP16);
-      buffer.putShort((short) size);
+      putShort(ValueFormat.MAP16, (short) size);
     } else {
-      ensureRemaining(5);
-      buffer.put(ValueFormat.MAP32);
-      buffer.putInt(size);
+      putInt(ValueFormat.MAP32, size);
     }
   }
 
@@ -268,21 +258,15 @@ public final class MessageWriter implements Closeable {
    * </ul>
    */
   public void writeRawStringHeader(int utf8Length) {
+    assert utf8Length >= 0;
     if (utf8Length < (1 << 5)) {
-      ensureRemaining(1);
-      buffer.put((byte) (ValueFormat.FIXSTR_PREFIX | utf8Length));
+      putByte((byte) (ValueFormat.FIXSTR_PREFIX | utf8Length));
     } else if (utf8Length < (1 << 8)) {
-      ensureRemaining(2);
-      buffer.put(ValueFormat.STR8);
-      buffer.put((byte) utf8Length);
+      putByte(ValueFormat.STR8, (byte) utf8Length);
     } else if (utf8Length < (1 << 16)) {
-      ensureRemaining(3);
-      buffer.put(ValueFormat.STR16);
-      buffer.putShort((short) utf8Length);
+      putShort(ValueFormat.STR16, (short) utf8Length);
     } else {
-      ensureRemaining(5);
-      buffer.put(ValueFormat.STR32);
-      buffer.putInt(utf8Length);
+      putInt(ValueFormat.STR32, utf8Length);
     }
   }
 
@@ -293,18 +277,35 @@ public final class MessageWriter implements Closeable {
    * write exactly {@code length} bytes in total.
    */
   public void writeBinaryHeader(int length) {
+    assert length >= 0;
     if (length < (1 << 8)) {
-      ensureRemaining(2);
-      buffer.put(ValueFormat.BIN8);
-      buffer.put((byte) length);
+      putByte(ValueFormat.BIN8, (byte) length);
     } else if (length < (1 << 16)) {
-      ensureRemaining(3);
-      buffer.put(ValueFormat.BIN16);
-      buffer.putShort((short) length);
+      putShort(ValueFormat.BIN16, (short) length);
     } else {
-      ensureRemaining(5);
-      buffer.put(ValueFormat.BIN32);
-      buffer.putInt(length);
+      putInt(ValueFormat.BIN32, length);
+    }
+  }
+
+  public void writeExtensionHeader(int length, byte format) {
+    assert length >= 0;
+    assert format >= 0;
+    switch (length) {
+      case 1 -> putByte(ValueFormat.FIXEXT1, format);
+      case 2 -> putByte(ValueFormat.FIXEXT2, format);
+      case 4 -> putByte(ValueFormat.FIXEXT4, format);
+      case 8 -> putByte(ValueFormat.FIXEXT8, format);
+      case 16 -> putByte(ValueFormat.FIXEXT16, format);
+      default -> {
+        if (length < (1 << 8)) {
+          putByte(ValueFormat.EXT8, (byte) length);
+        } else if (length < (1 << 16)) {
+          putShort(ValueFormat.EXT16, (short) length);
+        } else {
+          putInt(ValueFormat.EXT32, length);
+        }
+        putByte(format);
+      }
     }
   }
 
@@ -326,7 +327,7 @@ public final class MessageWriter implements Closeable {
   }
 
   /**
-   * Writes any data length in this writer's buffer and flushes the underlying message {@linkplain
+   * Writes any data remaining in this writer's buffer and flushes the underlying message {@linkplain
    * MessageSink sink}.
    */
   public void flush() {
@@ -352,6 +353,31 @@ public final class MessageWriter implements Closeable {
     }
   }
 
+  private void putByte(byte value) {
+    ensureRemaining(1);
+    buffer.put(value);
+  }
+
+  private void putByte(byte format, byte value) {
+    ensureRemaining(2);
+    buffer.put(format).put(value);
+  }
+
+  private void putShort(byte format, short value) {
+    ensureRemaining(3);
+    buffer.put(format).putShort(value);
+  }
+
+  private void putInt(byte format, int value) {
+    ensureRemaining(5);
+    buffer.put(format).putInt(value);
+  }
+
+  private void putLong(byte format, long value) {
+    ensureRemaining(9);
+    buffer.put(format).putLong(value);
+  }
+
   private void writeStringAscii(CharSequence str) {
     var length = str.length();
     var i = 0;
@@ -371,23 +397,26 @@ public final class MessageWriter implements Closeable {
     var length = str.length();
     for (var i = 0; i < length; i++) {
       var ch = str.charAt(i);
-      ensureRemaining(4);
-      if (ch < 0x80) { // 1 byte
+      if (ch < 0x80) {
+        ensureRemaining(1);
         buffer.put((byte) ch);
-      } else if (ch < 0x800) { // 2 bytes
+      } else if (ch < 0x800) {
+        ensureRemaining(2);
         buffer.put((byte) (0xc0 | ch >>> 6));
         buffer.put((byte) (0x80 | (ch & 0x3f)));
-      } else if (Character.isSurrogate(ch)) { // 4 bytes
+      } else if (Character.isSurrogate(ch)) {
         char ch2;
         if (++i == length || !Character.isSurrogatePair(ch, ch2 = str.charAt(i))) {
           throw Exceptions.invalidSurrogatePair(i);
         }
         var cp = Character.toCodePoint(ch, ch2);
+        ensureRemaining(4);
         buffer.put((byte) (0xf0 | cp >>> 18));
         buffer.put((byte) (0x80 | ((cp >>> 12) & 0x3f)));
         buffer.put((byte) (0x80 | ((cp >>> 6) & 0x3f)));
         buffer.put((byte) (0x80 | (cp & 0x3f)));
-      } else { // 3 bytes
+      } else {
+        ensureRemaining(3);
         buffer.put((byte) (0xe0 | ch >>> 12));
         buffer.put((byte) (0x80 | ((ch >>> 6) & 0x3f)));
         buffer.put((byte) (0x80 | (ch & 0x3f)));
@@ -455,58 +484,5 @@ public final class MessageWriter implements Closeable {
     } catch (IOException e) {
       throw Exceptions.ioErrorWritingToSink(e);
     }
-  }
-
-  private void writeFixInt(byte value) {
-    ensureRemaining(1);
-    buffer.put(value);
-  }
-
-  private void writeInt8(byte value) {
-    ensureRemaining(2);
-    buffer.put(ValueFormat.INT8);
-    buffer.put(value);
-  }
-
-  private void writeUInt8(byte value) {
-    ensureRemaining(2);
-    buffer.put(ValueFormat.UINT8);
-    buffer.put(value);
-  }
-
-  private void writeInt16(short value) {
-    ensureRemaining(3);
-    buffer.put(ValueFormat.INT16);
-    buffer.putShort(value);
-  }
-
-  private void writeUInt16(short value) {
-    ensureRemaining(3);
-    buffer.put(ValueFormat.UINT16);
-    buffer.putShort(value);
-  }
-
-  private void writeInt32(int value) {
-    ensureRemaining(5);
-    buffer.put(ValueFormat.INT32);
-    buffer.putInt(value);
-  }
-
-  private void writeUInt32(int value) {
-    ensureRemaining(5);
-    buffer.put(ValueFormat.UINT32);
-    buffer.putInt(value);
-  }
-
-  private void writeInt64(long value) {
-    ensureRemaining(9);
-    buffer.put(ValueFormat.INT64);
-    buffer.putLong(value);
-  }
-
-  private void writeUInt64(long value) {
-    ensureRemaining(9);
-    buffer.put(ValueFormat.UINT64);
-    buffer.putLong(value);
   }
 }

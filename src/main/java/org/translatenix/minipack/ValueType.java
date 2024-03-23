@@ -8,7 +8,7 @@ package org.translatenix.minipack;
  * The <a href="https://github.com/msgpack/msgpack/blob/master/spec.md#type-system">type</a> of a
  * MessagePack value.
  *
- * @see JavaType
+ * @see RequestedType
  */
 public enum ValueType {
   NIL,

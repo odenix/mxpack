@@ -5,13 +5,12 @@
 package org.translatenix.minipack;
 
 /**
- * The Java type that a MessagePack value is converted to.
+ * The type requested when reading a MessagePack value.
  *
  * @see ValueType
  */
-public enum JavaType {
-  /** The Java Void type. */
-  VOID,
+public enum RequestedType {
+  NIL,
   /** The Java boolean type. */
   BOOLEAN,
   /** The Java byte type. */
@@ -26,13 +25,10 @@ public enum JavaType {
   FLOAT,
   /** The Java double type. */
   DOUBLE,
-  /** The Java array type. */
-  ARRAY,
-  /** The {@code java.util.Map} type. */
-  MAP,
   /** The {@code java.lang.String} type. */
   STRING,
-  RAW_STRING_HEADER,
-  BINARY_HEADER,
-  EXTENSION_HEADER
+  ARRAY,
+  MAP,
+  BINARY,
+  EXTENSION
 }

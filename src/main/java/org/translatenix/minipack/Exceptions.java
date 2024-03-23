@@ -58,7 +58,7 @@ public final class Exceptions {
         "The minimum supported ByteBuffer capacity is " + minCapacity + ", but got: " + capacity);
   }
 
-  static ReaderException wrongJavaType(byte format, JavaType javaType) {
+  static ReaderException typeMismatch(byte format, RequestedType javaType) {
     return new ReaderException(
         "MessagePack type `"
             + ValueFormat.toType(format)
@@ -67,7 +67,7 @@ public final class Exceptions {
             + "`.");
   }
 
-  static ReaderException integerOverflow(long value, byte format, JavaType javaType) {
+  static ReaderException integerOverflow(long value, byte format, RequestedType javaType) {
     return new ReaderException(
         "Integer value `" + value + "` does not fit into Java type `" + javaType + "`.");
   }
