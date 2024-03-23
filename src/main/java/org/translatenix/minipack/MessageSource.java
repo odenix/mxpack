@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
+import org.translatenix.minipack.internal.MessageSources;
 
 /** The underlying source of a {@link MessageReader}. */
 public interface MessageSource extends Closeable {

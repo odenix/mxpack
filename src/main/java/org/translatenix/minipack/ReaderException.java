@@ -6,11 +6,11 @@ package org.translatenix.minipack;
 
 /** Indicates an error reading a MessagePack value. */
 public class ReaderException extends RuntimeException {
-  ReaderException(String message) {
+  public ReaderException(String message) {
     super(message);
   }
 
-  ReaderException(String message, Throwable cause) {
+  public ReaderException(String message, Throwable cause) {
     super(message, cause);
   }
 }

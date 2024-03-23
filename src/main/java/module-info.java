@@ -4,6 +4,7 @@
  */
 module org.translatenix.msgpack {
   exports org.translatenix.minipack;
+  exports org.translatenix.minipack.internal;
 
   requires org.jspecify;
 }

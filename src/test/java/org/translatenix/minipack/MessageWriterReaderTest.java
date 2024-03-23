@@ -18,6 +18,7 @@ import net.jqwik.api.ForAll;
 import net.jqwik.api.Property;
 import net.jqwik.api.constraints.CharRange;
 import net.jqwik.api.constraints.StringLength;
+import org.translatenix.minipack.internal.ValueFormat;
 
 /** Tests {@link MessageReader} against {@link MessageWriter}. */
 public class MessageWriterReaderTest {

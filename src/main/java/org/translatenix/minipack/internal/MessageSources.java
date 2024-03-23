@@ -2,17 +2,18 @@
  * Copyright 2024 the minipack project authors
  * SPDX-License-Identifier: Apache-2.0
  */
-package org.translatenix.minipack;
+package org.translatenix.minipack.internal;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
+import org.translatenix.minipack.MessageSource;
 
-final class MessageSources {
+public final class MessageSources {
   private MessageSources() {}
 
-  static final class InputStreamSource implements MessageSource {
+  public static final class InputStreamSource implements MessageSource {
     private final InputStream in;
 
     public InputStreamSource(InputStream in) {
@@ -40,7 +41,7 @@ final class MessageSources {
     }
   }
 
-  static final class Channel implements MessageSource {
+  public static final class Channel implements MessageSource {
     private final ReadableByteChannel channel;
 
     public Channel(ReadableByteChannel channel) {

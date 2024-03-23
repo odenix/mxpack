@@ -10,6 +10,8 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
 import org.jspecify.annotations.Nullable;
+import org.translatenix.minipack.internal.Exceptions;
+import org.translatenix.minipack.internal.ValueFormat;
 
 /**
  * Writes messages encoded in the <a href="https://msgpack.org/">MessagePack</a> binary
@@ -77,7 +79,9 @@ public final class MessageWriter implements Closeable {
     }
     sink = builder.sink;
     buffer =
-        builder.buffer != null ? builder.buffer.clear() : ByteBuffer.allocate(DEFAULT_BUFFER_CAPACITY);
+        builder.buffer != null
+            ? builder.buffer.clear()
+            : ByteBuffer.allocate(DEFAULT_BUFFER_CAPACITY);
     if (buffer.capacity() < MIN_BUFFER_CAPACITY) {
       throw Exceptions.bufferTooSmall(buffer.capacity(), MIN_BUFFER_CAPACITY);
     }
@@ -229,8 +233,8 @@ public final class MessageWriter implements Closeable {
   /**
    * Starts writing a map value with the given number of entries.
    *
-   * <p>A call to this method MUST be followed by {@code entryCount*2} calls that alternately write the
-   * map's keys and values.
+   * <p>A call to this method MUST be followed by {@code entryCount*2} calls that alternately write
+   * the map's keys and values.
    */
   public void writeMapHeader(int entryCount) {
     requireValidLength(entryCount);

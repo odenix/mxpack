@@ -6,11 +6,11 @@ package org.translatenix.minipack;
 
 /** Indicates an error writing a MessagePack value. */
 public class WriterException extends RuntimeException {
-  WriterException(String message) {
+  public WriterException(String message) {
     super(message);
   }
 
-  WriterException(String message, Throwable cause) {
+  public WriterException(String message, Throwable cause) {
     super(message, cause);
   }
 }

@@ -20,6 +20,7 @@ import net.jqwik.api.constraints.CharRange;
 import net.jqwik.api.constraints.StringLength;
 import org.msgpack.core.MessagePack;
 import org.msgpack.core.MessagePacker;
+import org.translatenix.minipack.internal.ValueFormat;
 
 /** Tests {@link MessageReader} against {@link org.msgpack.core.MessagePacker}. */
 public class MessageReaderTest {

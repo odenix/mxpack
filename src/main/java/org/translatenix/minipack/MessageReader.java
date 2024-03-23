@@ -11,6 +11,9 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.charset.StandardCharsets;
 import org.jspecify.annotations.Nullable;
+import org.translatenix.minipack.internal.Exceptions;
+import org.translatenix.minipack.internal.RequestedType;
+import org.translatenix.minipack.internal.ValueFormat;
 
 /**
  * Reads messages encoded in the <a href="https://msgpack.org/">MessagePack</a> binary serialization
@@ -26,18 +29,16 @@ import org.jspecify.annotations.Nullable;
 public final class MessageReader implements Closeable {
   private static final int MIN_BUFFER_CAPACITY = 9;
   private static final int DEFAULT_BUFFER_CAPACITY = 1 << 13;
-  private static final int DEFAULT_MAX_ALLOCATOR_CAPACITY = 1 << 20;
 
   private final MessageSource source;
   private final ByteBuffer buffer;
-  private final BufferAllocator allocator;
+  private final Utf8BufferProvider utf8BufferProvider;
 
   /** A builder of {@link MessageReader}. */
   public static final class Builder {
     private @Nullable MessageSource source;
     private @Nullable ByteBuffer buffer;
-    private @Nullable BufferAllocator allocator;
-    private int maxAllocatorCapacity = DEFAULT_MAX_ALLOCATOR_CAPACITY;
+    private int stringSizeLimit = 1 << 20;
 
     /** Sets the underlying source to read from. */
     public Builder source(MessageSource source) {
@@ -67,33 +68,8 @@ public final class MessageReader implements Closeable {
       return this;
     }
 
-    /**
-     * Sets the allocator to use for allocating additional {@linkplain ByteBuffer byte buffers}.
-     *
-     * <p>Currently, an additional byte buffer is only allocated if {@link #readString()} is called
-     * and at least one of the following conditions holds:
-     *
-     * <ul>
-     *   <li>The string is too large to fit into the regular {@linkplain #buffer(ByteBuffer) buffer}
-     *       or a previously allocated additional buffer.
-     *   <li>The regular {@linkplain #buffer(ByteBuffer) buffer} is not backed by an accessible
-     *       {@linkplain ByteBuffer#array() array}.
-     * </ul>
-     */
-    public Builder allocator(BufferAllocator allocator) {
-      this.allocator = allocator;
-      return this;
-    }
-
-    /**
-     * Shorthand for {@code allocator(BufferAllocator.withCapacity(buffer.capacity() * 2,
-     * maxCapacity))}, where {@code buffer} is the meassage reader's regular {@linkplain
-     * #buffer(ByteBuffer) buffer}.
-     *
-     * @see #allocator(BufferAllocator)
-     */
-    public Builder allocatorCapacity(int maxCapacity) {
-      maxAllocatorCapacity = maxCapacity;
+    public Builder stringSizeLimit(int byteCount) {
+      this.stringSizeLimit = byteCount;
       return this;
     }
 
@@ -102,6 +78,9 @@ public final class MessageReader implements Closeable {
       return new MessageReader(this);
     }
   }
+
+  /** The header of a MessagePack extension value. */
+  public record ExtensionHeader(int length, byte type) {}
 
   /** Creates a new {@code MessageWriter} builder. */
   public static Builder builder() {
@@ -117,16 +96,11 @@ public final class MessageReader implements Closeable {
         builder.buffer != null
             ? builder.buffer.position(0).limit(0)
             : ByteBuffer.allocate(DEFAULT_BUFFER_CAPACITY).limit(0);
-    assert this.buffer.remaining() == 0;
     if (buffer.capacity() < MIN_BUFFER_CAPACITY) {
       throw Exceptions.bufferTooSmall(buffer.capacity(), MIN_BUFFER_CAPACITY);
     }
-    this.allocator =
-        builder.allocator != null
-            ? builder.allocator
-            : BufferAllocator.withCapacity(
-                Math.min(builder.maxAllocatorCapacity, buffer.capacity() * 2),
-                builder.maxAllocatorCapacity);
+    this.utf8BufferProvider =
+        new Utf8BufferProvider(buffer.capacity() * 2, builder.stringSizeLimit);
   }
 
   /** Returns the type of the next value to be read. */
@@ -162,37 +136,37 @@ public final class MessageReader implements Closeable {
       case ValueFormat.INT16 -> {
         var value = getShort();
         if (value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE) yield (byte) value;
-        throw Exceptions.integerOverflow(value, format, RequestedType.BYTE);
+        throw Exceptions.integerOverflow(value, RequestedType.BYTE);
       }
       case ValueFormat.INT32 -> {
         var value = getInt();
         if (value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE) yield (byte) value;
-        throw Exceptions.integerOverflow(value, format, RequestedType.BYTE);
+        throw Exceptions.integerOverflow(value, RequestedType.BYTE);
       }
       case ValueFormat.INT64 -> {
         var value = getLong();
         if (value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE) yield (byte) value;
-        throw Exceptions.integerOverflow(value, format, RequestedType.BYTE);
+        throw Exceptions.integerOverflow(value, RequestedType.BYTE);
       }
       case ValueFormat.UINT8 -> {
         var value = getByte();
         if (value >= 0) yield value;
-        throw Exceptions.integerOverflow(value, format, RequestedType.BYTE);
+        throw Exceptions.integerOverflow(value, RequestedType.BYTE);
       }
       case ValueFormat.UINT16 -> {
         var value = getShort();
         if (value >= 0 && value <= Byte.MAX_VALUE) yield (byte) value;
-        throw Exceptions.integerOverflow(value, format, RequestedType.BYTE);
+        throw Exceptions.integerOverflow(value, RequestedType.BYTE);
       }
       case ValueFormat.UINT32 -> {
         var value = getInt();
         if (value >= 0 && value <= Byte.MAX_VALUE) yield (byte) value;
-        throw Exceptions.integerOverflow(value, format, RequestedType.BYTE);
+        throw Exceptions.integerOverflow(value, RequestedType.BYTE);
       }
       case ValueFormat.UINT64 -> {
         var value = getLong();
         if (value >= 0 && value <= Byte.MAX_VALUE) yield (byte) value;
-        throw Exceptions.integerOverflow(value, format, RequestedType.BYTE);
+        throw Exceptions.integerOverflow(value, RequestedType.BYTE);
       }
       default -> {
         if (ValueFormat.isFixInt(format)) yield format;
@@ -210,28 +184,28 @@ public final class MessageReader implements Closeable {
       case ValueFormat.INT32 -> {
         var value = getInt();
         if (value >= Short.MIN_VALUE && value <= Short.MAX_VALUE) yield (short) value;
-        throw Exceptions.integerOverflow(value, format, RequestedType.SHORT);
+        throw Exceptions.integerOverflow(value, RequestedType.SHORT);
       }
       case ValueFormat.INT64 -> {
         var value = getLong();
         if (value >= Short.MIN_VALUE && value <= Short.MAX_VALUE) yield (short) value;
-        throw Exceptions.integerOverflow(value, format, RequestedType.SHORT);
+        throw Exceptions.integerOverflow(value, RequestedType.SHORT);
       }
       case ValueFormat.UINT8 -> getUByte();
       case ValueFormat.UINT16 -> {
         var value = getShort();
         if (value >= 0) yield value;
-        throw Exceptions.integerOverflow(value, format, RequestedType.SHORT);
+        throw Exceptions.integerOverflow(value, RequestedType.SHORT);
       }
       case ValueFormat.UINT32 -> {
         var value = getInt();
         if (value >= 0 && value <= Short.MAX_VALUE) yield (short) value;
-        throw Exceptions.integerOverflow(value, format, RequestedType.SHORT);
+        throw Exceptions.integerOverflow(value, RequestedType.SHORT);
       }
       case ValueFormat.UINT64 -> {
         var value = getLong();
         if (value >= 0 && value <= Short.MAX_VALUE) yield (short) value;
-        throw Exceptions.integerOverflow(value, format, RequestedType.SHORT);
+        throw Exceptions.integerOverflow(value, RequestedType.SHORT);
       }
       default -> {
         if (ValueFormat.isFixInt(format)) yield format;
@@ -250,19 +224,19 @@ public final class MessageReader implements Closeable {
       case ValueFormat.INT64 -> {
         var value = getLong();
         if (value >= Integer.MIN_VALUE && value <= Integer.MAX_VALUE) yield (int) value;
-        throw Exceptions.integerOverflow(value, format, RequestedType.INT);
+        throw Exceptions.integerOverflow(value, RequestedType.INT);
       }
       case ValueFormat.UINT8 -> getUByte();
       case ValueFormat.UINT16 -> getUShort();
       case ValueFormat.UINT32 -> {
         var value = getInt();
         if (value >= 0) yield value;
-        throw Exceptions.integerOverflow(value, format, RequestedType.INT);
+        throw Exceptions.integerOverflow(value, RequestedType.INT);
       }
       case ValueFormat.UINT64 -> {
         var value = getLong();
         if (value >= 0 && value <= Integer.MAX_VALUE) yield (int) value;
-        throw Exceptions.integerOverflow(value, format, RequestedType.INT);
+        throw Exceptions.integerOverflow(value, RequestedType.INT);
       }
       default -> {
         if (ValueFormat.isFixInt(format)) yield format;
@@ -285,7 +259,7 @@ public final class MessageReader implements Closeable {
       case ValueFormat.UINT64 -> {
         var value = getLong();
         if (value >= 0) yield value;
-        throw Exceptions.integerOverflow(value, ValueFormat.UINT64, RequestedType.LONG);
+        throw Exceptions.integerOverflow(value, RequestedType.LONG);
       }
       default -> {
         if (ValueFormat.isFixInt(format)) yield format;
@@ -311,8 +285,8 @@ public final class MessageReader implements Closeable {
   /**
    * Reads a string value.
    *
-   * <p>The maximum UTF-8 string length is determined by the {@link BufferAllocator} that this
-   * reader was built with. The default maximum UTF-8 string length is 1 MiB (1024 * 1024 bytes).
+   * <p>If the string value is larger than {@link Builder#stringSizeLimit(int)} bytes, a {@link
+   * ReaderException} is thrown.
    *
    * <p>For a lower-level way to read strings, see {@link #readRawStringHeader()}.
    */
@@ -347,7 +321,7 @@ public final class MessageReader implements Closeable {
         if (ValueFormat.isFixArray(format)) {
           yield ValueFormat.getFixArrayLength(format);
         }
-        throw Exceptions.typeMismatch(format, RequestedType.MAP);
+        throw Exceptions.typeMismatch(format, RequestedType.ARRAY);
       }
     };
   }
@@ -452,6 +426,7 @@ public final class MessageReader implements Closeable {
   /** Closes the underlying message {@linkplain MessageSource source}. */
   @Override
   public void close() {
+    utf8BufferProvider.close();
     try {
       source.close();
     } catch (IOException e) {
@@ -523,7 +498,6 @@ public final class MessageReader implements Closeable {
   }
 
   private int readFromSource(ByteBuffer buffer, int minBytes) {
-    assert minBytes > 0;
     assert minBytes <= buffer.remaining();
     var totalBytesRead = 0;
     try {
@@ -548,27 +522,25 @@ public final class MessageReader implements Closeable {
   }
 
   private String readString(int length) {
-    assert length >= 0;
-    if (length <= buffer.capacity() && buffer.hasArray()) {
+    if (buffer.hasArray() && length <= buffer.capacity()) {
       ensureRemaining(length, buffer);
       var result = convertToString(buffer, length);
       buffer.position(buffer.position() + length);
       return result;
     }
-    var tempBuffer = allocator.getArrayBackedBuffer(length).position(0).limit(length);
+    var utf8Buffer = utf8BufferProvider.getBuffer(length).position(0).limit(length);
     var transferLength = Math.min(length, buffer.remaining());
-    tempBuffer.put(0, buffer, buffer.position(), transferLength);
+    utf8Buffer.put(0, buffer, buffer.position(), transferLength);
     if (transferLength < length) {
-      tempBuffer.position(transferLength);
-      readFromSource(tempBuffer, tempBuffer.remaining());
-      tempBuffer.position(0);
+      utf8Buffer.position(transferLength);
+      readFromSource(utf8Buffer, utf8Buffer.remaining());
+      utf8Buffer.position(0);
     }
     buffer.position(buffer.position() + transferLength);
-    return convertToString(tempBuffer, length);
+    return convertToString(utf8Buffer, length);
   }
 
   private String convertToString(ByteBuffer buffer, int length) {
-    assert buffer.hasArray();
     return new String(
         buffer.array(), buffer.arrayOffset() + buffer.position(), length, StandardCharsets.UTF_8);
   }
@@ -584,6 +556,35 @@ public final class MessageReader implements Closeable {
       readFromSource(buffer, minBytes);
       buffer.flip();
       assert buffer.remaining() >= length;
+    }
+  }
+
+  private static final class Utf8BufferProvider {
+    private final int minCapacity;
+    private final int maxCapacity;
+    private @Nullable ByteBuffer buffer;
+
+    Utf8BufferProvider(int minCapacity, int maxCapacity) {
+      this.minCapacity = Math.min(minCapacity, maxCapacity);
+      this.maxCapacity = maxCapacity;
+    }
+
+    ByteBuffer getBuffer(int requestedCapacity) {
+      if (buffer == null || buffer.capacity() < requestedCapacity) {
+        if (requestedCapacity > maxCapacity) {
+          throw Exceptions.stringTooLarge(requestedCapacity, maxCapacity);
+        }
+        var newCapacity =
+            buffer == null
+                ? Math.max(minCapacity, requestedCapacity)
+                : Math.max(buffer.capacity() * 2, requestedCapacity);
+        buffer = ByteBuffer.allocate(Math.min(maxCapacity, newCapacity));
+      }
+      return buffer;
+    }
+
+    void close() {
+      buffer = null;
     }
   }
 }

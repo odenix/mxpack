@@ -2,9 +2,9 @@
  * Copyright 2024 the minipack project authors
  * SPDX-License-Identifier: Apache-2.0
  */
-package org.translatenix.minipack;
+package org.translatenix.minipack.internal;
 
-enum RequestedType {
+public enum RequestedType {
   NIL,
   BOOLEAN,
   BYTE,

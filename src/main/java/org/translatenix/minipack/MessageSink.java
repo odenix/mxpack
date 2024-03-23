@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
+import org.translatenix.minipack.internal.MessageSinks;
 
 /** The underlying sink of a {@link MessageWriter}. */
 public interface MessageSink extends Closeable {

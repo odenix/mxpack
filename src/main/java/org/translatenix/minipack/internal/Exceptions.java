@@ -2,11 +2,14 @@
  * Copyright 2024 the minipack project authors
  * SPDX-License-Identifier: Apache-2.0
  */
-package org.translatenix.minipack;
+package org.translatenix.minipack.internal;
 
 import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import org.translatenix.minipack.ReaderException;
+import org.translatenix.minipack.ValueType;
+import org.translatenix.minipack.WriterException;
 
 /** Exceptions thrown by message readers, writers, sources, sinks, and buffer allocators. */
 public final class Exceptions {
@@ -26,16 +29,17 @@ public final class Exceptions {
    * Creates an exception to be thrown when the requested buffer capacity exceeds an allocator's
    * maximum allowed capacity.
    */
-  public static ReaderException maxCapacityExceeded(int requestedCapacity, int maxCapacity) {
+  public static ReaderException stringTooLarge(int requestedCapacity, int maxCapacity) {
+    // tailor message to current use of BufferAllocator
     return new ReaderException(
-        "Requested buffer capacity "
+        "MessagePack string has a length of "
             + requestedCapacity
-            + " exceeds maximum allowed capacity "
+            + " bytes, exceeding the maximum allowed length of "
             + maxCapacity
-            + ".");
+            + " bytes.");
   }
 
-  static EOFException prematureEndOfInput(int minBytes, int bytesRead) {
+  public static EOFException prematureEndOfInput(int minBytes, int bytesRead) {
     return new EOFException(
         "Expected at least "
             + minBytes
@@ -44,80 +48,88 @@ public final class Exceptions {
             + " bytes.");
   }
 
-  static IllegalArgumentException invalidAllocatorCapacitu(int minCapacity, int maxCapacity) {
+  public static IllegalArgumentException invalidCapacityLimits(int minCapacity, int maxCapacity) {
     return new IllegalArgumentException(
-        "Invalid allocator capacity: minCapacity=" + minCapacity + ", maxCapacity=" + maxCapacity);
+        "Invalid allocator capacity limits: minCapacity="
+            + minCapacity
+            + ", maxCapacity="
+            + maxCapacity);
   }
 
-  static IllegalStateException sourceRequired() {
+  public static IllegalStateException sourceRequired() {
     return new IllegalStateException("MessageReader.Builder.source() must be set.");
   }
 
-  static IllegalStateException bufferTooSmall(int capacity, int minCapacity) {
+  public static IllegalStateException bufferTooSmall(int capacity, int minCapacity) {
     return new IllegalStateException(
         "The minimum supported ByteBuffer capacity is " + minCapacity + ", but got: " + capacity);
   }
 
-  static ReaderException typeMismatch(byte format, RequestedType javaType) {
+  public static ReaderException typeMismatch(byte format, RequestedType requestedType) {
     return new ReaderException(
-        "MessagePack type `"
+        "Type mismatch: MessagePack value of type "
             + ValueFormat.toType(format)
-            + "` cannot be read as Java type `"
-            + javaType
-            + "`.");
+            + " cannot be read as type "
+            + requestedType
+            + ".");
   }
 
-  static ReaderException integerOverflow(long value, byte format, RequestedType javaType) {
+  public static ReaderException integerOverflow(long value, RequestedType requestedType) {
     return new ReaderException(
-        "Integer value `" + value + "` does not fit into Java type `" + javaType + "`.");
+        "Integer overflow: MessagePack value "
+            + value
+            + " does not fit into type "
+            + requestedType
+            + ".");
   }
 
-  static ReaderException invalidValueFormat(byte format) {
+  public static ReaderException invalidValueFormat(byte format) {
     return new ReaderException("Invalid MessagePack value format: " + format);
   }
 
-  static ReaderException ioErrorReadingFromSource(IOException e) {
+  public static ReaderException ioErrorReadingFromSource(IOException e) {
     return new ReaderException("I/O error reading from message source.", e);
   }
 
-  static ReaderException lengthTooLarge(int length, ValueType valueType) {
+  public static ReaderException lengthTooLarge(int length, ValueType valueType) {
     return new ReaderException(
-        valueType
-            + " value has length "
+        "MessagePack value of type "
+            + valueType
+            + " has a length of "
             + length
-            + ", exceeding the maximum supported length 2^31-1 (Integer.MAX_VALUE).");
+            + " bytes, exceeding the maximum supported length 2^31-1 (Integer.MAX_VALUE).");
   }
 
-  static WriterException ioErrorClosingSource(IOException e) {
+  public static WriterException ioErrorClosingSource(IOException e) {
     return new WriterException("I/O error closing message source.", e);
   }
 
-  static IllegalStateException sinkRequired() {
+  public static IllegalStateException sinkRequired() {
     return new IllegalStateException("MessageWriter.Builder.sink() must be set.");
   }
 
-  static WriterException invalidSurrogatePair(int position) {
+  public static WriterException invalidSurrogatePair(int position) {
     return new WriterException(
         "Refusing to write string with invalid surrogate pair at position " + position + ".");
   }
 
-  static WriterException ioErrorWritingToSink(IOException e) {
+  public static WriterException ioErrorWritingToSink(IOException e) {
     return new WriterException("I/O error writing to message sink.", e);
   }
 
-  static WriterException ioErrorFlushingSink(IOException e) {
+  public static WriterException ioErrorFlushingSink(IOException e) {
     return new WriterException("I/O error flushing message sink.", e);
   }
 
-  static WriterException ioErrorClosingSink(IOException e) {
+  public static WriterException ioErrorClosingSink(IOException e) {
     return new WriterException("I/O error closing message sink.", e);
   }
 
-  static IllegalArgumentException invalidLength(int length) {
+  public static IllegalArgumentException invalidLength(int length) {
     return new IllegalArgumentException("TODO");
   }
 
-  static IllegalArgumentException invalidExtensionType(byte type) {
+  public static IllegalArgumentException invalidExtensionType(byte type) {
     return new IllegalArgumentException("TODO");
   }
 }
