@@ -18,7 +18,7 @@ public interface MessageSink extends Closeable {
    * <p>Conceptually, this method makes {@code n} calls to {@link ByteBuffer#get()}, where {@code n}
    * is the number of bytes {@linkplain ByteBuffer#remaining() remaining} in the buffer.
    */
-  void write(ByteBuffer buffer) throws IOException;
+  int write(ByteBuffer buffer) throws IOException;
 
   /** Flushes this message sink. */
   void flush() throws IOException;

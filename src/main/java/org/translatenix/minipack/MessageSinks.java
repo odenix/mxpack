@@ -20,11 +20,14 @@ final class MessageSinks {
     }
 
     @Override
-    public void write(ByteBuffer buffer) throws IOException {
+    public int write(ByteBuffer buffer) throws IOException {
       if (!buffer.hasArray()) {
         throw Exceptions.arrayBackedBufferRequired();
       }
-      out.write(buffer.array(), buffer.arrayOffset() + buffer.position(), buffer.remaining());
+      var bytesToWrite = buffer.remaining();
+      out.write(buffer.array(), buffer.arrayOffset() + buffer.position(), bytesToWrite);
+      buffer.position(buffer.position() + bytesToWrite);
+      return bytesToWrite;
     }
 
     @Override
@@ -46,8 +49,8 @@ final class MessageSinks {
     }
 
     @Override
-    public void write(ByteBuffer buffer) throws IOException {
-      while (buffer.hasRemaining()) channel.write(buffer);
+    public int write(ByteBuffer buffer) throws IOException {
+      return channel.write(buffer);
     }
 
     @Override

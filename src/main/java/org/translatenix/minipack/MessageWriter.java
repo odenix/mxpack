@@ -309,23 +309,28 @@ public final class MessageWriter implements Closeable {
   }
 
   /**
-   * Writes the given buffer's {@linkplain ByteBuffer#remaining() remaining} bytes, starting at the
+   * Writes the given buffer's {@linkplain ByteBuffer#remaining() length} bytes, starting at the
    * buffer's current {@linkplain ByteBuffer#position() position}.
    *
    * <p>This method is used together with {@link #writeBinaryHeader} or {@link
    * #writeRawStringHeader}.
    */
-  public void writePayload(ByteBuffer buffer) {
-    writeBuffer();
-    doWriteBuffer(buffer);
+  public int writePayload(ByteBuffer buffer) {
+    writeEntireBuffer();
+    return writeToSink(buffer);
+  }
+
+  public int writePayload(ByteBuffer buffer, int minBytesToWrite) {
+    writeEntireBuffer();
+    return writeToSink(buffer, minBytesToWrite);
   }
 
   /**
-   * Writes any data remaining in this writer's buffer and flushes the underlying message
-   * {@linkplain MessageSink sink}.
+   * Writes any data length in this writer's buffer and flushes the underlying message {@linkplain
+   * MessageSink sink}.
    */
   public void flush() {
-    writeBuffer();
+    writeEntireBuffer();
     try {
       sink.flush();
     } catch (IOException e) {
@@ -356,7 +361,9 @@ public final class MessageWriter implements Closeable {
         buffer.put((byte) str.charAt(i));
       }
       if (i == length) break;
-      writeBuffer();
+      buffer.flip();
+      writeToSink(buffer);
+      buffer.compact();
     }
   }
 
@@ -414,15 +421,37 @@ public final class MessageWriter implements Closeable {
     return result;
   }
 
-  private void writeBuffer() {
+  private void ensureRemaining(int length) {
+    assert length >= 1;
+    assert length <= buffer.capacity();
+    var minBytesToWrite = length - buffer.remaining();
+    if (minBytesToWrite <= 0) return;
+
     buffer.flip();
-    doWriteBuffer(buffer);
+    writeToSink(buffer, minBytesToWrite);
+    buffer.compact();
+  }
+
+  private void writeEntireBuffer() {
+    buffer.flip();
+    while (buffer.hasRemaining()) {
+      writeToSink(buffer);
+    }
     buffer.clear();
   }
 
-  private void doWriteBuffer(ByteBuffer buffer) {
+  private int writeToSink(ByteBuffer buffer, int minBytes) {
+    var totalBytesWritten = 0;
+    while (totalBytesWritten < minBytes) {
+      var bytesWritten = writeToSink(buffer);
+      totalBytesWritten += bytesWritten;
+    }
+    return totalBytesWritten;
+  }
+
+  private int writeToSink(ByteBuffer buffer) {
     try {
-      sink.write(buffer);
+      return sink.write(buffer);
     } catch (IOException e) {
       throw Exceptions.ioErrorWritingToSink(e);
     }
@@ -479,9 +508,5 @@ public final class MessageWriter implements Closeable {
     ensureRemaining(9);
     buffer.put(ValueFormat.UINT64);
     buffer.putLong(value);
-  }
-
-  private void ensureRemaining(int length) {
-    if (buffer.remaining() < length) writeBuffer();
   }
 }
