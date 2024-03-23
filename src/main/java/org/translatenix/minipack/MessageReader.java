@@ -16,9 +16,12 @@ import org.jspecify.annotations.Nullable;
  * Reads messages encoded in the <a href="https://msgpack.org/">MessagePack</a> binary serialization
  * format.
  *
- * <p>To create a new {@code MessageReader}, use a {@linkplain #builder() builder}. To read a
- * message, call one of the {@code readXYZ()} methods. To peek at the next message type, call {@link
- * #nextType()}. If an error occurs when reading a value, a {@link ReaderException} is thrown.
+ * <p>To create a new {@code MessageReader}, use a {@linkplain #builder() builder}. To read a value,
+ * call one of the {@code readXYZ()} methods. To determine the next value's type, call {@link
+ * #nextType()}.
+ *
+ * <p>Unless otherwise noted, methods throw {@link ReaderException} if an error occurs. The most
+ * common type of error is an I/O error.
  */
 public final class MessageReader implements Closeable {
   private static final int MIN_BUFFER_CAPACITY = 9;

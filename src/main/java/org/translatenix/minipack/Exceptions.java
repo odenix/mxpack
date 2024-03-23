@@ -112,4 +112,12 @@ public final class Exceptions {
   static WriterException ioErrorClosingSink(IOException e) {
     return new WriterException("I/O error closing message sink.", e);
   }
+
+  static IllegalArgumentException invalidLength(int length) {
+    return new IllegalArgumentException("TODO");
+  }
+
+  static IllegalArgumentException invalidExtensionType(byte type) {
+    return new IllegalArgumentException("TODO");
+  }
 }

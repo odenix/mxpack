@@ -16,13 +16,15 @@ import org.jspecify.annotations.Nullable;
  * serialization format.
  *
  * <p>To create a new {@code MessageWriter}, use a {@linkplain #builder() builder}. To write a
- * message, call one of the {@code write()} or {@code writeXYZ()} methods. To flush the underlying
- * message {@linkplain MessageSink sink}, call {@link #flush()}. If an error occurs when writing a
- * value, a {@link WriterException} is thrown.
+ * value, call one of the {@code write()} or {@code writeXYZ()} methods. To flush the underlying
+ * message {@linkplain MessageSink sink}, call {@link #flush()}.
+ *
+ * <p>Unless otherwise noted, methods throw {@link WriterException} if an error occurs. The most
+ * common type of error is an I/O error.
  */
 public final class MessageWriter implements Closeable {
-  private static final int MIN_BUFFER_SIZE = 9;
-  private static final int DEFAULT_BUFFER_SIZE = 1 << 13;
+  private static final int MIN_BUFFER_CAPACITY = 9;
+  private static final int DEFAULT_BUFFER_CAPACITY = 1 << 13;
 
   private final MessageSink sink;
   private final ByteBuffer buffer;
@@ -75,11 +77,9 @@ public final class MessageWriter implements Closeable {
     }
     sink = builder.sink;
     buffer =
-        builder.buffer != null ? builder.buffer.clear() : ByteBuffer.allocate(DEFAULT_BUFFER_SIZE);
-    if (buffer.capacity() < MIN_BUFFER_SIZE) {
-      // TODO: move to Exceptions
-      throw new IllegalArgumentException(
-          "MessageWriter requires a buffer with a capacity of at least " + MIN_BUFFER_SIZE + ".");
+        builder.buffer != null ? builder.buffer.clear() : ByteBuffer.allocate(DEFAULT_BUFFER_CAPACITY);
+    if (buffer.capacity() < MIN_BUFFER_CAPACITY) {
+      throw Exceptions.bufferTooSmall(buffer.capacity(), MIN_BUFFER_CAPACITY);
     }
   }
 
@@ -198,75 +198,75 @@ public final class MessageWriter implements Closeable {
   }
 
   /** Writes a string value. */
-  public void write(CharSequence str) {
-    var utf8Length = countUtf8Length(str);
-    if (utf8Length < 0) {
-      writeRawStringHeader(-utf8Length);
-      writeStringAscii(str);
+  public void write(CharSequence string) {
+    var length = countUtf8Length(string);
+    if (length < 0) {
+      writeRawStringHeader(-length);
+      writeStringAscii(string);
     } else {
-      writeRawStringHeader(utf8Length);
-      writeStringNonAscii(str);
+      writeRawStringHeader(length);
+      writeStringNonAscii(string);
     }
   }
 
   /**
    * Starts writing an array value with the given number of elements.
    *
-   * <p>A call to this method MUST be followed by {@code length} calls that write the array's
+   * <p>A call to this method MUST be followed by {@code elementCount} calls that write the array's
    * elements.
    */
-  public void writeArrayHeader(int length) {
-    assert length >= 0;
-    if (length < (1 << 4)) {
-      putByte((byte) (ValueFormat.FIXARRAY_PREFIX | length));
-    } else if (length < (1 << 16)) {
-      putShort(ValueFormat.ARRAY16, (short) length);
+  public void writeArrayHeader(int elementCount) {
+    requireValidLength(elementCount);
+    if (elementCount < (1 << 4)) {
+      putByte((byte) (ValueFormat.FIXARRAY_PREFIX | elementCount));
+    } else if (elementCount < (1 << 16)) {
+      putShort(ValueFormat.ARRAY16, (short) elementCount);
     } else {
-      putInt(ValueFormat.ARRAY32, length);
+      putInt(ValueFormat.ARRAY32, elementCount);
     }
   }
 
   /**
    * Starts writing a map value with the given number of entries.
    *
-   * <p>A call to this method MUST be followed by {@code size*2} calls that alternately write the
+   * <p>A call to this method MUST be followed by {@code entryCount*2} calls that alternately write the
    * map's keys and values.
    */
-  public void writeMapHeader(int size) {
-    assert size >= 0;
-    if (size < (1 << 4)) {
-      putByte((byte) (ValueFormat.FIXMAP_PREFIX | size));
-    } else if (size < (1 << 16)) {
-      putShort(ValueFormat.MAP16, (short) size);
+  public void writeMapHeader(int entryCount) {
+    requireValidLength(entryCount);
+    if (entryCount < (1 << 4)) {
+      putByte((byte) (ValueFormat.FIXMAP_PREFIX | entryCount));
+    } else if (entryCount < (1 << 16)) {
+      putShort(ValueFormat.MAP16, (short) entryCount);
     } else {
-      putInt(ValueFormat.MAP32, size);
+      putInt(ValueFormat.MAP32, entryCount);
     }
   }
 
   /**
-   * Starts writing a string value with the given number of bytes.
+   * Starts writing a string value with the given number of UTF-8 bytes.
    *
    * <p>A call to this method MUST be followed by one or more calls to {@link #writePayload} that
-   * write exactly {@code utf8Length} bytes in total.
+   * write exactly {@code byteCount} bytes in total.
    *
    * <p>This method is a low-level alternative to {@link #write(CharSequence)}. It can be useful in
    * the following cases:
    *
    * <ul>
-   *   <li>The string to write is already available in UTF-8 encoding.
+   *   <li>The string to write is already available as UTF-8 byte sequence.
    *   <li>Full control over conversion from {@code java.lang.String} to UTF-8 is required.
    * </ul>
    */
-  public void writeRawStringHeader(int utf8Length) {
-    assert utf8Length >= 0;
-    if (utf8Length < (1 << 5)) {
-      putByte((byte) (ValueFormat.FIXSTR_PREFIX | utf8Length));
-    } else if (utf8Length < (1 << 8)) {
-      putByte(ValueFormat.STR8, (byte) utf8Length);
-    } else if (utf8Length < (1 << 16)) {
-      putShort(ValueFormat.STR16, (short) utf8Length);
+  public void writeRawStringHeader(int byteCount) {
+    requireValidLength(byteCount);
+    if (byteCount < (1 << 5)) {
+      putByte((byte) (ValueFormat.FIXSTR_PREFIX | byteCount));
+    } else if (byteCount < (1 << 8)) {
+      putByte(ValueFormat.STR8, (byte) byteCount);
+    } else if (byteCount < (1 << 16)) {
+      putShort(ValueFormat.STR16, (short) byteCount);
     } else {
-      putInt(ValueFormat.STR32, utf8Length);
+      putInt(ValueFormat.STR32, byteCount);
     }
   }
 
@@ -274,37 +274,37 @@ public final class MessageWriter implements Closeable {
    * Starts writing a binary value with the given number of bytes.
    *
    * <p>A call to this method MUST be followed by one or more calls to {@link #writePayload} that
-   * write exactly {@code length} bytes in total.
+   * write exactly {@code byteCount} bytes in total.
    */
-  public void writeBinaryHeader(int length) {
-    assert length >= 0;
-    if (length < (1 << 8)) {
-      putByte(ValueFormat.BIN8, (byte) length);
-    } else if (length < (1 << 16)) {
-      putShort(ValueFormat.BIN16, (short) length);
+  public void writeBinaryHeader(int byteCount) {
+    requireValidLength(byteCount);
+    if (byteCount < (1 << 8)) {
+      putByte(ValueFormat.BIN8, (byte) byteCount);
+    } else if (byteCount < (1 << 16)) {
+      putShort(ValueFormat.BIN16, (short) byteCount);
     } else {
-      putInt(ValueFormat.BIN32, length);
+      putInt(ValueFormat.BIN32, byteCount);
     }
   }
 
-  public void writeExtensionHeader(int length, byte format) {
-    assert length >= 0;
-    assert format >= 0;
-    switch (length) {
-      case 1 -> putByte(ValueFormat.FIXEXT1, format);
-      case 2 -> putByte(ValueFormat.FIXEXT2, format);
-      case 4 -> putByte(ValueFormat.FIXEXT4, format);
-      case 8 -> putByte(ValueFormat.FIXEXT8, format);
-      case 16 -> putByte(ValueFormat.FIXEXT16, format);
+  public void writeExtensionHeader(int byteCount, byte type) {
+    requireValidLength(byteCount);
+    if (type < 0) throw Exceptions.invalidExtensionType(type);
+    switch (byteCount) {
+      case 1 -> putByte(ValueFormat.FIXEXT1, type);
+      case 2 -> putByte(ValueFormat.FIXEXT2, type);
+      case 4 -> putByte(ValueFormat.FIXEXT4, type);
+      case 8 -> putByte(ValueFormat.FIXEXT8, type);
+      case 16 -> putByte(ValueFormat.FIXEXT16, type);
       default -> {
-        if (length < (1 << 8)) {
-          putByte(ValueFormat.EXT8, (byte) length);
-        } else if (length < (1 << 16)) {
-          putShort(ValueFormat.EXT16, (short) length);
+        if (byteCount < (1 << 8)) {
+          putByte(ValueFormat.EXT8, (byte) byteCount);
+        } else if (byteCount < (1 << 16)) {
+          putShort(ValueFormat.EXT16, (short) byteCount);
         } else {
-          putInt(ValueFormat.EXT32, length);
+          putInt(ValueFormat.EXT32, byteCount);
         }
-        putByte(format);
+        putByte(type);
       }
     }
   }
@@ -327,8 +327,8 @@ public final class MessageWriter implements Closeable {
   }
 
   /**
-   * Writes any data remaining in this writer's buffer and flushes the underlying message {@linkplain
-   * MessageSink sink}.
+   * Writes any data remaining in this writer's buffer and flushes the underlying message
+   * {@linkplain MessageSink sink}.
    */
   public void flush() {
     writeEntireBuffer();
@@ -353,6 +353,10 @@ public final class MessageWriter implements Closeable {
     }
   }
 
+  private void requireValidLength(int length) {
+    if (length < 0) throw Exceptions.invalidLength(length);
+  }
+
   private void putByte(byte value) {
     ensureRemaining(1);
     buffer.put(value);
@@ -360,22 +364,26 @@ public final class MessageWriter implements Closeable {
 
   private void putByte(byte format, byte value) {
     ensureRemaining(2);
-    buffer.put(format).put(value);
+    buffer.put(format);
+    buffer.put(value);
   }
 
   private void putShort(byte format, short value) {
     ensureRemaining(3);
-    buffer.put(format).putShort(value);
+    buffer.put(format);
+    buffer.putShort(value);
   }
 
   private void putInt(byte format, int value) {
     ensureRemaining(5);
-    buffer.put(format).putInt(value);
+    buffer.put(format);
+    buffer.putInt(value);
   }
 
   private void putLong(byte format, long value) {
     ensureRemaining(9);
-    buffer.put(format).putLong(value);
+    buffer.put(format);
+    buffer.putLong(value);
   }
 
   private void writeStringAscii(CharSequence str) {
@@ -450,12 +458,10 @@ public final class MessageWriter implements Closeable {
     return result;
   }
 
-  private void ensureRemaining(int length) {
-    assert length >= 1;
-    assert length <= buffer.capacity();
-    var minBytesToWrite = length - buffer.remaining();
+  private void ensureRemaining(int byteCount) {
+    assert byteCount <= buffer.capacity();
+    var minBytesToWrite = byteCount - buffer.remaining();
     if (minBytesToWrite <= 0) return;
-
     buffer.flip();
     writeToSink(buffer, minBytesToWrite);
     buffer.compact();
