@@ -72,21 +72,20 @@ public final class Exceptions {
         "Integer value `" + value + "` does not fit into Java type `" + javaType + "`.");
   }
 
-  static ReaderException stringTooLarge(long length, int maxLength) {
-    return new ReaderException(
-        "The maximum supported String length is " + maxLength + ", but got: " + length);
-  }
-
-  static ReaderException binaryTooLarge(long length) {
-    return new ReaderException("TODO");
-  }
-
   static ReaderException invalidValueFormat(byte format) {
     return new ReaderException("Invalid MessagePack value format: " + format);
   }
 
   static ReaderException ioErrorReadingFromSource(IOException e) {
     return new ReaderException("I/O error reading from message source.", e);
+  }
+
+  static ReaderException lengthTooLarge(int length, ValueType valueType) {
+    return new ReaderException(
+        valueType
+            + " value has length "
+            + length
+            + ", exceeding the maximum supported length 2^31-1 (Integer.MAX_VALUE).");
   }
 
   static WriterException ioErrorClosingSource(IOException e) {

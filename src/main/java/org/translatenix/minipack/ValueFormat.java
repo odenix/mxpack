@@ -52,6 +52,10 @@ final class ValueFormat {
     return format >= -(1 << 5);
   }
 
+  static boolean isFixExt(byte format) {
+    return format >= FIXEXT1 && format <= FIXEXT16;
+  }
+
   static boolean isFixStr(byte format) {
     return (format & FIXSTR_MASK) == FIXSTR_PREFIX;
   }

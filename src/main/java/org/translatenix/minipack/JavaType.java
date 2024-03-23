@@ -10,7 +10,7 @@ package org.translatenix.minipack;
  * @see ValueType
  */
 public enum JavaType {
-  /** The Java void type. */
+  /** The Java Void type. */
   VOID,
   /** The Java boolean type. */
   BOOLEAN,
@@ -26,10 +26,13 @@ public enum JavaType {
   FLOAT,
   /** The Java double type. */
   DOUBLE,
-  /** The {@code java.lang.String} type. */
-  STRING,
   /** The Java array type. */
   ARRAY,
   /** The {@code java.util.Map} type. */
-  MAP
+  MAP,
+  /** The {@code java.lang.String} type. */
+  STRING,
+  RAW_STRING_HEADER,
+  BINARY_HEADER,
+  EXTENSION_HEADER
 }

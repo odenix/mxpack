@@ -126,7 +126,6 @@ public final class MessageReader implements Closeable {
                 builder.maxAllocatorCapacity);
   }
 
-  // TODO handle EOF
   /** Returns the type of the next value to be read. */
   public ValueType nextType() {
     ensureRemaining(1);
@@ -136,8 +135,7 @@ public final class MessageReader implements Closeable {
 
   /** Reads a nil (null) value. */
   public void readNil() {
-    ensureRemaining(1);
-    var format = buffer.get();
+    var format = getByte();
     if (format != ValueFormat.NIL) {
       throw Exceptions.wrongJavaType(format, JavaType.VOID);
     }
@@ -145,8 +143,7 @@ public final class MessageReader implements Closeable {
 
   /** Reads a boolean value. */
   public boolean readBoolean() {
-    ensureRemaining(1);
-    var format = buffer.get();
+    var format = getByte();
     return switch (format) {
       case ValueFormat.TRUE -> true;
       case ValueFormat.FALSE -> false;
@@ -156,52 +153,41 @@ public final class MessageReader implements Closeable {
 
   /** Reads an integer value that fits into a Java byte. */
   public byte readByte() {
-    ensureRemaining(1);
-    var format = buffer.get();
+    var format = getByte();
     return switch (format) {
-      case ValueFormat.INT8 -> {
-        ensureRemaining(1);
-        yield buffer.get();
-      }
+      case ValueFormat.INT8 -> getByte();
       case ValueFormat.INT16 -> {
-        ensureRemaining(2);
-        var value = buffer.getShort();
+        var value = getShort();
         if (value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE) yield (byte) value;
         throw Exceptions.integerOverflow(value, format, JavaType.BYTE);
       }
       case ValueFormat.INT32 -> {
-        ensureRemaining(4);
-        var value = buffer.getInt();
+        var value = getInt();
         if (value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE) yield (byte) value;
         throw Exceptions.integerOverflow(value, format, JavaType.BYTE);
       }
       case ValueFormat.INT64 -> {
-        ensureRemaining(8);
-        var value = buffer.getLong();
+        var value = getLong();
         if (value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE) yield (byte) value;
         throw Exceptions.integerOverflow(value, format, JavaType.BYTE);
       }
       case ValueFormat.UINT8 -> {
-        ensureRemaining(1);
-        var value = buffer.get();
+        var value = getByte();
         if (value >= 0) yield value;
         throw Exceptions.integerOverflow(value, format, JavaType.BYTE);
       }
       case ValueFormat.UINT16 -> {
-        ensureRemaining(2);
-        var value = buffer.getShort();
+        var value = getShort();
         if (value >= 0 && value <= Byte.MAX_VALUE) yield (byte) value;
         throw Exceptions.integerOverflow(value, format, JavaType.BYTE);
       }
       case ValueFormat.UINT32 -> {
-        ensureRemaining(4);
-        var value = buffer.getInt();
+        var value = getInt();
         if (value >= 0 && value <= Byte.MAX_VALUE) yield (byte) value;
         throw Exceptions.integerOverflow(value, format, JavaType.BYTE);
       }
       case ValueFormat.UINT64 -> {
-        ensureRemaining(8);
-        var value = buffer.getLong();
+        var value = getLong();
         if (value >= 0 && value <= Byte.MAX_VALUE) yield (byte) value;
         throw Exceptions.integerOverflow(value, format, JavaType.BYTE);
       }
@@ -214,48 +200,33 @@ public final class MessageReader implements Closeable {
 
   /** Reads an integer value that fits into a Java short. */
   public short readShort() {
-    ensureRemaining(1);
-    var format = buffer.get();
+    var format = getByte();
     return switch (format) {
-      case ValueFormat.INT8 -> {
-        ensureRemaining(1);
-        yield buffer.get();
-      }
-      case ValueFormat.INT16 -> {
-        ensureRemaining(2);
-        yield buffer.getShort();
-      }
+      case ValueFormat.INT8 -> getByte();
+      case ValueFormat.INT16 -> getShort();
       case ValueFormat.INT32 -> {
-        ensureRemaining(4);
-        var value = buffer.getInt();
+        var value = getInt();
         if (value >= Short.MIN_VALUE && value <= Short.MAX_VALUE) yield (short) value;
         throw Exceptions.integerOverflow(value, format, JavaType.SHORT);
       }
       case ValueFormat.INT64 -> {
-        ensureRemaining(8);
-        var value = buffer.getLong();
+        var value = getLong();
         if (value >= Short.MIN_VALUE && value <= Short.MAX_VALUE) yield (short) value;
         throw Exceptions.integerOverflow(value, format, JavaType.SHORT);
       }
-      case ValueFormat.UINT8 -> {
-        ensureRemaining(1);
-        yield (short) (buffer.get() & 0xff);
-      }
+      case ValueFormat.UINT8 -> getUByte();
       case ValueFormat.UINT16 -> {
-        ensureRemaining(2);
-        var value = buffer.getShort();
+        var value = getShort();
         if (value >= 0) yield value;
         throw Exceptions.integerOverflow(value, format, JavaType.SHORT);
       }
       case ValueFormat.UINT32 -> {
-        ensureRemaining(4);
-        var value = buffer.getInt();
+        var value = getInt();
         if (value >= 0 && value <= Short.MAX_VALUE) yield (short) value;
         throw Exceptions.integerOverflow(value, format, JavaType.SHORT);
       }
       case ValueFormat.UINT64 -> {
-        ensureRemaining(8);
-        var value = buffer.getLong();
+        var value = getLong();
         if (value >= 0 && value <= Short.MAX_VALUE) yield (short) value;
         throw Exceptions.integerOverflow(value, format, JavaType.SHORT);
       }
@@ -268,44 +239,25 @@ public final class MessageReader implements Closeable {
 
   /** Reads an integer value that fits into a Java int. */
   public int readInt() {
-    ensureRemaining(1);
-    var format = buffer.get();
+    var format = getByte();
     return switch (format) {
-      case ValueFormat.INT8 -> {
-        ensureRemaining(1);
-        yield buffer.get();
-      }
-      case ValueFormat.INT16 -> {
-        ensureRemaining(2);
-        yield buffer.getShort();
-      }
-      case ValueFormat.INT32 -> {
-        ensureRemaining(4);
-        yield buffer.getInt();
-      }
+      case ValueFormat.INT8 -> getByte();
+      case ValueFormat.INT16 -> getShort();
+      case ValueFormat.INT32 -> getInt();
       case ValueFormat.INT64 -> {
-        ensureRemaining(8);
-        var value = buffer.getLong();
+        var value = getLong();
         if (value >= Integer.MIN_VALUE && value <= Integer.MAX_VALUE) yield (int) value;
         throw Exceptions.integerOverflow(value, format, JavaType.INT);
       }
-      case ValueFormat.UINT8 -> {
-        ensureRemaining(1);
-        yield buffer.get() & 0xff;
-      }
-      case ValueFormat.UINT16 -> {
-        ensureRemaining(2);
-        yield buffer.getShort() & 0xffff;
-      }
+      case ValueFormat.UINT8 -> getUByte();
+      case ValueFormat.UINT16 -> getUShort();
       case ValueFormat.UINT32 -> {
-        ensureRemaining(4);
-        var value = buffer.getInt();
+        var value = getInt();
         if (value >= 0) yield value;
         throw Exceptions.integerOverflow(value, format, JavaType.INT);
       }
       case ValueFormat.UINT64 -> {
-        ensureRemaining(8);
-        var value = buffer.getLong();
+        var value = getLong();
         if (value >= 0 && value <= Integer.MAX_VALUE) yield (int) value;
         throw Exceptions.integerOverflow(value, format, JavaType.INT);
       }
@@ -318,42 +270,19 @@ public final class MessageReader implements Closeable {
 
   /** Reads an integer value that fits into a Java long. */
   public long readLong() {
-    ensureRemaining(1);
-    var format = buffer.get();
+    var format = getByte();
     return switch (format) {
-      case ValueFormat.INT8 -> {
-        ensureRemaining(1);
-        yield buffer.get();
-      }
-      case ValueFormat.INT16 -> {
-        ensureRemaining(2);
-        yield buffer.getShort();
-      }
-      case ValueFormat.INT32 -> {
-        ensureRemaining(4);
-        yield buffer.getInt();
-      }
-      case ValueFormat.INT64 -> {
-        ensureRemaining(8);
-        yield buffer.getLong();
-      }
-      case ValueFormat.UINT8 -> {
-        ensureRemaining(1);
-        yield buffer.get() & 0xff;
-      }
-      case ValueFormat.UINT16 -> {
-        ensureRemaining(2);
-        yield buffer.getShort() & 0xffff;
-      }
-      case ValueFormat.UINT32 -> {
-        ensureRemaining(4);
-        yield buffer.getInt() & 0xffffffffL;
-      }
+      case ValueFormat.INT8 -> getByte();
+      case ValueFormat.INT16 -> getShort();
+      case ValueFormat.INT32 -> getInt();
+      case ValueFormat.INT64 -> getLong();
+      case ValueFormat.UINT8 -> getUByte();
+      case ValueFormat.UINT16 -> getUShort();
+      case ValueFormat.UINT32 -> getUInt();
       case ValueFormat.UINT64 -> {
-        ensureRemaining(8);
-        var value = buffer.getLong();
+        var value = getLong();
         if (value >= 0) yield value;
-        throw Exceptions.integerOverflow(value, format, JavaType.LONG);
+        throw Exceptions.integerOverflow(value, ValueFormat.UINT64, JavaType.LONG);
       }
       default -> {
         if (ValueFormat.isFixInt(format)) yield format;
@@ -364,23 +293,15 @@ public final class MessageReader implements Closeable {
 
   /** Reads a floating point value that fits into a Java float. */
   public float readFloat() {
-    ensureRemaining(1);
-    var format = buffer.get();
-    if (format == ValueFormat.FLOAT32) {
-      ensureRemaining(4);
-      return buffer.getFloat();
-    }
+    var format = getByte();
+    if (format == ValueFormat.FLOAT32) return getFloat();
     throw Exceptions.wrongJavaType(format, JavaType.FLOAT);
   }
 
   /** Reads a floating point value that fits into a Java double. */
   public double readDouble() {
-    ensureRemaining(1);
-    var format = buffer.get();
-    if (format == ValueFormat.FLOAT64) {
-      ensureRemaining(8);
-      return buffer.getDouble();
-    }
+    var format = getByte();
+    if (format == ValueFormat.FLOAT64) return getDouble();
     throw Exceptions.wrongJavaType(format, JavaType.DOUBLE);
   }
 
@@ -393,21 +314,11 @@ public final class MessageReader implements Closeable {
    * <p>For a lower-level way to read strings, see {@link #readRawStringHeader()}.
    */
   public String readString() {
-    ensureRemaining(1);
-    var format = buffer.get();
+    var format = getByte();
     return switch (format) {
-      case ValueFormat.STR8 -> {
-        ensureRemaining(1);
-        yield readString(buffer.get() & 0xff);
-      }
-      case ValueFormat.STR16 -> {
-        ensureRemaining(2);
-        yield readString(buffer.getShort() & 0xffff);
-      }
-      case ValueFormat.STR32 -> {
-        ensureRemaining(4);
-        yield readString(buffer.getInt());
-      }
+      case ValueFormat.STR8 -> readString(getLength8());
+      case ValueFormat.STR16 -> readString(getLength16());
+      case ValueFormat.STR32 -> readString(getLength32(ValueType.STRING));
       default -> {
         if (ValueFormat.isFixStr(format)) {
           yield readString(ValueFormat.getFixStrLength(format));
@@ -419,23 +330,16 @@ public final class MessageReader implements Closeable {
   }
 
   /**
-   * Starts writing an array value.
+   * Starts reading an array value.
    *
    * <p>A call to this method MUST be followed by {@code n} calls that read the array's elements,
    * where {@code n} is the number of array elements returned by this method.
    */
   public int readArrayHeader() {
-    ensureRemaining(1);
-    var format = buffer.get();
+    var format = getByte();
     return switch (format) {
-      case ValueFormat.ARRAY16 -> {
-        ensureRemaining(2);
-        yield buffer.getShort();
-      }
-      case ValueFormat.ARRAY32 -> {
-        ensureRemaining(4);
-        yield buffer.getInt();
-      }
+      case ValueFormat.ARRAY16 -> getLength16();
+      case ValueFormat.ARRAY32 -> getLength32(ValueType.ARRAY);
       default -> {
         if (ValueFormat.isFixArray(format)) {
           yield ValueFormat.getFixArrayLength(format);
@@ -452,17 +356,10 @@ public final class MessageReader implements Closeable {
    * keys and values, where {@code n} is the number of map entries returned by this method.
    */
   public int readMapHeader() {
-    ensureRemaining(1);
-    var format = buffer.get();
+    var format = getByte();
     return switch (format) {
-      case ValueFormat.MAP16 -> {
-        ensureRemaining(2);
-        yield buffer.getShort();
-      }
-      case ValueFormat.MAP32 -> {
-        ensureRemaining(4);
-        yield buffer.getInt();
-      }
+      case ValueFormat.MAP16 -> getLength16();
+      case ValueFormat.MAP32 -> getLength32(ValueType.MAP);
       default -> {
         if (ValueFormat.isFixMap(format)) {
           yield ValueFormat.getFixMapLength(format);
@@ -479,24 +376,12 @@ public final class MessageReader implements Closeable {
    * read <i>exactly</i> the number of bytes returned by this method.
    */
   public int readBinaryHeader() {
-    ensureRemaining(1);
-    var format = buffer.get();
+    var format = getByte();
     return switch (format) {
-      case ValueFormat.BIN8 -> {
-        ensureRemaining(1);
-        yield buffer.get() & 0xff;
-      }
-      case ValueFormat.BIN16 -> {
-        ensureRemaining(2);
-        yield buffer.getShort() & 0xffff;
-      }
-      case ValueFormat.BIN32 -> {
-        ensureRemaining(4);
-        var result = buffer.getInt();
-        if (result < 0) throw Exceptions.binaryTooLarge(result);
-        yield result;
-      }
-      default -> throw Exceptions.wrongJavaType(format, JavaType.STRING);
+      case ValueFormat.BIN8 -> getLength8();
+      case ValueFormat.BIN16 -> getLength16();
+      case ValueFormat.BIN32 -> getLength32(ValueType.BINARY);
+      default -> throw Exceptions.wrongJavaType(format, JavaType.BINARY_HEADER);
     };
   }
 
@@ -516,21 +401,11 @@ public final class MessageReader implements Closeable {
    * </ul>
    */
   public int readRawStringHeader() {
-    ensureRemaining(1);
-    var format = buffer.get();
+    var format = getByte();
     return switch (format) {
-      case ValueFormat.STR8 -> {
-        ensureRemaining(1);
-        yield buffer.get() & 0xff;
-      }
-      case ValueFormat.STR16 -> {
-        ensureRemaining(2);
-        yield buffer.getShort() & 0xffff;
-      }
-      case ValueFormat.STR32 -> {
-        ensureRemaining(4);
-        yield buffer.getInt();
-      }
+      case ValueFormat.STR8 -> getLength8();
+      case ValueFormat.STR16 -> getLength16();
+      case ValueFormat.STR32 -> getLength32(ValueType.STRING);
       default -> {
         if (ValueFormat.isFixStr(format)) {
           yield ValueFormat.getFixStrLength(format);
@@ -538,6 +413,21 @@ public final class MessageReader implements Closeable {
           throw Exceptions.wrongJavaType(format, JavaType.STRING);
         }
       }
+    };
+  }
+
+  public ExtensionHeader readExtensionHeader() {
+    var format = getByte();
+    return switch (format) {
+      case ValueFormat.FIXEXT1 -> new ExtensionHeader(1, getByte());
+      case ValueFormat.FIXEXT2 -> new ExtensionHeader(2, getByte());
+      case ValueFormat.FIXEXT4 -> new ExtensionHeader(4, getByte());
+      case ValueFormat.FIXEXT8 -> new ExtensionHeader(8, getByte());
+      case ValueFormat.FIXEXT16 -> new ExtensionHeader(16, getByte());
+      case ValueFormat.EXT8 -> new ExtensionHeader(getLength8(), getByte());
+      case ValueFormat.EXT16 -> new ExtensionHeader(getLength16(), getByte());
+      case ValueFormat.EXT32 -> new ExtensionHeader(getLength32(ValueType.EXTENSION), getByte());
+      default -> throw Exceptions.wrongJavaType(format, JavaType.EXTENSION_HEADER);
     };
   }
 
@@ -566,6 +456,69 @@ public final class MessageReader implements Closeable {
     }
   }
 
+  private byte getByte() {
+    ensureRemaining(1);
+    return buffer.get();
+  }
+
+  private short getUByte() {
+    ensureRemaining(1);
+    return (short) (buffer.get() & 0xff);
+  }
+
+  private short getShort() {
+    ensureRemaining(2);
+    return buffer.getShort();
+  }
+
+  private int getUShort() {
+    ensureRemaining(2);
+    return buffer.getShort() & 0xffff;
+  }
+
+  private int getInt() {
+    ensureRemaining(4);
+    return buffer.getInt();
+  }
+
+  private long getUInt() {
+    ensureRemaining(4);
+    return buffer.getInt() & 0xffffffffL;
+  }
+
+  private long getLong() {
+    ensureRemaining(8);
+    return buffer.getLong();
+  }
+
+  private float getFloat() {
+    ensureRemaining(4);
+    return buffer.getFloat();
+  }
+
+  private double getDouble() {
+    ensureRemaining(8);
+    return buffer.getDouble();
+  }
+
+  private int getLength8() {
+    ensureRemaining(1);
+    return buffer.get() & 0xff;
+  }
+
+  private int getLength16() {
+    ensureRemaining(2);
+    return buffer.getShort() & 0xffff;
+  }
+
+  private int getLength32(ValueType valueType) {
+    var length = getInt();
+    if (length < 0) {
+      throw Exceptions.lengthTooLarge(length, valueType);
+    }
+    return length;
+  }
+
   private int readFromSource(ByteBuffer buffer, int minBytes) {
     assert minBytes > 0;
     assert minBytes <= buffer.remaining();
@@ -592,9 +545,7 @@ public final class MessageReader implements Closeable {
   }
 
   private String readString(int length) {
-    if (length < 0) {
-      throw Exceptions.stringTooLarge(length & 0xffffffffL, Integer.MAX_VALUE);
-    }
+    assert length >= 0;
     if (length <= buffer.capacity() && buffer.hasArray()) {
       ensureRemaining(length, buffer);
       var result = convertToString(buffer, length);
