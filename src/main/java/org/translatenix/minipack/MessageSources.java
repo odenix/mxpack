@@ -20,26 +20,17 @@ final class MessageSources {
     }
 
     @Override
-    public void read(ByteBuffer buffer, int minBytes) throws IOException {
-      assert minBytes > 0;
-      assert minBytes <= buffer.remaining();
-      if (!buffer.hasArray()) throw Exceptions.arrayBackedBufferRequired();
-
-      var totalBytesRead = 0;
-      while (totalBytesRead < minBytes) {
-        var bytesToRead =
-            in.available() >= (minBytes - totalBytesRead)
-                ? Math.min(in.available(), buffer.remaining())
-                : buffer.remaining();
-        var bytesRead =
-            in.read(buffer.array(), buffer.arrayOffset() + buffer.position(), bytesToRead);
-        if (bytesRead == -1) {
-          throw Exceptions.prematureEndOfInput(minBytes, totalBytesRead);
-        }
-        assert bytesRead <= bytesToRead;
-        buffer.position(buffer.position() + bytesRead);
-        totalBytesRead += bytesRead;
+    public int read(ByteBuffer buffer, int minBytesHint) throws IOException {
+      if (!buffer.hasArray()) {
+        throw Exceptions.arrayBackedBufferRequired();
       }
+      var maxBytesToRead =
+          in.available() >= minBytesHint
+              ? Math.min(in.available(), buffer.remaining())
+              : buffer.remaining();
+      var bytesRead = in.read(buffer.array(), buffer.arrayOffset() + buffer.position(), maxBytesToRead);
+      buffer.position(buffer.position() + bytesRead);
+      return bytesRead;
     }
 
     @Override
@@ -56,15 +47,8 @@ final class MessageSources {
     }
 
     @Override
-    public void read(ByteBuffer buffer, int minBytes) throws IOException {
-      var totalBytesRead = 0;
-      while (totalBytesRead < minBytes) {
-        var bytesRead = channel.read(buffer);
-        if (bytesRead == -1) {
-          throw Exceptions.prematureEndOfInput(minBytes, totalBytesRead);
-        }
-        totalBytesRead += bytesRead;
-      }
+    public int read(ByteBuffer buffer, int minBytesHint) throws IOException {
+      return channel.read(buffer);
     }
 
     @Override

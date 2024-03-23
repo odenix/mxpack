@@ -19,7 +19,7 @@ public interface MessageSource extends Closeable {
    * {@code n} is between {@code minBytes} and the buffer's {@linkplain ByteBuffer#remaining()
    * remaining} bytes.
    */
-  void read(ByteBuffer buffer, int minBytes) throws IOException;
+  int read(ByteBuffer buffer, int minBytesHint) throws IOException;
 
   /** Returns a message source that reads from the given stream. */
   static MessageSource of(InputStream stream) {

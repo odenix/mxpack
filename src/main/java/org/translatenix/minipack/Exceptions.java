@@ -23,19 +23,6 @@ public final class Exceptions {
   }
 
   /**
-   * Creates an exception to be thrown when a message source reaches the end of input before it has
-   * read the requested minimum number of bytes.
-   */
-  public static EOFException prematureEndOfInput(int minBytes, int bytesRead) {
-    return new EOFException(
-        "Expected at least "
-            + minBytes
-            + " more bytes, but reached end of input after "
-            + bytesRead
-            + " bytes.");
-  }
-
-  /**
    * Creates an exception to be thrown when the requested buffer capacity exceeds an allocator's
    * maximum allowed capacity.
    */
@@ -46,6 +33,15 @@ public final class Exceptions {
             + " exceeds maximum allowed capacity "
             + maxCapacity
             + ".");
+  }
+
+  static EOFException prematureEndOfInput(int minBytes, int bytesRead) {
+    return new EOFException(
+        "Expected at least "
+            + minBytes
+            + " more bytes, but reached end of input after "
+            + bytesRead
+            + " bytes.");
   }
 
   static IllegalArgumentException invalidAllocatorCapacitu(int minCapacity, int maxCapacity) {

@@ -548,19 +548,12 @@ public final class MessageReader implements Closeable {
    * <p>This method is used together with {@link #readBinaryHeader()} or {@link
    * #readRawStringHeader()}.
    */
-  public void readPayload(ByteBuffer buffer) {
-    readFromSource(buffer, buffer.remaining());
+  public int readPayload(ByteBuffer buffer) {
+    return readFromSource(buffer, 1);
   }
 
-  /**
-   * Reads between {@code minBytes} and {@linkplain ByteBuffer#remaining() remaining} bytes into the
-   * given buffer, starting at the buffer's current {@linkplain ByteBuffer#position() position}.
-   *
-   * <p>This method is used together with {@link #readBinaryHeader()} or {@link
-   * #readRawStringHeader()}.
-   */
-  public void readPayload(ByteBuffer buffer, int minBytes) {
-    readFromSource(buffer, minBytes);
+  public int readPayload(ByteBuffer buffer, int minBytes) {
+    return readFromSource(buffer, minBytes);
   }
 
   /** Closes the underlying message {@linkplain MessageSource source}. */
@@ -573,16 +566,25 @@ public final class MessageReader implements Closeable {
     }
   }
 
-  private void readFromSource(ByteBuffer buffer, int minBytes) {
+  private int readFromSource(ByteBuffer buffer, int minBytes) {
+    assert minBytes > 0;
     assert minBytes <= buffer.remaining();
+    var totalBytesRead = 0;
     try {
-      source.read(buffer, minBytes);
+      while (totalBytesRead < minBytes) {
+        var bytesRead = source.read(buffer, minBytes);
+        if (bytesRead == -1) {
+          throw Exceptions.prematureEndOfInput(minBytes, totalBytesRead);
+        }
+        totalBytesRead += bytesRead;
+      }
     } catch (IOException e) {
       throw Exceptions.ioErrorReadingFromSource(e);
     }
+    return totalBytesRead;
   }
 
-  // for testing only
+  // non-private for testing
   byte nextFormat() {
     ensureRemaining(1);
     // don't change position
