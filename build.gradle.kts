@@ -30,7 +30,7 @@ tasks.test {
 spotless {
   java {
     googleJavaFormat().reflowLongStrings()
-    licenseHeaderFile(file("src/spotless/license.java"))
+    licenseHeaderFile(file("gradle/spotless/license.java"))
   }
 }
 
