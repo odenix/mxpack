@@ -25,6 +25,25 @@ public interface MessageSink extends Closeable {
   /** Flushes this message sink. */
   void flush() throws IOException;
 
+  default int writeAtLeast(ByteBuffer buffer, int minBytes) throws IOException {
+    var totalBytesWritten = 0;
+    while (totalBytesWritten < minBytes) {
+      var bytesWritten = write(buffer);
+      totalBytesWritten += bytesWritten;
+    }
+    return totalBytesWritten;
+  }
+
+  default void ensureRemaining(ByteBuffer buffer, int byteCount) throws IOException {
+    assert byteCount <= buffer.capacity();
+    var minBytes = byteCount - buffer.remaining();
+    if (minBytes > 0) {
+      buffer.flip();
+      writeAtLeast(buffer, minBytes);
+      buffer.compact();
+    }
+  }
+
   /** Returns a message sink that writes to the given stream. */
   static MessageSink of(OutputStream stream) {
     return new OutputStreamSink(stream);

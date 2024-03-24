@@ -9,10 +9,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
-import java.nio.charset.StandardCharsets;
 import org.jspecify.annotations.Nullable;
 import org.translatenix.minipack.internal.Exceptions;
 import org.translatenix.minipack.internal.RequestedType;
+import org.translatenix.minipack.internal.Utf8StringReader;
 import org.translatenix.minipack.internal.ValueFormat;
 
 /**
@@ -26,19 +26,19 @@ import org.translatenix.minipack.internal.ValueFormat;
  * <p>Unless otherwise noted, methods throw {@link ReaderException} if an error occurs. The most
  * common type of error is an I/O error.
  */
-public final class MessageReader implements Closeable {
+public final class MessageReader<T> implements Closeable {
   private static final int MIN_BUFFER_CAPACITY = 9;
   private static final int DEFAULT_BUFFER_CAPACITY = 1 << 13;
+  private static final int DEFAULT_STRING_SIZE_LIMIT = 1 << 20;
 
   private final MessageSource source;
   private final ByteBuffer buffer;
-  private final Utf8BufferProvider utf8BufferProvider;
+  private final StringReader<T> stringReader;
 
   /** A builder of {@link MessageReader}. */
   public static final class Builder {
     private @Nullable MessageSource source;
     private @Nullable ByteBuffer buffer;
-    private int stringSizeLimit = 1 << 20;
 
     /** Sets the underlying source to read from. */
     public Builder source(MessageSource source) {
@@ -68,14 +68,13 @@ public final class MessageReader implements Closeable {
       return this;
     }
 
-    public Builder stringSizeLimit(int byteCount) {
-      this.stringSizeLimit = byteCount;
-      return this;
+    /** Creates a new {@code MessageReader} from this builder's current state. */
+    public MessageReader<String> build() {
+      return new MessageReader<>(this, new Utf8StringReader(DEFAULT_STRING_SIZE_LIMIT));
     }
 
-    /** Creates a new {@code MessageReader} from this builder's current state. */
-    public MessageReader build() {
-      return new MessageReader(this);
+    public <T> MessageReader<T> build(StringReader<T> stringReader) {
+      return new MessageReader<>(this, stringReader);
     }
   }
 
@@ -84,7 +83,7 @@ public final class MessageReader implements Closeable {
     return new Builder();
   }
 
-  private MessageReader(Builder builder) {
+  private MessageReader(Builder builder, StringReader<T> stringReader) {
     if (builder.source == null) {
       throw Exceptions.sourceRequired();
     }
@@ -96,8 +95,7 @@ public final class MessageReader implements Closeable {
     if (buffer.capacity() < MIN_BUFFER_CAPACITY) {
       throw Exceptions.bufferTooSmall(buffer.capacity(), MIN_BUFFER_CAPACITY);
     }
-    this.utf8BufferProvider =
-        new Utf8BufferProvider(buffer.capacity() * 2, builder.stringSizeLimit);
+    this.stringReader = stringReader;
   }
 
   /** Returns the type of the next value to be read. */
@@ -282,25 +280,14 @@ public final class MessageReader implements Closeable {
   /**
    * Reads a string value.
    *
-   * <p>If the string value is larger than {@link Builder#stringSizeLimit(int)} bytes, a {@link
-   * ReaderException} is thrown.
-   *
    * <p>For a lower-level way to read strings, see {@link #readRawStringHeader()}.
    */
-  public String readString() {
-    var format = getByte();
-    return switch (format) {
-      case ValueFormat.STR8 -> readString(getLength8());
-      case ValueFormat.STR16 -> readString(getLength16());
-      case ValueFormat.STR32 -> readString(getLength32(ValueType.STRING));
-      default -> {
-        if (ValueFormat.isFixStr(format)) {
-          yield readString(ValueFormat.getFixStrLength(format));
-        } else {
-          throw Exceptions.typeMismatch(format, RequestedType.STRING);
-        }
-      }
-    };
+  public T readString() {
+    try {
+      return stringReader.read(buffer, source);
+    } catch (IOException e) {
+      throw Exceptions.ioErrorReadingFromSource(e);
+    }
   }
 
   /**
@@ -424,7 +411,6 @@ public final class MessageReader implements Closeable {
   /** Closes the underlying message {@linkplain MessageSource source}. */
   @Override
   public void close() {
-    utf8BufferProvider.close();
     try {
       source.close();
     } catch (IOException e) {
@@ -496,20 +482,11 @@ public final class MessageReader implements Closeable {
   }
 
   private int readFromSource(ByteBuffer buffer, int minBytes) {
-    assert minBytes <= buffer.remaining();
-    var totalBytesRead = 0;
     try {
-      while (totalBytesRead < minBytes) {
-        var bytesRead = source.read(buffer, minBytes);
-        if (bytesRead == -1) {
-          throw Exceptions.prematureEndOfInput(minBytes, totalBytesRead);
-        }
-        totalBytesRead += bytesRead;
-      }
+      return source.readAtLeast(buffer, minBytes);
     } catch (IOException e) {
       throw Exceptions.ioErrorReadingFromSource(e);
     }
-    return totalBytesRead;
   }
 
   // non-private for testing
@@ -519,70 +496,15 @@ public final class MessageReader implements Closeable {
     return buffer.get(buffer.position());
   }
 
-  private String readString(int length) {
-    if (buffer.hasArray() && length <= buffer.capacity()) {
-      ensureRemaining(length, buffer);
-      var result = convertToString(buffer, length);
-      buffer.position(buffer.position() + length);
-      return result;
-    }
-    var utf8Buffer = utf8BufferProvider.getBuffer(length).position(0).limit(length);
-    var transferLength = Math.min(length, buffer.remaining());
-    utf8Buffer.put(0, buffer, buffer.position(), transferLength);
-    if (transferLength < length) {
-      utf8Buffer.position(transferLength);
-      readFromSource(utf8Buffer, utf8Buffer.remaining());
-      utf8Buffer.position(0);
-    }
-    buffer.position(buffer.position() + transferLength);
-    return convertToString(utf8Buffer, length);
-  }
-
-  private String convertToString(ByteBuffer buffer, int length) {
-    return new String(
-        buffer.array(), buffer.arrayOffset() + buffer.position(), length, StandardCharsets.UTF_8);
-  }
-
   private void ensureRemaining(int length) {
     ensureRemaining(length, buffer);
   }
 
   private void ensureRemaining(int length, ByteBuffer buffer) {
-    int minBytes = length - buffer.remaining();
-    if (minBytes > 0) {
-      buffer.compact();
-      readFromSource(buffer, minBytes);
-      buffer.flip();
-      assert buffer.remaining() >= length;
-    }
-  }
-
-  private static final class Utf8BufferProvider {
-    private final int minCapacity;
-    private final int maxCapacity;
-    private @Nullable ByteBuffer buffer;
-
-    Utf8BufferProvider(int minCapacity, int maxCapacity) {
-      this.minCapacity = Math.min(minCapacity, maxCapacity);
-      this.maxCapacity = maxCapacity;
-    }
-
-    ByteBuffer getBuffer(int requestedCapacity) {
-      if (buffer == null || buffer.capacity() < requestedCapacity) {
-        if (requestedCapacity > maxCapacity) {
-          throw Exceptions.stringTooLarge(requestedCapacity, maxCapacity);
-        }
-        var newCapacity =
-            buffer == null
-                ? Math.max(minCapacity, requestedCapacity)
-                : Math.max(buffer.capacity() * 2, requestedCapacity);
-        buffer = ByteBuffer.allocate(Math.min(maxCapacity, newCapacity));
-      }
-      return buffer;
-    }
-
-    void close() {
-      buffer = null;
+    try {
+      source.ensureRemaining(length, buffer);
+    } catch (IOException e) {
+      throw Exceptions.ioErrorReadingFromSource(e);
     }
   }
 }

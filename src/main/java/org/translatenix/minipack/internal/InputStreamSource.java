@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import org.translatenix.minipack.MessageSource;
 
+/** A message source that reads from an {@link InputStream}. */
 public final class InputStreamSource implements MessageSource {
   private final InputStream in;
 

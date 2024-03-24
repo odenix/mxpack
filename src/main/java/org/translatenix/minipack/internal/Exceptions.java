@@ -10,7 +10,7 @@ import org.translatenix.minipack.ReaderException;
 import org.translatenix.minipack.ValueType;
 import org.translatenix.minipack.WriterException;
 
-/** Exceptions thrown by the minipack library. */
+/** Factory methods for exceptions thrown by the minipack library. */
 public final class Exceptions {
   private Exceptions() {}
 
@@ -20,7 +20,7 @@ public final class Exceptions {
             + " (buffer.hasArray()).");
   }
 
-  public static ReaderException stringTooLarge(int requestedCapacity, int maxCapacity) {
+  public static ReaderException stringTooLarge(long requestedCapacity, int maxCapacity) {
     // tailor message to current use of BufferAllocator
     return new ReaderException(
         "MessagePack string has a length of "

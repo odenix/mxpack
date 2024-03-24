@@ -5,12 +5,13 @@ plugins {
 }
 
 java {
-  sourceCompatibility = JavaVersion.VERSION_17
-  targetCompatibility = JavaVersion.VERSION_17
+  toolchain {
+    languageVersion = JavaLanguageVersion.of(17)
+  }
 }
 
 tasks.compileTestJava {
-  // for jqwik messages
+  // for jqwik diagnostic messages
   options.compilerArgs.add("-parameters")
 }
 
@@ -30,7 +31,6 @@ spotless {
 
 dependencies {
   api("org.jspecify:jspecify:0.3.0")
-
   testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.2")
   testImplementation("org.assertj:assertj-core:3.25.3")
   testImplementation("net.jqwik:jqwik:1.8.3")

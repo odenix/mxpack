@@ -9,6 +9,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
 import org.translatenix.minipack.MessageSource;
 
+/** A message source that reads from a {@link ReadableByteChannel}. */
 public final class ChannelSource implements MessageSource {
   private final ReadableByteChannel channel;
 

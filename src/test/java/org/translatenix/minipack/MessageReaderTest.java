@@ -25,7 +25,7 @@ import org.translatenix.minipack.internal.ValueFormat;
 /** Tests {@link MessageReader} against {@link org.msgpack.core.MessagePacker}. */
 public class MessageReaderTest {
   private final MessagePacker packer;
-  private final MessageReader reader;
+  private final MessageReader<String> reader;
 
   public MessageReaderTest() throws IOException {
     var in = new PipedInputStream(1 << 16);

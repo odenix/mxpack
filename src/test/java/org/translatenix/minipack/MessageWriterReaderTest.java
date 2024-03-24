@@ -22,8 +22,8 @@ import org.translatenix.minipack.internal.ValueFormat;
 
 /** Tests {@link MessageReader} against {@link MessageWriter}. */
 public class MessageWriterReaderTest {
-  private final MessageWriter writer;
-  private final MessageReader reader;
+  private final MessageWriter<CharSequence> writer;
+  private final MessageReader<String> reader;
 
   public MessageWriterReaderTest() throws IOException {
     var in = new PipedInputStream(1 << 16);
@@ -179,7 +179,7 @@ public class MessageWriterReaderTest {
     writer.write(l);
     writer.write(f);
     writer.write(d);
-    writer.write(str);
+    writer.writeString(str);
     writer.flush();
 
     assertThat(reader.nextType()).isEqualTo(ValueType.ARRAY);
@@ -199,7 +199,7 @@ public class MessageWriterReaderTest {
   public void writeReadStringArray(@ForAll List<String> strings) {
     writer.writeArrayHeader(strings.size());
     for (var str : strings) {
-      writer.write(str);
+      writer.writeString(str);
     }
     writer.flush();
 
@@ -235,8 +235,8 @@ public class MessageWriterReaderTest {
     writer.write(f);
     writer.write(d);
     writer.write(d);
-    writer.write(str);
-    writer.write(str);
+    writer.writeString(str);
+    writer.writeString(str);
     writer.writeNil();
     writer.flush();
 
@@ -266,8 +266,8 @@ public class MessageWriterReaderTest {
   public void writeReadStringMap(@ForAll Map<String, String> strings) {
     writer.writeMapHeader(strings.size());
     for (var entry : strings.entrySet()) {
-      writer.write(entry.getKey());
-      writer.write(entry.getValue());
+      writer.writeString(entry.getKey());
+      writer.writeString(entry.getValue());
     }
     writer.flush();
 
@@ -279,7 +279,7 @@ public class MessageWriterReaderTest {
   }
 
   private void doWriteReadString(String input) {
-    writer.write(input);
+    writer.writeString(input);
     writer.flush();
     assertThat(reader.nextFormat())
         .satisfiesAnyOf(

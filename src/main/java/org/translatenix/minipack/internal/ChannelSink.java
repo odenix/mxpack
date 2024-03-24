@@ -9,6 +9,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
 import org.translatenix.minipack.MessageSink;
 
+/** A message sink that writes to a {@link WritableByteChannel}. */
 public final class ChannelSink implements MessageSink {
   private final WritableByteChannel channel;
 

@@ -4,10 +4,9 @@
  */
 package org.translatenix.minipack;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
-public interface StringEncoder {
-  int encode(String string, int start, ByteBuffer buffer);
-
-  String decode(ByteBuffer buffer);
+public interface StringWriter<T> {
+  void write(T string, ByteBuffer writeBuffer, MessageSink sink) throws IOException;
 }

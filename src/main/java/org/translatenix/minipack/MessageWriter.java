@@ -11,6 +11,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
 import org.jspecify.annotations.Nullable;
 import org.translatenix.minipack.internal.Exceptions;
+import org.translatenix.minipack.internal.Utf8StringWriter;
 import org.translatenix.minipack.internal.ValueFormat;
 
 /**
@@ -24,12 +25,13 @@ import org.translatenix.minipack.internal.ValueFormat;
  * <p>Unless otherwise noted, methods throw {@link WriterException} if an error occurs. The most
  * common type of error is an I/O error.
  */
-public final class MessageWriter implements Closeable {
+public final class MessageWriter<T> implements Closeable {
   private static final int MIN_BUFFER_CAPACITY = 9;
   private static final int DEFAULT_BUFFER_CAPACITY = 1 << 13;
 
   private final MessageSink sink;
   private final ByteBuffer buffer;
+  private final StringWriter<T> stringWriter;
 
   /** A builder of {@code MessageWriter}. */
   public static final class Builder {
@@ -63,8 +65,12 @@ public final class MessageWriter implements Closeable {
     }
 
     /** Creates a new {@code MessageWriter} from this builder's current state. */
-    public MessageWriter build() {
-      return new MessageWriter(this);
+    public MessageWriter<CharSequence> build() {
+      return new MessageWriter<>(this, new Utf8StringWriter());
+    }
+
+    public <T> MessageWriter<T> build(StringWriter<T> stringWriter) {
+      return new MessageWriter<>(this, stringWriter);
     }
   }
 
@@ -73,7 +79,7 @@ public final class MessageWriter implements Closeable {
     return new Builder();
   }
 
-  private MessageWriter(Builder builder) {
+  private MessageWriter(Builder builder, StringWriter<T> stringWriter) {
     if (builder.sink == null) {
       throw Exceptions.sinkRequired();
     }
@@ -85,6 +91,7 @@ public final class MessageWriter implements Closeable {
     if (buffer.capacity() < MIN_BUFFER_CAPACITY) {
       throw Exceptions.bufferTooSmall(buffer.capacity(), MIN_BUFFER_CAPACITY);
     }
+    this.stringWriter = stringWriter;
   }
 
   /** Writes a nil (null) value. */
@@ -202,14 +209,11 @@ public final class MessageWriter implements Closeable {
   }
 
   /** Writes a string value. */
-  public void write(CharSequence string) {
-    var length = countUtf8Length(string);
-    if (length < 0) {
-      writeRawStringHeader(-length);
-      writeStringAscii(string);
-    } else {
-      writeRawStringHeader(length);
-      writeStringNonAscii(string);
+  public void writeString(T string) {
+    try {
+      stringWriter.write(string, buffer, sink);
+    } catch (IOException e) {
+      throw Exceptions.ioErrorWritingToSink(e);
     }
   }
 
@@ -253,8 +257,8 @@ public final class MessageWriter implements Closeable {
    * <p>A call to this method MUST be followed by one or more calls to {@link #writePayload} that
    * write exactly {@code byteCount} bytes in total.
    *
-   * <p>This method is a low-level alternative to {@link #write(CharSequence)}. It can be useful in
-   * the following cases:
+   * <p>This method is a low-level alternative to {@link #writeString}. It can be useful in the
+   * following cases:
    *
    * <ul>
    *   <li>The string to write is already available as UTF-8 byte sequence.
@@ -262,15 +266,10 @@ public final class MessageWriter implements Closeable {
    * </ul>
    */
   public void writeRawStringHeader(int byteCount) {
-    requireValidLength(byteCount);
-    if (byteCount < (1 << 5)) {
-      putByte((byte) (ValueFormat.FIXSTR_PREFIX | byteCount));
-    } else if (byteCount < (1 << 8)) {
-      putByte(ValueFormat.STR8, (byte) byteCount);
-    } else if (byteCount < (1 << 16)) {
-      putShort(ValueFormat.STR16, (short) byteCount);
-    } else {
-      putInt(ValueFormat.STR32, byteCount);
+    try {
+      Utf8StringWriter.writeHeader(byteCount, buffer, sink);
+    } catch (IOException e) {
+      throw Exceptions.ioErrorWritingToSink(e);
     }
   }
 
@@ -388,85 +387,12 @@ public final class MessageWriter implements Closeable {
     buffer.putLong(value);
   }
 
-  private void writeStringAscii(CharSequence str) {
-    var length = str.length();
-    var i = 0;
-    while (true) { // repeat filling and writing buffer until done
-      var nextStop = Math.min(length, i + buffer.remaining());
-      for (; i < nextStop; i++) {
-        buffer.put((byte) str.charAt(i));
-      }
-      if (i == length) break;
-      buffer.flip();
-      writeToSink(buffer);
-      buffer.compact();
-    }
-  }
-
-  private void writeStringNonAscii(CharSequence str) {
-    var length = str.length();
-    for (var i = 0; i < length; i++) {
-      var ch = str.charAt(i);
-      if (ch < 0x80) {
-        ensureRemaining(1);
-        buffer.put((byte) ch);
-      } else if (ch < 0x800) {
-        ensureRemaining(2);
-        buffer.put((byte) (0xc0 | ch >>> 6));
-        buffer.put((byte) (0x80 | (ch & 0x3f)));
-      } else if (Character.isSurrogate(ch)) {
-        char ch2;
-        if (++i == length || !Character.isSurrogatePair(ch, ch2 = str.charAt(i))) {
-          throw Exceptions.invalidSurrogatePair(i);
-        }
-        var cp = Character.toCodePoint(ch, ch2);
-        ensureRemaining(4);
-        buffer.put((byte) (0xf0 | cp >>> 18));
-        buffer.put((byte) (0x80 | ((cp >>> 12) & 0x3f)));
-        buffer.put((byte) (0x80 | ((cp >>> 6) & 0x3f)));
-        buffer.put((byte) (0x80 | (cp & 0x3f)));
-      } else {
-        ensureRemaining(3);
-        buffer.put((byte) (0xe0 | ch >>> 12));
-        buffer.put((byte) (0x80 | ((ch >>> 6) & 0x3f)));
-        buffer.put((byte) (0x80 | (ch & 0x3f)));
-      }
-    }
-  }
-
-  private int countUtf8Length(CharSequence str) {
-    var length = str.length();
-    var i = 0;
-    for (; i < length; i++) {
-      if (str.charAt(i) >= 0x80) break;
-    }
-    if (i == length) return -length;
-
-    var result = i;
-    for (; i < length; i++) {
-      var ch = str.charAt(i);
-      if (ch < 0x80) {
-        result += 1;
-      } else if (ch < 0x800) {
-        result += 2;
-      } else if (Character.isSurrogate(ch)) {
-        // leave validation to writeStringNonAscii
-        result += 4;
-        i += 1;
-      } else {
-        result += 3;
-      }
-    }
-    return result;
-  }
-
   private void ensureRemaining(int byteCount) {
-    assert byteCount <= buffer.capacity();
-    var minBytesToWrite = byteCount - buffer.remaining();
-    if (minBytesToWrite <= 0) return;
-    buffer.flip();
-    writeToSink(buffer, minBytesToWrite);
-    buffer.compact();
+    try {
+      sink.ensureRemaining(buffer, byteCount);
+    } catch (IOException e) {
+      throw Exceptions.ioErrorWritingToSink(e);
+    }
   }
 
   private void writeEntireBuffer() {
@@ -478,12 +404,11 @@ public final class MessageWriter implements Closeable {
   }
 
   private int writeToSink(ByteBuffer buffer, int minBytes) {
-    var totalBytesWritten = 0;
-    while (totalBytesWritten < minBytes) {
-      var bytesWritten = writeToSink(buffer);
-      totalBytesWritten += bytesWritten;
+    try {
+      return sink.writeAtLeast(buffer, minBytes);
+    } catch (IOException e) {
+      throw Exceptions.ioErrorWritingToSink(e);
     }
-    return totalBytesWritten;
   }
 
   private int writeToSink(ByteBuffer buffer) {

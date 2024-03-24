@@ -24,7 +24,7 @@ import org.msgpack.value.ValueType;
 /** Tests {@link MessageWriter} against {@link org.msgpack.core.MessageUnpacker}. */
 public class MessageWriterTest {
   private final MessageUnpacker unpacker;
-  private final MessageWriter writer;
+  private final MessageWriter<CharSequence> writer;
 
   public MessageWriterTest() throws IOException {
     var in = new PipedInputStream(1 << 16);
@@ -194,7 +194,7 @@ public class MessageWriterTest {
     writer.write(l);
     writer.write(f);
     writer.write(d);
-    writer.write(str);
+    writer.writeString(str);
     writer.flush();
 
     assertThat(unpacker.getNextFormat().getValueType()).isEqualTo(ValueType.ARRAY);
@@ -214,7 +214,7 @@ public class MessageWriterTest {
   public void writeStringArray(@ForAll List<String> strings) throws IOException {
     writer.writeArrayHeader(strings.size());
     for (var str : strings) {
-      writer.write(str);
+      writer.writeString(str);
     }
     writer.flush();
 
@@ -251,8 +251,8 @@ public class MessageWriterTest {
     writer.write(f);
     writer.write(d);
     writer.write(d);
-    writer.write(str);
-    writer.write(str);
+    writer.writeString(str);
+    writer.writeString(str);
     writer.writeNil();
     writer.flush();
 
@@ -282,8 +282,8 @@ public class MessageWriterTest {
   public void writeStringMap(@ForAll Map<String, String> strings) throws IOException {
     writer.writeMapHeader(strings.size());
     for (var entry : strings.entrySet()) {
-      writer.write(entry.getKey());
-      writer.write(entry.getValue());
+      writer.writeString(entry.getKey());
+      writer.writeString(entry.getValue());
     }
     writer.flush();
 
@@ -295,7 +295,7 @@ public class MessageWriterTest {
   }
 
   private void doWriteString(String input) throws IOException {
-    writer.write(input);
+    writer.writeString(input);
     writer.flush();
     assertThat(unpacker.getNextFormat().getValueType()).isEqualTo(ValueType.STRING);
     var output = unpacker.unpackString();
