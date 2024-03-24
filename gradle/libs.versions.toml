@@ -1,0 +1,11 @@
+[libraries]
+assertJ = { module = "org.assertj:assertj-core", version = "3.25.3" }
+jqwik = { module = "net.jqwik:jqwik", version = "1.8.3" }
+jSpecify = { module = "org.jspecify:jspecify", version = "0.3.0" }
+junitApi = { module = "org.junit.jupiter:junit-jupiter-api", version = "5.10.2" }
+junitLauncher = { module = "org.junit.platform:junit-platform-launcher", version = "1.10.2" }
+messagePack = { module = "org.msgpack:msgpack-core", version = "0.9.8" }
+
+[plugins]
+spotless = { id = "com.diffplug.spotless", version = "6.25.0" }
+jmh = { id = "me.champeau.jmh", version = "0.7.2" }

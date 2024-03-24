@@ -1,12 +1,17 @@
+@file:Suppress("UnstableApiUsage")
+
 plugins {
   `java-library`
-  id("com.diffplug.spotless") version("6.25.0")
-  id("me.champeau.jmh") version("0.7.2")
+  alias(libs.plugins.spotless)
+  alias(libs.plugins.jmh)
 }
 
 java {
   toolchain {
     languageVersion = JavaLanguageVersion.of(17)
+  }
+  consistentResolution {
+    useCompileClasspathVersions()
   }
 }
 
@@ -30,12 +35,19 @@ spotless {
 }
 
 dependencies {
-  api("org.jspecify:jspecify:0.3.0")
-  testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.2")
-  testImplementation("org.assertj:assertj-core:3.25.3")
-  testImplementation("net.jqwik:jqwik:1.8.3")
-  testImplementation("org.msgpack:msgpack-core:0.9.8")
-  testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+  api(libs.jSpecify)
+  testImplementation(libs.junitApi)
+  testImplementation(libs.assertJ)
+  testImplementation(libs.jqwik)
+  testImplementation(libs.messagePack)
+  testRuntimeOnly(libs.junitLauncher)
+}
+
+configurations.all {
+  resolutionStrategy {
+    failOnVersionConflict()
+    failOnNonReproducibleResolution()
+  }
 }
 
 repositories {
