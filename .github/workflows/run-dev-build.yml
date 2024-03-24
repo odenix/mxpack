@@ -1,4 +1,4 @@
-name: Development build
+name: Run dev build
 on: push
 jobs:
   gradle:
