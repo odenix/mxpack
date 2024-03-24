@@ -1,12 +1,8 @@
-![GitHub license](https://img.shields.io/github/license/translatenix/minipack)
-
+[![Build Status](https://img.shields.io/github/actions/workflow/status/translatenix/minipack/run-dev-build)](https://github.com/translatenix/minipack/actions/workflows/run-dev-build.yml)
+[![GitHub license](https://img.shields.io/github/license/translatenix/minipack)](https://github.com/translatenix/minipack/blob/main/LICENSE.txt)
 # minipack
 
 A modern, small, and efficient implementation of the [MessagePack](https://msgpack.org/) serialization format for Java 17 and higher.
-
-Maven repository: TODO
-
-API documentation: TODO
 
 minipack uses semantic versioning.
 
@@ -16,7 +12,7 @@ minipack uses semantic versioning.
 * No use of Java reflection or unsafe APIs.
 * Small JAR size (less than 50 KB).
 * Ships as Java (JPMS) module.
-* No dependencies other than [JSpecify](https://central.sonatype.com/artifact/org.jspecify/jspecify), which can be excluded if necessary.
+* No dependencies other than [JSpecify](https://central.sonatype.com/artifact/org.jspecify/jspecify), which can be excluded.
 * Compatible with [GraalVM Native Image](https://www.graalvm.org/latest/reference-manual/native-image/).
 * Designed with efficiency in mind.
 
