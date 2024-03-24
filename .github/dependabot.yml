@@ -11,8 +11,8 @@ updates:
     registries:
       - gradle-plugin-portal
     schedule:
-      interval: "weekly"
+      interval: "daily"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "daily"
