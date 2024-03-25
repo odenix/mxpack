@@ -33,7 +33,7 @@ public class MessageWriterReaderTest {
   }
 
   @Example
-  public void writeReadNil() {
+  public void writeReadNil() throws IOException {
     writer.writeNil();
     writer.flush();
     assertThat(reader.nextFormat()).isEqualTo(ValueFormat.NIL);
@@ -42,7 +42,7 @@ public class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeReadBoolean(@ForAll boolean input) {
+  public void writeReadBoolean(@ForAll boolean input) throws IOException {
     writer.write(input);
     writer.flush();
     assertThat(reader.nextFormat()).isEqualTo(input ? ValueFormat.TRUE : ValueFormat.FALSE);
@@ -52,7 +52,7 @@ public class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeReadByte(@ForAll byte input) {
+  public void writeReadByte(@ForAll byte input) throws IOException {
     writer.write(input);
     writer.flush();
     assertThat(reader.nextFormat())
@@ -66,7 +66,7 @@ public class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeReadShort(@ForAll short input) {
+  public void writeReadShort(@ForAll short input) throws IOException {
     writer.write(input);
     writer.flush();
     assertThat(reader.nextFormat())
@@ -82,7 +82,7 @@ public class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeReadInt(@ForAll int input) {
+  public void writeReadInt(@ForAll int input) throws IOException {
     writer.write(input);
     writer.flush();
     assertThat(reader.nextFormat())
@@ -100,7 +100,7 @@ public class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeReadLong(@ForAll long input) {
+  public void writeReadLong(@ForAll long input) throws IOException {
     writer.write(input);
     writer.flush();
     assertThat(reader.nextFormat())
@@ -120,7 +120,7 @@ public class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeReadFloat(@ForAll float input) {
+  public void writeReadFloat(@ForAll float input) throws IOException {
     writer.write(input);
     writer.flush();
     assertThat(reader.nextFormat()).isEqualTo(ValueFormat.FLOAT32);
@@ -130,7 +130,7 @@ public class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeReadDouble(@ForAll double input) {
+  public void writeReadDouble(@ForAll double input) throws IOException {
     writer.write(input);
     writer.flush();
     assertThat(reader.nextFormat()).isEqualTo(ValueFormat.FLOAT64);
@@ -140,23 +140,25 @@ public class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeReadAsciiString(@ForAll @CharRange(to = 127) String input) {
+  public void writeReadAsciiString(@ForAll @CharRange(to = 127) String input) throws IOException {
     doWriteReadString(input);
   }
 
   @Property
-  public void writeReadString(@ForAll String input) {
+  public void writeReadString(@ForAll String input) throws IOException {
     doWriteReadString(input);
   }
 
   @Property
   public void writeReadLongAsciiString(
-      @ForAll @CharRange(to = 127) @StringLength(min = 1 << 5, max = 1 << 10) String input) {
+      @ForAll @CharRange(to = 127) @StringLength(min = 1 << 5, max = 1 << 10) String input)
+      throws IOException {
     doWriteReadString(input);
   }
 
   @Property
-  public void writeReadLongString(@ForAll @StringLength(min = 1 << 5, max = 1 << 10) String input) {
+  public void writeReadLongString(@ForAll @StringLength(min = 1 << 5, max = 1 << 10) String input)
+      throws IOException {
     doWriteReadString(input);
   }
 
@@ -169,7 +171,8 @@ public class MessageWriterReaderTest {
       @ForAll long l,
       @ForAll float f,
       @ForAll double d,
-      @ForAll String str) {
+      @ForAll String str)
+      throws IOException {
     writer.writeArrayHeader(9);
     writer.writeNil();
     writer.write(bool);
@@ -196,7 +199,7 @@ public class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeReadStringArray(@ForAll List<String> strings) {
+  public void writeReadStringArray(@ForAll List<String> strings) throws IOException {
     writer.writeArrayHeader(strings.size());
     for (var str : strings) {
       writer.writeString(str);
@@ -218,7 +221,8 @@ public class MessageWriterReaderTest {
       @ForAll long l,
       @ForAll float f,
       @ForAll double d,
-      @ForAll String str) {
+      @ForAll String str)
+      throws IOException {
     writer.writeMapHeader(9);
     writer.writeNil();
     writer.write(bool);
@@ -263,7 +267,7 @@ public class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeReadStringMap(@ForAll Map<String, String> strings) {
+  public void writeReadStringMap(@ForAll Map<String, String> strings) throws IOException {
     writer.writeMapHeader(strings.size());
     for (var entry : strings.entrySet()) {
       writer.writeString(entry.getKey());
@@ -278,7 +282,7 @@ public class MessageWriterReaderTest {
     }
   }
 
-  private void doWriteReadString(String input) {
+  private void doWriteReadString(String input) throws IOException {
     writer.writeString(input);
     writer.flush();
     assertThat(reader.nextFormat())

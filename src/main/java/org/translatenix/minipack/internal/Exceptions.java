@@ -5,7 +5,6 @@
 package org.translatenix.minipack.internal;
 
 import java.io.EOFException;
-import java.io.IOException;
 import org.translatenix.minipack.ReaderException;
 import org.translatenix.minipack.ValueType;
 import org.translatenix.minipack.WriterException;
@@ -82,10 +81,6 @@ public final class Exceptions {
     return new ReaderException("Invalid MessagePack value format: " + format);
   }
 
-  public static ReaderException ioErrorReadingFromSource(IOException e) {
-    return new ReaderException("I/O error reading from message source.", e);
-  }
-
   public static ReaderException lengthOverflow(long length, ValueType valueType) {
     return new ReaderException(
         "MessagePack value of type "
@@ -95,10 +90,6 @@ public final class Exceptions {
             + ", exceeding the maximum supported length 2^31-1 (Integer.MAX_VALUE).");
   }
 
-  public static WriterException ioErrorClosingSource(IOException e) {
-    return new WriterException("I/O error closing message source.", e);
-  }
-
   public static IllegalStateException sinkRequired() {
     return new IllegalStateException("MessageWriter.Builder.sink() must be set.");
   }
@@ -106,18 +97,6 @@ public final class Exceptions {
   public static WriterException invalidSurrogatePair(int position) {
     return new WriterException(
         "Refusing to write string with invalid surrogate pair at position " + position + ".");
-  }
-
-  public static WriterException ioErrorWritingToSink(IOException e) {
-    return new WriterException("I/O error writing to message sink.", e);
-  }
-
-  public static WriterException ioErrorFlushingSink(IOException e) {
-    return new WriterException("I/O error flushing message sink.", e);
-  }
-
-  public static WriterException ioErrorClosingSink(IOException e) {
-    return new WriterException("I/O error closing message sink.", e);
   }
 
   public static IllegalArgumentException negativeLength(int length) {

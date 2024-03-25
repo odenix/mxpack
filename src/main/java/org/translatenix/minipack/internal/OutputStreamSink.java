@@ -10,7 +10,7 @@ import java.nio.ByteBuffer;
 import org.translatenix.minipack.MessageSink;
 
 /** A message sink that writes to an {@link OutputStream}. */
-public final class OutputStreamSink implements MessageSink {
+public final class OutputStreamSink extends MessageSink {
   private final OutputStream out;
 
   public OutputStreamSink(OutputStream out) {

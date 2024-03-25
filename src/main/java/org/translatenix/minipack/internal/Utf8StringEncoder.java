@@ -17,38 +17,17 @@ public final class Utf8StringEncoder implements StringEncoder<CharSequence> {
   }
 
   @Override
-  public void encode(CharSequence string, ByteBuffer writeBuffer, MessageSink sink)
-      throws IOException {
+  public void encode(CharSequence string, ByteBuffer buffer, MessageSink sink) throws IOException {
     var length = utf8Length(string);
     if (length > stringSizeLimit) {
       throw Exceptions.stringTooLargeOnWrite(length, stringSizeLimit);
     }
     if (length < 0) {
-      encodeHeader(-length, writeBuffer, sink);
-      encodeAscii(string, writeBuffer, sink);
+      sink.putStringHeader(-length, buffer);
+      encodeAscii(string, buffer, sink);
     } else {
-      encodeHeader(length, writeBuffer, sink);
-      encodeNonAscii(string, writeBuffer, sink);
-    }
-  }
-
-  public static void encodeHeader(int length, ByteBuffer buffer, MessageSink sink)
-      throws IOException {
-    if (length < (1 << 5)) {
-      sink.ensureRemaining(buffer, 1);
-      buffer.put((byte) (ValueFormat.FIXSTR_PREFIX | length));
-    } else if (length < (1 << 8)) {
-      sink.ensureRemaining(buffer, 2);
-      buffer.put(ValueFormat.STR8);
-      buffer.put((byte) length);
-    } else if (length < (1 << 16)) {
-      sink.ensureRemaining(buffer, 3);
-      buffer.put(ValueFormat.STR16);
-      buffer.putShort((short) length);
-    } else {
-      sink.ensureRemaining(buffer, 5);
-      buffer.put(ValueFormat.STR32);
-      buffer.putInt(length);
+      sink.putStringHeader(length, buffer);
+      encodeNonAscii(string, buffer, sink);
     }
   }
 
@@ -100,28 +79,27 @@ public final class Utf8StringEncoder implements StringEncoder<CharSequence> {
     for (var i = 0; i < length; i++) {
       var ch = string.charAt(i);
       if (ch < 0x80) {
-        sink.ensureRemaining(buffer, 1);
-        buffer.put((byte) ch);
+        sink.putByte(buffer, (byte) ch);
       } else if (ch < 0x800) {
-        sink.ensureRemaining(buffer, 2);
-        buffer.put((byte) (0xc0 | ch >>> 6));
-        buffer.put((byte) (0x80 | (ch & 0x3f)));
+        sink.putBytes(buffer, (byte) (0xc0 | ch >>> 6), (byte) (0x80 | (ch & 0x3f)));
       } else if (ch < Character.MIN_SURROGATE || ch > Character.MAX_SURROGATE) {
-        sink.ensureRemaining(buffer, 3);
-        buffer.put((byte) (0xe0 | ch >>> 12));
-        buffer.put((byte) (0x80 | ((ch >>> 6) & 0x3f)));
-        buffer.put((byte) (0x80 | (ch & 0x3f)));
+        sink.putBytes(
+            buffer,
+            (byte) (0xe0 | ch >>> 12),
+            (byte) (0x80 | ((ch >>> 6) & 0x3f)),
+            (byte) (0x80 | (ch & 0x3f)));
       } else {
         char ch2;
         if (++i == length || !Character.isSurrogatePair(ch, ch2 = string.charAt(i))) {
           throw Exceptions.invalidSurrogatePair(i);
         }
         var cp = Character.toCodePoint(ch, ch2);
-        sink.ensureRemaining(buffer, 4);
-        buffer.put((byte) (0xf0 | cp >>> 18));
-        buffer.put((byte) (0x80 | ((cp >>> 12) & 0x3f)));
-        buffer.put((byte) (0x80 | ((cp >>> 6) & 0x3f)));
-        buffer.put((byte) (0x80 | (cp & 0x3f)));
+        sink.putBytes(
+            buffer,
+            (byte) (0xf0 | cp >>> 18),
+            (byte) (0x80 | ((cp >>> 12) & 0x3f)),
+            (byte) (0x80 | ((cp >>> 6) & 0x3f)),
+            (byte) (0x80 | (cp & 0x3f)));
       }
     }
   }

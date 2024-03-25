@@ -23,8 +23,8 @@ import org.translatenix.minipack.internal.ValueFormat;
  * call one of the {@code readXYZ()} methods. To determine the next value's type, call {@link
  * #nextType()}. To close this reader, call {@link #close()}.
  *
- * <p>Unless otherwise noted, methods throw {@link ReaderException} if an error occurs. The most
- * common type of error is an I/O error originating from the underlying {@link MessageSource}.
+ * <p>Unless otherwise noted, methods throw {@link IOException} if an I/O error occurs,
+ * and {@link ReaderException} if some other error occurs.
  *
  * @param <T> the return type of {@link #readString()} ({@code java.lang.String} unless this reader
  *     is {@linkplain Builder#build(StringDecoder) built} with a custom {@link StringDecoder})
@@ -112,15 +112,12 @@ public final class MessageReader<T> implements Closeable {
   }
 
   /** Returns the type of the next value to be read. */
-  public ValueType nextType() {
-    ensureRemaining(1);
-    // don't change position
-    var format = buffer.get(buffer.position());
-    return ValueFormat.toType(format);
+  public ValueType nextType() throws IOException {
+    return ValueFormat.toType(source.peekByte(buffer));
   }
 
   /** Reads a nil (null) value. */
-  public void readNil() {
+  public void readNil() throws IOException {
     var format = getByte();
     if (format != ValueFormat.NIL) {
       throw Exceptions.typeMismatch(format, RequestedType.NIL);
@@ -128,7 +125,7 @@ public final class MessageReader<T> implements Closeable {
   }
 
   /** Reads a boolean value. */
-  public boolean readBoolean() {
+  public boolean readBoolean() throws IOException {
     var format = getByte();
     return switch (format) {
       case ValueFormat.TRUE -> true;
@@ -138,7 +135,7 @@ public final class MessageReader<T> implements Closeable {
   }
 
   /** Reads an integer value that fits into a Java byte. */
-  public byte readByte() {
+  public byte readByte() throws IOException {
     var format = getByte();
     return switch (format) {
       case ValueFormat.INT8 -> getByte();
@@ -185,7 +182,7 @@ public final class MessageReader<T> implements Closeable {
   }
 
   /** Reads an integer value that fits into a Java short. */
-  public short readShort() {
+  public short readShort() throws IOException {
     var format = getByte();
     return switch (format) {
       case ValueFormat.INT8 -> getByte();
@@ -224,7 +221,7 @@ public final class MessageReader<T> implements Closeable {
   }
 
   /** Reads an integer value that fits into a Java int. */
-  public int readInt() {
+  public int readInt() throws IOException {
     var format = getByte();
     return switch (format) {
       case ValueFormat.INT8 -> getByte();
@@ -255,7 +252,7 @@ public final class MessageReader<T> implements Closeable {
   }
 
   /** Reads an integer value that fits into a Java long. */
-  public long readLong() {
+  public long readLong() throws IOException {
     var format = getByte();
     return switch (format) {
       case ValueFormat.INT8 -> getByte();
@@ -278,16 +275,18 @@ public final class MessageReader<T> implements Closeable {
   }
 
   /** Reads a floating point value that fits into a Java float. */
-  public float readFloat() {
-    var format = getByte();
-    if (format == ValueFormat.FLOAT32) return getFloat();
+  public float readFloat() throws IOException {
+    source.ensureRemaining(5, buffer);
+    var format = buffer.get();
+    if (format == ValueFormat.FLOAT32) return buffer.getFloat();
     throw Exceptions.typeMismatch(format, RequestedType.FLOAT);
   }
 
   /** Reads a floating point value that fits into a Java double. */
-  public double readDouble() {
-    var format = getByte();
-    if (format == ValueFormat.FLOAT64) return getDouble();
+  public double readDouble() throws IOException {
+    source.ensureRemaining(9, buffer);
+    var format = buffer.get();
+    if (format == ValueFormat.FLOAT64) return buffer.getDouble();
     throw Exceptions.typeMismatch(format, RequestedType.DOUBLE);
   }
 
@@ -300,12 +299,8 @@ public final class MessageReader<T> implements Closeable {
    * <p>To read a string as a sequence of bytes, use {@link #readRawStringHeader()} together with
    * {@link #readPayload}.
    */
-  public T readString() {
-    try {
-      return stringDecoder.decode(buffer, source);
-    } catch (IOException e) {
-      throw Exceptions.ioErrorReadingFromSource(e);
-    }
+  public T readString() throws IOException {
+    return stringDecoder.decode(buffer, source);
   }
 
   /**
@@ -314,7 +309,7 @@ public final class MessageReader<T> implements Closeable {
    * <p>A call to this method <i>must</i> be followed by {@code n} calls that read the array's
    * elements, where {@code n} is the number of array elements returned by this method.
    */
-  public int readArrayHeader() {
+  public int readArrayHeader() throws IOException {
     var format = getByte();
     return switch (format) {
       case ValueFormat.ARRAY16 -> getLength16();
@@ -334,7 +329,7 @@ public final class MessageReader<T> implements Closeable {
    * <p>A call to this method <i>must</i> be followed by {@code n*2} calls that alternately read the
    * map's keys and values, where {@code n} is the number of map entries returned by this method.
    */
-  public int readMapHeader() {
+  public int readMapHeader() throws IOException {
     var format = getByte();
     return switch (format) {
       case ValueFormat.MAP16 -> getLength16();
@@ -354,14 +349,8 @@ public final class MessageReader<T> implements Closeable {
    * <p>A call to this method <i>must</i> be followed by one or multiple calls to {@link
    * #readPayload} that in total read <i>exactly</i> the number of bytes returned by this method.
    */
-  public int readBinaryHeader() {
-    var format = getByte();
-    return switch (format) {
-      case ValueFormat.BIN8 -> getLength8();
-      case ValueFormat.BIN16 -> getLength16();
-      case ValueFormat.BIN32 -> getLength32(ValueType.BINARY);
-      default -> throw Exceptions.typeMismatch(format, RequestedType.BINARY);
-    };
+  public int readBinaryHeader() throws IOException {
+    return source.getBinaryHeader(buffer);
   }
 
   /**
@@ -372,20 +361,8 @@ public final class MessageReader<T> implements Closeable {
    *
    * <p>This method is a low-level alternative to {@link #readString()}.
    */
-  public int readRawStringHeader() {
-    var format = getByte();
-    return switch (format) {
-      case ValueFormat.STR8 -> getLength8();
-      case ValueFormat.STR16 -> getLength16();
-      case ValueFormat.STR32 -> getLength32(ValueType.STRING);
-      default -> {
-        if (ValueFormat.isFixStr(format)) {
-          yield ValueFormat.getFixStrLength(format);
-        } else {
-          throw Exceptions.typeMismatch(format, RequestedType.STRING);
-        }
-      }
-    };
+  public int readRawStringHeader() throws IOException {
+    return source.getStringHeader(buffer);
   }
 
   /**
@@ -395,20 +372,8 @@ public final class MessageReader<T> implements Closeable {
    * #readPayload} that in total read <i>exactly</i> the number of bytes stated in the returned
    * {@code Header}.
    */
-  public ExtensionType.Header readExtensionHeader() {
-    var format = getByte();
-    return switch (format) {
-      case ValueFormat.FIXEXT1 -> new ExtensionType.Header(1, getByte());
-      case ValueFormat.FIXEXT2 -> new ExtensionType.Header(2, getByte());
-      case ValueFormat.FIXEXT4 -> new ExtensionType.Header(4, getByte());
-      case ValueFormat.FIXEXT8 -> new ExtensionType.Header(8, getByte());
-      case ValueFormat.FIXEXT16 -> new ExtensionType.Header(16, getByte());
-      case ValueFormat.EXT8 -> new ExtensionType.Header(getLength8(), getByte());
-      case ValueFormat.EXT16 -> new ExtensionType.Header(getLength16(), getByte());
-      case ValueFormat.EXT32 ->
-          new ExtensionType.Header(getLength32(ValueType.EXTENSION), getByte());
-      default -> throw Exceptions.typeMismatch(format, RequestedType.EXTENSION);
-    };
+  public ExtensionType.Header readExtensionHeader() throws IOException {
+    return source.getExtensionHeader(buffer);
   }
 
   /**
@@ -416,8 +381,8 @@ public final class MessageReader<T> implements Closeable {
    *
    * @see #readPayload(ByteBuffer, int)
    */
-  public int readPayload(ByteBuffer buffer) {
-    return readFromSource(buffer, 1);
+  public int readPayload(ByteBuffer buffer) throws IOException {
+    return source.readAtLeast(buffer, 1);
   }
 
   /**
@@ -427,107 +392,58 @@ public final class MessageReader<T> implements Closeable {
    * <p>This method is meant to be called one or multiple times after {@link #readBinaryHeader()} or
    * {@link #readRawStringHeader()}.
    */
-  public int readPayload(ByteBuffer buffer, int minBytes) {
-    return readFromSource(buffer, minBytes);
+  public int readPayload(ByteBuffer buffer, int minBytes) throws IOException {
+    return source.readAtLeast(buffer, minBytes);
   }
 
   /** Closes the underlying message {@linkplain MessageSource source}. */
   @Override
-  public void close() {
-    try {
-      source.close();
-    } catch (IOException e) {
-      throw Exceptions.ioErrorClosingSource(e);
-    }
+  public void close() throws IOException {
+    source.close();
   }
 
-  private byte getByte() {
-    ensureRemaining(1);
-    return buffer.get();
+  private byte getByte() throws IOException {
+    return source.getByte(buffer);
   }
 
-  private short getUByte() {
-    ensureRemaining(1);
-    return (short) (buffer.get() & 0xff);
+  private short getShort() throws IOException {
+    return source.getShort(buffer);
   }
 
-  private short getShort() {
-    ensureRemaining(2);
-    return buffer.getShort();
+  private int getInt() throws IOException {
+    return source.getInt(buffer);
   }
 
-  private int getUShort() {
-    ensureRemaining(2);
-    return buffer.getShort() & 0xffff;
+  private long getLong() throws IOException {
+    return source.getLong(buffer);
   }
 
-  private int getInt() {
-    ensureRemaining(4);
-    return buffer.getInt();
+  private short getUByte() throws IOException {
+    return source.getUByte(buffer);
   }
 
-  private long getUInt() {
-    ensureRemaining(4);
-    return buffer.getInt() & 0xffffffffL;
+  private int getUShort() throws IOException {
+    return source.getUShort(buffer);
   }
 
-  private long getLong() {
-    ensureRemaining(8);
-    return buffer.getLong();
+  private long getUInt() throws IOException {
+    return source.getUInt(buffer);
   }
 
-  private float getFloat() {
-    ensureRemaining(4);
-    return buffer.getFloat();
+  private int getLength8() throws IOException {
+    return source.getLength8(buffer);
   }
 
-  private double getDouble() {
-    ensureRemaining(8);
-    return buffer.getDouble();
+  private int getLength16() throws IOException {
+    return source.getLength16(buffer);
   }
 
-  private int getLength8() {
-    ensureRemaining(1);
-    return buffer.get() & 0xff;
-  }
-
-  private int getLength16() {
-    ensureRemaining(2);
-    return buffer.getShort() & 0xffff;
-  }
-
-  private int getLength32(ValueType valueType) {
-    var length = getInt();
-    if (length < 0) {
-      throw Exceptions.lengthOverflow(length & 0xffffffffL, valueType);
-    }
-    return length;
-  }
-
-  private int readFromSource(ByteBuffer buffer, int minBytes) {
-    try {
-      return source.readAtLeast(buffer, minBytes);
-    } catch (IOException e) {
-      throw Exceptions.ioErrorReadingFromSource(e);
-    }
+  private int getLength32(ValueType valueType) throws IOException {
+    return source.getLength32(buffer, valueType);
   }
 
   // non-private for testing
-  byte nextFormat() {
-    ensureRemaining(1);
-    // don't change position
-    return buffer.get(buffer.position());
-  }
-
-  private void ensureRemaining(int length) {
-    ensureRemaining(length, buffer);
-  }
-
-  private void ensureRemaining(int length, ByteBuffer buffer) {
-    try {
-      source.ensureRemaining(length, buffer);
-    } catch (IOException e) {
-      throw Exceptions.ioErrorReadingFromSource(e);
-    }
+  byte nextFormat() throws IOException {
+    return source.peekByte(buffer);
   }
 }

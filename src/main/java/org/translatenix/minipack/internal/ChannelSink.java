@@ -10,7 +10,7 @@ import java.nio.channels.WritableByteChannel;
 import org.translatenix.minipack.MessageSink;
 
 /** A message sink that writes to a blocking {@link WritableByteChannel}. */
-public final class ChannelSink implements MessageSink {
+public final class ChannelSink extends MessageSink {
   private final WritableByteChannel blockingChannel;
 
   public ChannelSink(WritableByteChannel blockingChannel) {

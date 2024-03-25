@@ -34,7 +34,7 @@ public class MessageWriterTest {
   }
 
   @Example
-  public void writeNil() {
+  public void writeNil() throws IOException {
     writer.writeNil();
     writer.flush();
     assertThatNoException().isThrownBy(unpacker::unpackNil);

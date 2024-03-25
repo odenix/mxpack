@@ -11,7 +11,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
 import org.jspecify.annotations.Nullable;
 import org.translatenix.minipack.internal.Exceptions;
-import org.translatenix.minipack.internal.Utf8StringEncoder;
 import org.translatenix.minipack.internal.ValueFormat;
 
 /**
@@ -23,8 +22,8 @@ import org.translatenix.minipack.internal.ValueFormat;
  * {@linkplain MessageSink sink}, call {@link #flush()}. To close this writer, call {@link
  * #close()}.
  *
- * <p>Unless otherwise noted, methods throw {@link WriterException} if an error occurs. The most
- * common type of error is an I/O error originating from the underlying {@link MessageSink}.
+ * <p>Unless otherwise noted, methods throw {@link IOException} if an I/O error occurs,
+ * and {@link WriterException} if some other error occurs.
  *
  * @param <T> the parameter type of {@link #writeString} ({@code java.lang.CharSequence} unless this
  *     writer is {@linkplain MessageWriter.Builder#build(StringEncoder) built} with a custom {@link
@@ -122,53 +121,53 @@ public final class MessageWriter<T> implements Closeable {
   }
 
   /** Writes a nil (null) value. */
-  public void writeNil() {
+  public void writeNil() throws IOException {
     putByte(ValueFormat.NIL);
   }
 
   /** Writes a boolean value. */
-  public void write(boolean value) {
+  public void write(boolean value) throws IOException {
     putByte(value ? ValueFormat.TRUE : ValueFormat.FALSE);
   }
 
   /** Writes an integer value that fits into a Java byte. */
-  public void write(byte value) {
+  public void write(byte value) throws IOException {
     if (value < -(1 << 5)) {
-      putByte(ValueFormat.INT8, value);
+      putInt8(value);
     } else {
       putByte(value);
     }
   }
 
   /** Writes an integer value that fits into a Java short. */
-  public void write(short value) {
+  public void write(short value) throws IOException {
     if (value < -(1 << 5)) {
       if (value < -(1 << 7)) {
-        putShort(ValueFormat.INT16, value);
+        putInt16(value);
       } else {
-        putByte(ValueFormat.INT8, (byte) value);
+        putInt8((byte) value);
       }
     } else if (value < (1 << 7)) {
       putByte((byte) value);
     } else {
       if (value < (1 << 8)) {
-        putByte(ValueFormat.UINT8, (byte) value);
+        putUInt8((byte) value);
       } else {
-        putShort(ValueFormat.UINT16, value);
+        putUInt16(value);
       }
     }
   }
 
   /** Writes an integer value that fits into a Java int. */
-  public void write(int value) {
+  public void write(int value) throws IOException {
     if (value < -(1 << 5)) {
       if (value < -(1 << 15)) {
-        putInt(ValueFormat.INT32, value);
+        putInt32(value);
       } else {
         if (value < -(1 << 7)) {
-          putShort(ValueFormat.INT16, (short) value);
+          putInt16((short) value);
         } else {
-          putByte(ValueFormat.INT8, (byte) value);
+          putInt8((byte) value);
         }
       }
     } else if (value < (1 << 7)) {
@@ -176,29 +175,29 @@ public final class MessageWriter<T> implements Closeable {
     } else {
       if (value < (1 << 16)) {
         if (value < (1 << 8)) {
-          putByte(ValueFormat.UINT8, (byte) value);
+          putUInt8((byte) value);
         } else {
-          putShort(ValueFormat.UINT16, (short) value);
+          putUInt16((short) value);
         }
       } else {
-        putInt(ValueFormat.UINT32, value);
+        putUInt32(value);
       }
     }
   }
 
   /** Writes an integer value that fits into a Java long. */
-  public void write(long value) {
+  public void write(long value) throws IOException {
     if (value < -(1L << 5)) {
       if (value < -(1L << 31)) {
-        putLong(ValueFormat.INT64, value);
+        putInt64(value);
       } else {
         if (value < -(1L << 15)) {
-          putInt(ValueFormat.INT32, (int) value);
+          putInt32((int) value);
         } else {
           if (value < -(1L << 7)) {
-            putShort(ValueFormat.INT16, (short) value);
+            putInt16((short) value);
           } else {
-            putByte(ValueFormat.INT8, (byte) value);
+            putInt8((byte) value);
           }
         }
       }
@@ -208,40 +207,32 @@ public final class MessageWriter<T> implements Closeable {
       if (value < (1L << 32)) {
         if (value < (1L << 16)) {
           if (value < (1L << 8)) {
-            putByte(ValueFormat.UINT8, (byte) value);
+            putUInt8((byte) value);
           } else {
-            putShort(ValueFormat.UINT16, (short) value);
+            putUInt16((short) value);
           }
         } else {
-          putInt(ValueFormat.UINT32, (int) value);
+          putUInt32((int) value);
         }
       } else {
-        putLong(ValueFormat.UINT64, value);
+        putUInt64(value);
       }
     }
   }
 
   /** Writes a floating point value that fits into a Java float. */
-  public void write(float value) {
-    ensureRemaining(5);
-    buffer.put(ValueFormat.FLOAT32);
-    buffer.putFloat(value);
+  public void write(float value) throws IOException {
+    putFloat32(value);
   }
 
   /** Writes a floating point value that fits into a Java double. */
-  public void write(double value) {
-    ensureRemaining(9);
-    buffer.put(ValueFormat.FLOAT64);
-    buffer.putDouble(value);
+  public void write(double value) throws IOException {
+    putFloat64(value);
   }
 
   /** Writes a string value. */
-  public void writeString(T string) {
-    try {
-      stringEncoder.encode(string, buffer, sink);
-    } catch (IOException e) {
-      throw Exceptions.ioErrorWritingToSink(e);
-    }
+  public void writeString(T string) throws IOException {
+    stringEncoder.encode(string, buffer, sink);
   }
 
   /**
@@ -250,14 +241,14 @@ public final class MessageWriter<T> implements Closeable {
    * <p>A call to this method MUST be followed by {@code elementCount} calls that write the array's
    * elements.
    */
-  public void writeArrayHeader(int elementCount) {
+  public void writeArrayHeader(int elementCount) throws IOException {
     requirePositiveLength(elementCount);
     if (elementCount < (1 << 4)) {
       putByte((byte) (ValueFormat.FIXARRAY_PREFIX | elementCount));
     } else if (elementCount < (1 << 16)) {
-      putShort(ValueFormat.ARRAY16, (short) elementCount);
+      putByteAndShort(ValueFormat.ARRAY16, (short) elementCount);
     } else {
-      putInt(ValueFormat.ARRAY32, elementCount);
+      putByteAndInt(ValueFormat.ARRAY32, elementCount);
     }
   }
 
@@ -267,14 +258,14 @@ public final class MessageWriter<T> implements Closeable {
    * <p>A call to this method MUST be followed by {@code entryCount*2} calls that alternately write
    * the map's keys and values.
    */
-  public void writeMapHeader(int entryCount) {
+  public void writeMapHeader(int entryCount) throws IOException {
     requirePositiveLength(entryCount);
     if (entryCount < (1 << 4)) {
       putByte((byte) (ValueFormat.FIXMAP_PREFIX | entryCount));
     } else if (entryCount < (1 << 16)) {
-      putShort(ValueFormat.MAP16, (short) entryCount);
+      putByteAndShort(ValueFormat.MAP16, (short) entryCount);
     } else {
-      putInt(ValueFormat.MAP32, entryCount);
+      putByteAndInt(ValueFormat.MAP32, entryCount);
     }
   }
 
@@ -292,13 +283,8 @@ public final class MessageWriter<T> implements Closeable {
    *   <li>Full control over conversion from {@code java.lang.String} to UTF-8 is required.
    * </ul>
    */
-  public void writeRawStringHeader(int byteCount) {
-    requirePositiveLength(byteCount);
-    try {
-      Utf8StringEncoder.encodeHeader(byteCount, buffer, sink);
-    } catch (IOException e) {
-      throw Exceptions.ioErrorWritingToSink(e);
-    }
+  public void writeRawStringHeader(int byteCount) throws IOException {
+    sink.putStringHeader(byteCount, buffer);
   }
 
   /**
@@ -307,36 +293,12 @@ public final class MessageWriter<T> implements Closeable {
    * <p>A call to this method MUST be followed by one or more calls to {@link #writePayload} that
    * write exactly {@code byteCount} bytes in total.
    */
-  public void writeBinaryHeader(int byteCount) {
-    requirePositiveLength(byteCount);
-    if (byteCount < (1 << 8)) {
-      putByte(ValueFormat.BIN8, (byte) byteCount);
-    } else if (byteCount < (1 << 16)) {
-      putShort(ValueFormat.BIN16, (short) byteCount);
-    } else {
-      putInt(ValueFormat.BIN32, byteCount);
-    }
+  public void writeBinaryHeader(int byteCount) throws IOException {
+    sink.putBinaryHeader(byteCount, buffer);
   }
 
-  public void writeExtensionHeader(int byteCount, byte type) {
-    requirePositiveLength(byteCount);
-    switch (byteCount) {
-      case 1 -> putByte(ValueFormat.FIXEXT1, type);
-      case 2 -> putByte(ValueFormat.FIXEXT2, type);
-      case 4 -> putByte(ValueFormat.FIXEXT4, type);
-      case 8 -> putByte(ValueFormat.FIXEXT8, type);
-      case 16 -> putByte(ValueFormat.FIXEXT16, type);
-      default -> {
-        if (byteCount < (1 << 8)) {
-          putByte(ValueFormat.EXT8, (byte) byteCount);
-        } else if (byteCount < (1 << 16)) {
-          putShort(ValueFormat.EXT16, (short) byteCount);
-        } else {
-          putInt(ValueFormat.EXT32, byteCount);
-        }
-        putByte(type);
-      }
-    }
+  public void writeExtensionHeader(int byteCount, byte type) throws IOException {
+    sink.putExtensionHeader(byteCount, type, buffer);
   }
 
   /**
@@ -346,88 +308,95 @@ public final class MessageWriter<T> implements Closeable {
    * <p>This method must be called after {@link #writeBinaryHeader} or {@link
    * #writeRawStringHeader}.
    */
-  public int writePayload(ByteBuffer buffer) {
+  public int writePayload(ByteBuffer buffer) throws IOException {
     writeBuffer();
-    return writeToSink(buffer);
+    return sink.write(buffer);
   }
 
   /**
    * Writes any data remaining in this writer's buffer and flushes the underlying message
    * {@linkplain MessageSink sink}.
    */
-  public void flush() {
+  public void flush() throws IOException {
     writeBuffer();
-    try {
-      sink.flush();
-    } catch (IOException e) {
-      throw Exceptions.ioErrorFlushingSink(e);
-    }
+    sink.flush();
   }
 
   /**
    * {@linkplain MessageSink#close() Closes} the underlying message {@linkplain MessageSink sink}.
    */
   @Override
-  public void close() {
-    try {
-      sink.close();
-    } catch (IOException e) {
-      throw Exceptions.ioErrorClosingSink(e);
-    }
+  public void close() throws IOException {
+    sink.close();
   }
 
   private void requirePositiveLength(int length) {
     if (length < 0) throw Exceptions.negativeLength(length);
   }
 
-  private void putByte(byte value) {
-    ensureRemaining(1);
-    buffer.put(value);
+  private void putByte(byte value) throws IOException {
+    sink.putByte(buffer, value);
   }
 
-  private void putByte(byte format, byte value) {
-    ensureRemaining(2);
-    buffer.put(format);
-    buffer.put(value);
+  private void putBytes(byte value1, byte value2) throws IOException {
+    sink.putBytes(buffer, value1, value2);
   }
 
-  private void putShort(byte format, short value) {
-    ensureRemaining(3);
-    buffer.put(format);
-    buffer.putShort(value);
+  private void putByteAndShort(byte value1, short value2) throws IOException {
+    sink.putByteAndShort(buffer, value1, value2);
   }
 
-  private void putInt(byte format, int value) {
-    ensureRemaining(5);
-    buffer.put(format);
-    buffer.putInt(value);
+  private void putByteAndInt(byte value1, int value2) throws IOException {
+    sink.putByteAndInt(buffer, value1, value2);
   }
 
-  private void putLong(byte format, long value) {
-    ensureRemaining(9);
-    buffer.put(format);
-    buffer.putLong(value);
+  private void putInt8(byte value) throws IOException {
+    sink.putBytes(buffer, ValueFormat.INT8, value);
   }
 
-  private void ensureRemaining(int byteCount) {
-    try {
-      sink.ensureRemaining(buffer, byteCount);
-    } catch (IOException e) {
-      throw Exceptions.ioErrorWritingToSink(e);
-    }
+  private void putUInt8(byte value) throws IOException {
+    sink.putBytes(buffer, ValueFormat.UINT8, value);
   }
 
-  private void writeBuffer() {
+  private void putInt16(short value) throws IOException {
+    sink.putByteAndShort(buffer, ValueFormat.INT16, value);
+  }
+
+  private void putUInt16(short value) throws IOException {
+    sink.putByteAndShort(buffer, ValueFormat.UINT16, value);
+  }
+
+  private void putInt32(int value) throws IOException {
+    sink.putByteAndInt(buffer, ValueFormat.INT32, value);
+  }
+
+  private void putUInt32(int value) throws IOException {
+    sink.putByteAndInt(buffer, ValueFormat.UINT32, value);
+  }
+
+  private void putInt64(long value) throws IOException {
+    sink.putByteAndLong(buffer, ValueFormat.INT64, value);
+  }
+
+  private void putUInt64(long value) throws IOException {
+    sink.putByteAndLong(buffer, ValueFormat.UINT64, value);
+  }
+
+  private void putFloat32(float value2) throws IOException {
+    sink.ensureRemaining(buffer, 5);
+    buffer.put(ValueFormat.FLOAT32);
+    buffer.putFloat(value2);
+  }
+
+  private void putFloat64(double value2) throws IOException {
+    sink.ensureRemaining(buffer, 9);
+    buffer.put(ValueFormat.FLOAT64);
+    buffer.putDouble(value2);
+  }
+
+  private void writeBuffer() throws IOException {
     buffer.flip();
-    writeToSink(buffer);
+    sink.write(buffer);
     buffer.clear();
-  }
-
-  private int writeToSink(ByteBuffer buffer) {
-    try {
-      return sink.write(buffer);
-    } catch (IOException e) {
-      throw Exceptions.ioErrorWritingToSink(e);
-    }
   }
 }

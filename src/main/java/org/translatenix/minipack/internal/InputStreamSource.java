@@ -10,7 +10,7 @@ import java.nio.ByteBuffer;
 import org.translatenix.minipack.MessageSource;
 
 /** A message source that reads from an {@link InputStream}. */
-public final class InputStreamSource implements MessageSource {
+public final class InputStreamSource extends MessageSource {
   private final InputStream in;
 
   public InputStreamSource(InputStream in) {

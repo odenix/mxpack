@@ -10,7 +10,7 @@ import java.nio.channels.ReadableByteChannel;
 import org.translatenix.minipack.MessageSource;
 
 /** A message source that reads from a blocking {@link ReadableByteChannel}. */
-public final class ChannelSource implements MessageSource {
+public final class ChannelSource extends MessageSource {
   private final ReadableByteChannel blockingChannel;
 
   public ChannelSource(ReadableByteChannel blockingChannel) {
