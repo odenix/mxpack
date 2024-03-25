@@ -1,9 +1,9 @@
 @file:Suppress("UnstableApiUsage")
-//import dev.adamko.dokkatoo.dokka.parameters.VisibilityModifier
+import dev.adamko.dokkatoo.dokka.parameters.VisibilityModifier
 
 plugins {
   `java-library`
-  //alias(libs.plugins.dokkaHtml)
+  alias(libs.plugins.dokkaHtml)
   alias(libs.plugins.jmh)
   alias(libs.plugins.spotless)
 }
@@ -43,7 +43,7 @@ dependencies {
   testImplementation(libs.jqwik)
   testImplementation(libs.messagePack)
   testRuntimeOnly(libs.junitLauncher)
-  //dokkatooPluginHtml(libs.dokkaJava)
+  dokkatooPluginHtml(libs.dokkaJava)
 }
 
 configurations.matching {
@@ -55,18 +55,18 @@ configurations.matching {
   }
 }
 
-//dokkatoo {
-//  moduleName.set("minipack")
-//  pluginsConfiguration.html {
-//    footerMessage.set("Copyright 2024 The minipack project authors")
-//  }
-//  dokkatooSourceSets {
-//    register("main") {
-//      jdkVersion.set(17) // link to JDK 17 docs
-//      documentedVisibilities(VisibilityModifier.PUBLIC, VisibilityModifier.PROTECTED)
-//      sourceRoots = fileTree("src/main/java/org/translatenix/minipack") {
-//        include("*.java")
-//      }
-//    }
-//  }
-//}
+dokkatoo {
+  moduleName.set("minipack")
+  pluginsConfiguration.html {
+    footerMessage.set("Copyright 2024 The minipack project authors")
+  }
+  dokkatooSourceSets {
+    register("main") {
+      jdkVersion.set(17) // link to JDK 17 docs
+      documentedVisibilities(VisibilityModifier.PUBLIC, VisibilityModifier.PROTECTED)
+      sourceRoots = fileTree("src/main/java/org/translatenix/minipack") {
+        include("*.java")
+      }
+    }
+  }
+}
