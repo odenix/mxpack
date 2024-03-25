@@ -9,9 +9,13 @@ import java.nio.ByteBuffer;
 import org.translatenix.minipack.internal.Utf8StringDecoder;
 
 public interface StringDecoder<T> {
-  T read(ByteBuffer readBuffer, MessageSource source) throws IOException;
+  T decode(ByteBuffer readBuffer, MessageSource source) throws IOException;
 
-  static StringDecoder<String> withSizeLimit(int maxBytes) {
+  /**
+   * Returns a decoder that decodes MessagePack string values ({@code Str format family, UTF-8
+   * payload} to values of type {@code java.lang.String}.
+   */
+  static StringDecoder<String> defaultDecoder(int maxBytes) {
     return new Utf8StringDecoder(maxBytes);
   }
 }

@@ -16,22 +16,23 @@ import org.translatenix.minipack.internal.InputStreamSource;
 /** The underlying source of a {@link MessageReader}. */
 public interface MessageSource extends Closeable {
   /**
-   * Reads between 1 and {@linkplain ByteBuffer#remaining()
-   * remaining} bytes from this source into the given buffer,
-   * returning the actual number of bytes read.
+   * Reads between 1 and {@linkplain ByteBuffer#remaining() remaining} bytes from this source into
+   * the given buffer, returning the actual number of bytes read.
    *
    * <p>Returns {@code -1} if no more bytes can be read from this source.
    *
-   * <p>{@code minBytesHint} indicates the minimum number of bytes that the caller would like to read.
-   * However, unlike {@link #readAtLeast}, this method does not guarantee that more than 1 byte will be read.
+   * <p>{@code minBytesHint} indicates the minimum number of bytes that the caller would like to
+   * read. However, unlike {@link #readAtLeast}, this method does not guarantee that more than 1
+   * byte will be read.
    */
   int read(ByteBuffer buffer, int minBytesHint) throws IOException;
 
   /**
-   * Reads between {@code minBytes} and {@linkplain ByteBuffer#remaining()
-   * remaining} bytes from this source into the given buffer, returning the actual number of bytes read.
+   * Reads between {@code minBytes} and {@linkplain ByteBuffer#remaining() remaining} bytes from
+   * this source into the given buffer, returning the actual number of bytes read.
    *
-   * <p>Throws {@link java.io.EOFException} if the end of input is reached before {@code minBytes} bytes have been read.
+   * <p>Throws {@link java.io.EOFException} if the end of input is reached before {@code minBytes}
+   * bytes have been read.
    */
   default int readAtLeast(ByteBuffer buffer, int minBytes) throws IOException {
     assert minBytes <= buffer.remaining();
@@ -51,8 +52,8 @@ public interface MessageSource extends Closeable {
   }
 
   /**
-   * Reads enough bytes from this source into the given buffer for {@linkplain ByteBuffer#get() getting}
-   * at least {@code length} bytes from the buffer.
+   * Reads enough bytes from this source into the given buffer for {@linkplain ByteBuffer#get()
+   * getting} at least {@code length} bytes from the buffer.
    *
    * <p>The number of bytes read is between 0 and {@link ByteBuffer#remaining()}.
    */
@@ -71,8 +72,8 @@ public interface MessageSource extends Closeable {
     return new InputStreamSource(stream);
   }
 
-  /** Returns a source that reads from the given channel. */
-  static MessageSource of(ReadableByteChannel channel) {
-    return new ChannelSource(channel);
+  /** Returns a source that reads from the given blocking channel. */
+  static MessageSource of(ReadableByteChannel blockingChannel) {
+    return new ChannelSource(blockingChannel);
   }
 }

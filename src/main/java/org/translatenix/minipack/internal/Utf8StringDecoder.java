@@ -12,36 +12,38 @@ import org.translatenix.minipack.MessageSource;
 import org.translatenix.minipack.StringDecoder;
 
 public final class Utf8StringDecoder implements StringDecoder<String> {
+  private final int stringSizeLimit;
   private final GrowableBuffer growableBuffer;
 
   public Utf8StringDecoder(int stringSizeLimit) {
+    this.stringSizeLimit = stringSizeLimit;
     growableBuffer = new GrowableBuffer(1024, stringSizeLimit);
   }
 
   @Override
-  public String read(ByteBuffer buffer, MessageSource source) throws IOException {
+  public String decode(ByteBuffer buffer, MessageSource source) throws IOException {
     source.ensureRemaining(1, buffer);
     var format = buffer.get();
     return switch (format) {
       case ValueFormat.STR8 -> {
         source.ensureRemaining(1, buffer);
-        yield read(buffer, buffer.get() & 0xff, source);
+        yield decode(buffer, buffer.get() & 0xff, source);
       }
       case ValueFormat.STR16 -> {
         source.ensureRemaining(2, buffer);
-        yield read(buffer, buffer.getShort() & 0xffff, source);
+        yield decode(buffer, buffer.getShort() & 0xffff, source);
       }
       case ValueFormat.STR32 -> {
         source.ensureRemaining(4, buffer);
         var length = buffer.getInt();
         if (length < 0) {
-          throw Exceptions.stringTooLarge(length & 0xffffffffL, Integer.MAX_VALUE);
+          throw Exceptions.stringTooLargeOnRead(length & 0xffffffffL, stringSizeLimit);
         }
-        yield read(buffer, length, source);
+        yield decode(buffer, length, source);
       }
       default -> {
         if (ValueFormat.isFixStr(format)) {
-          yield read(buffer, ValueFormat.getFixStrLength(format), source);
+          yield decode(buffer, ValueFormat.getFixStrLength(format), source);
         } else {
           throw Exceptions.typeMismatch(format, RequestedType.STRING);
         }
@@ -49,26 +51,29 @@ public final class Utf8StringDecoder implements StringDecoder<String> {
     };
   }
 
-  private String read(ByteBuffer buffer, int length, MessageSource source) throws IOException {
+  private String decode(ByteBuffer buffer, int length, MessageSource source) throws IOException {
+    if (length > stringSizeLimit) {
+      throw Exceptions.stringTooLargeOnRead(length, stringSizeLimit);
+    }
     if (buffer.hasArray() && length <= buffer.capacity()) {
       source.ensureRemaining(length, buffer);
-      var result = convertToString(buffer, length);
+      var result = decode(buffer, length);
       buffer.position(buffer.position() + length);
       return result;
     }
-    var utf8Buffer = growableBuffer.get(length).position(0).limit(length);
+    var stringBuffer = growableBuffer.get(length).position(0).limit(length);
     var transferLength = Math.min(length, buffer.remaining());
-    utf8Buffer.put(0, buffer, buffer.position(), transferLength);
+    stringBuffer.put(0, buffer, buffer.position(), transferLength);
     if (transferLength < length) {
-      utf8Buffer.position(transferLength);
-      source.readAtLeast(utf8Buffer, utf8Buffer.remaining());
-      utf8Buffer.position(0);
+      stringBuffer.position(transferLength);
+      source.readAtLeast(stringBuffer, stringBuffer.remaining());
+      stringBuffer.position(0);
     }
     buffer.position(buffer.position() + transferLength);
-    return convertToString(utf8Buffer, length);
+    return decode(stringBuffer, length);
   }
 
-  private String convertToString(ByteBuffer buffer, int length) {
+  private String decode(ByteBuffer buffer, int length) {
     return new String(
         buffer.array(), buffer.arrayOffset() + buffer.position(), length, StandardCharsets.UTF_8);
   }
@@ -85,9 +90,7 @@ public final class Utf8StringDecoder implements StringDecoder<String> {
 
     ByteBuffer get(int requestedCapacity) {
       if (buffer == null || buffer.capacity() < requestedCapacity) {
-        if (requestedCapacity > maxCapacity) {
-          throw Exceptions.stringTooLarge(requestedCapacity, maxCapacity);
-        }
+        assert requestedCapacity <= maxCapacity;
         var newCapacity =
             buffer == null
                 ? Math.max(minCapacity, requestedCapacity)

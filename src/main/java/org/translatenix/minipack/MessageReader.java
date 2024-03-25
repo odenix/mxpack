@@ -21,14 +21,13 @@ import org.translatenix.minipack.internal.ValueFormat;
  *
  * <p>To create a new {@code MessageReader}, use a {@linkplain #builder() builder}. To read a value,
  * call one of the {@code readXYZ()} methods. To determine the next value's type, call {@link
- * #nextType()}.
+ * #nextType()}. To close this reader, call {@link #close()}.
  *
  * <p>Unless otherwise noted, methods throw {@link ReaderException} if an error occurs. The most
- * common type of error is an I/O error originating from the underlying source.
+ * common type of error is an I/O error originating from the underlying {@link MessageSource}.
  *
- * @param <T> the return type of {@link #readString()}
- *            ({@code java.lang.String} unless this reader is {@linkplain Builder#build(StringDecoder) built}
- *            with a custom {@link StringDecoder})
+ * @param <T> the return type of {@link #readString()} ({@code java.lang.String} unless this reader
+ *     is {@linkplain Builder#build(StringDecoder) built} with a custom {@link StringDecoder})
  */
 public final class MessageReader<T> implements Closeable {
   private static final int MIN_BUFFER_CAPACITY = 9;
@@ -62,10 +61,12 @@ public final class MessageReader<T> implements Closeable {
 
     /**
      * Sets the buffer to use for reading from the underlying message {@linkplain MessageSource
-     * source}. The buffer's {@linkplain ByteBuffer#capacity() capacity} determines the maximum
-     * number of bytes that will be read at once from the source.
+     * source}.
      *
-     * <p>If not set, defaults to {@code ByteBuffer.allocate(8192)}.
+     * <p>The buffer's {@linkplain ByteBuffer#capacity() capacity} determines the maximum number of
+     * bytes that will be read at once from the source.
+     *
+     * <p>If not set, defaults to {@code ByteBuffer.allocate(1024 * 8)}.
      */
     public Builder buffer(ByteBuffer buffer) {
       this.buffer = buffer;
@@ -73,13 +74,18 @@ public final class MessageReader<T> implements Closeable {
     }
 
     /**
-     * Equivalent to {@code build(StringReader.withSizeLimit(1 << 20))}.
+     * Equivalent to {@code build(StringDecoder.defaultDecoder(1024 * 1024))}.
+     *
+     * @see StringDecoder#defaultDecoder(int)
      */
     public MessageReader<String> build() {
       return new MessageReader<>(this, new Utf8StringDecoder(DEFAULT_STRING_SIZE_LIMIT));
     }
 
-    /** Creates a new {@code MessageReader} from this builder's current state and the given {@code StringReader}. */
+    /**
+     * Creates a new {@code MessageReader} from this builder's current state and the given string
+     * decoder.
+     */
     public <T> MessageReader<T> build(StringDecoder<T> stringDecoder) {
       return new MessageReader<>(this, stringDecoder);
     }
@@ -288,14 +294,15 @@ public final class MessageReader<T> implements Closeable {
   /**
    * Reads a string value.
    *
-   * <p>The type of the returned value is determined by the {@link StringDecoder}
-   * that this message reader was {@linkplain Builder#build(StringDecoder) built} with.
+   * <p>The type of the returned value is determined by the {@link StringDecoder} that this message
+   * reader was {@linkplain Builder#build(StringDecoder) built} with.
    *
-   * <p>To read a string as a sequence of bytes, use {@link #readRawStringHeader()} together with {@link #readPayload}.
+   * <p>To read a string as a sequence of bytes, use {@link #readRawStringHeader()} together with
+   * {@link #readPayload}.
    */
   public T readString() {
     try {
-      return stringDecoder.read(buffer, source);
+      return stringDecoder.decode(buffer, source);
     } catch (IOException e) {
       throw Exceptions.ioErrorReadingFromSource(e);
     }
@@ -304,8 +311,8 @@ public final class MessageReader<T> implements Closeable {
   /**
    * Starts reading an array value.
    *
-   * <p>A call to this method <i>must</i> be followed by {@code n} calls that read the array's elements,
-   * where {@code n} is the number of array elements returned by this method.
+   * <p>A call to this method <i>must</i> be followed by {@code n} calls that read the array's
+   * elements, where {@code n} is the number of array elements returned by this method.
    */
   public int readArrayHeader() {
     var format = getByte();
@@ -324,8 +331,8 @@ public final class MessageReader<T> implements Closeable {
   /**
    * Starts reading a map value.
    *
-   * <p>A call to this method <i>must</i> be followed by {@code n*2} calls that alternately read the map's
-   * keys and values, where {@code n} is the number of map entries returned by this method.
+   * <p>A call to this method <i>must</i> be followed by {@code n*2} calls that alternately read the
+   * map's keys and values, where {@code n} is the number of map entries returned by this method.
    */
   public int readMapHeader() {
     var format = getByte();
@@ -344,8 +351,8 @@ public final class MessageReader<T> implements Closeable {
   /**
    * Starts reading a binary value.
    *
-   * <p>A call to this method <i>must</i> be followed by one or multiple calls to {@link #readPayload} that
-   * in total read <i>exactly</i> the number of bytes returned by this method.
+   * <p>A call to this method <i>must</i> be followed by one or multiple calls to {@link
+   * #readPayload} that in total read <i>exactly</i> the number of bytes returned by this method.
    */
   public int readBinaryHeader() {
     var format = getByte();
@@ -360,8 +367,8 @@ public final class MessageReader<T> implements Closeable {
   /**
    * Starts reading a string value as a sequence of bytes.
    *
-   * <p>A call to this method <i>must</i> be followed by one or more calls to {@link #readPayload} that
-   * in total read <i>exactly</i> the number of bytes returned by this method.
+   * <p>A call to this method <i>must</i> be followed by one or more calls to {@link #readPayload}
+   * that in total read <i>exactly</i> the number of bytes returned by this method.
    *
    * <p>This method is a low-level alternative to {@link #readString()}.
    */
@@ -384,9 +391,9 @@ public final class MessageReader<T> implements Closeable {
   /**
    * Starts reading an extension value.
    *
-   * <p>A call to this method <i>must</i> be followed by one or multiple calls to {@link #readPayload}
-   * that in total read <i>exactly</i> the number of bytes stated in the returned {@code Header}.
-   *
+   * <p>A call to this method <i>must</i> be followed by one or multiple calls to {@link
+   * #readPayload} that in total read <i>exactly</i> the number of bytes stated in the returned
+   * {@code Header}.
    */
   public ExtensionType.Header readExtensionHeader() {
     var format = getByte();
@@ -414,11 +421,11 @@ public final class MessageReader<T> implements Closeable {
   }
 
   /**
-   * Reads between {@code minBytes} and {@linkplain ByteBuffer#remaining() remaining} bytes into the given buffer, starting at
-   * the buffer's current {@linkplain ByteBuffer#position() position}.
+   * Reads between {@code minBytes} and {@linkplain ByteBuffer#remaining() remaining} bytes into the
+   * given buffer, starting at the buffer's current {@linkplain ByteBuffer#position() position}.
    *
-   * <p>This method is meant to be called one or multiple times after {@link #readBinaryHeader()} or {@link
-   * #readRawStringHeader()}.
+   * <p>This method is meant to be called one or multiple times after {@link #readBinaryHeader()} or
+   * {@link #readRawStringHeader()}.
    */
   public int readPayload(ByteBuffer buffer, int minBytes) {
     return readFromSource(buffer, minBytes);
@@ -492,7 +499,7 @@ public final class MessageReader<T> implements Closeable {
   private int getLength32(ValueType valueType) {
     var length = getInt();
     if (length < 0) {
-      throw Exceptions.lengthTooLarge(length, valueType);
+      throw Exceptions.lengthOverflow(length & 0xffffffffL, valueType);
     }
     return length;
   }

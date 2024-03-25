@@ -9,21 +9,26 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
 import org.translatenix.minipack.MessageSource;
 
-/** A message source that reads from a {@link ReadableByteChannel}. */
+/** A message source that reads from a blocking {@link ReadableByteChannel}. */
 public final class ChannelSource implements MessageSource {
-  private final ReadableByteChannel channel;
+  private final ReadableByteChannel blockingChannel;
 
-  public ChannelSource(ReadableByteChannel channel) {
-    this.channel = channel;
+  public ChannelSource(ReadableByteChannel blockingChannel) {
+    this.blockingChannel = blockingChannel;
   }
 
   @Override
   public int read(ByteBuffer buffer, int minBytesHint) throws IOException {
-    return channel.read(buffer);
+    var remaining = buffer.remaining();
+    var bytesRead = blockingChannel.read(buffer);
+    if (bytesRead == 0 && remaining > 0) {
+      throw Exceptions.nonBlockingReadableChannel();
+    }
+    return bytesRead;
   }
 
   @Override
   public void close() throws IOException {
-    channel.close();
+    blockingChannel.close();
   }
 }

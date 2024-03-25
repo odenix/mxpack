@@ -9,17 +9,22 @@ import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
 import org.translatenix.minipack.MessageSink;
 
-/** A message sink that writes to a {@link WritableByteChannel}. */
+/** A message sink that writes to a blocking {@link WritableByteChannel}. */
 public final class ChannelSink implements MessageSink {
-  private final WritableByteChannel channel;
+  private final WritableByteChannel blockingChannel;
 
-  public ChannelSink(WritableByteChannel channel) {
-    this.channel = channel;
+  public ChannelSink(WritableByteChannel blockingChannel) {
+    this.blockingChannel = blockingChannel;
   }
 
   @Override
   public int write(ByteBuffer buffer) throws IOException {
-    return channel.write(buffer);
+    var remaining = buffer.remaining();
+    var bytesWritten = blockingChannel.write(buffer);
+    if (bytesWritten != remaining) {
+      throw Exceptions.nonBlockingWriteableChannel();
+    }
+    return bytesWritten;
   }
 
   @Override
@@ -27,6 +32,6 @@ public final class ChannelSink implements MessageSink {
 
   @Override
   public void close() throws IOException {
-    channel.close();
+    blockingChannel.close();
   }
 }

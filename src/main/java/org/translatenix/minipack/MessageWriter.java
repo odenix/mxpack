@@ -15,19 +15,20 @@ import org.translatenix.minipack.internal.Utf8StringEncoder;
 import org.translatenix.minipack.internal.ValueFormat;
 
 /**
- * Writes values encoded in the <a href="https://msgpack.org/">MessagePack</a> binary
- * serialization format.
+ * Writes values encoded in the <a href="https://msgpack.org/">MessagePack</a> binary serialization
+ * format.
  *
  * <p>To create a new {@code MessageWriter}, use a {@linkplain #builder() builder}. To write a
  * value, call one of the {@code write()} or {@code writeXYZ()} methods. To flush the underlying
- * {@linkplain MessageSink sink}, call {@link #flush()}.
+ * {@linkplain MessageSink sink}, call {@link #flush()}. To close this writer, call {@link
+ * #close()}.
  *
  * <p>Unless otherwise noted, methods throw {@link WriterException} if an error occurs. The most
- * common type of error is an I/O error originating from the underlying sink.
+ * common type of error is an I/O error originating from the underlying {@link MessageSink}.
  *
- * @param <T> the parameter type of {@link #writeString}
- *            ({@code java.lang.CharSequence} unless this writer is {@linkplain MessageWriter.Builder#build(StringEncoder) built}
- *            with a custom {@link StringEncoder})
+ * @param <T> the parameter type of {@link #writeString} ({@code java.lang.CharSequence} unless this
+ *     writer is {@linkplain MessageWriter.Builder#build(StringEncoder) built} with a custom {@link
+ *     StringEncoder})
  */
 public final class MessageWriter<T> implements Closeable {
   private static final int MIN_BUFFER_CAPACITY = 9;
@@ -55,7 +56,7 @@ public final class MessageWriter<T> implements Closeable {
      * Equivalent to {@code sink(MessageSink.of(stream))}.
      *
      * @see MessageSink#of(OutputStream)
-     * */
+     */
     public Builder sink(OutputStream stream) {
       return sink(MessageSink.of(stream));
     }
@@ -64,7 +65,7 @@ public final class MessageWriter<T> implements Closeable {
      * Equivalent to {@code sink(MessageSink.of(channel))}.
      *
      * @see MessageSink#of(WritableByteChannel)
-     * */
+     */
     public Builder sink(WritableByteChannel channel) {
       return sink(MessageSink.of(channel));
     }
@@ -72,8 +73,10 @@ public final class MessageWriter<T> implements Closeable {
     /**
      * Sets the buffer to use for writing to the underlying message {@linkplain MessageSink sink}.
      *
-     * <p>The buffer's {@linkplain ByteBuffer#capacity() capacity} determines the maximum number of bytes
-     * that will be written to the sink at once.
+     * <p>The buffer's {@linkplain ByteBuffer#capacity() capacity} determines the maximum number of
+     * bytes that will be written to the sink at once.
+     *
+     * <p>If not set, defaults to {@code ByteBuffer.allocate(1024 * 8)}.
      */
     public Builder buffer(ByteBuffer buffer) {
       this.buffer = buffer;
@@ -81,13 +84,18 @@ public final class MessageWriter<T> implements Closeable {
     }
 
     /**
-     * Equivalent to {@code build(StringWriter.withSizeLimit(1 << 20)}.
+     * Equivalent to {@code build(StringEncoder.defaultEncoder(1024 * 1024)}.
+     *
+     * @see StringEncoder#defaultEncoder(int)
      */
     public MessageWriter<CharSequence> build() {
-      return new MessageWriter<>(this, StringEncoder.withSizeLimit(DEFAULT_STRING_SIZE_LIMIT));
+      return new MessageWriter<>(this, StringEncoder.defaultEncoder(DEFAULT_STRING_SIZE_LIMIT));
     }
 
-    /** Creates a new {@code MessageWriter} from this builder's current state and the given {@code StringWriter}. */
+    /**
+     * Creates a new {@code MessageWriter} from this builder's current state and the given string
+     * encoder.
+     */
     public <T> MessageWriter<T> build(StringEncoder<T> stringEncoder) {
       return new MessageWriter<>(this, stringEncoder);
     }
@@ -230,7 +238,7 @@ public final class MessageWriter<T> implements Closeable {
   /** Writes a string value. */
   public void writeString(T string) {
     try {
-      stringEncoder.write(string, buffer, sink);
+      stringEncoder.encode(string, buffer, sink);
     } catch (IOException e) {
       throw Exceptions.ioErrorWritingToSink(e);
     }
@@ -243,7 +251,7 @@ public final class MessageWriter<T> implements Closeable {
    * elements.
    */
   public void writeArrayHeader(int elementCount) {
-    requireValidLength(elementCount);
+    requirePositiveLength(elementCount);
     if (elementCount < (1 << 4)) {
       putByte((byte) (ValueFormat.FIXARRAY_PREFIX | elementCount));
     } else if (elementCount < (1 << 16)) {
@@ -260,7 +268,7 @@ public final class MessageWriter<T> implements Closeable {
    * the map's keys and values.
    */
   public void writeMapHeader(int entryCount) {
-    requireValidLength(entryCount);
+    requirePositiveLength(entryCount);
     if (entryCount < (1 << 4)) {
       putByte((byte) (ValueFormat.FIXMAP_PREFIX | entryCount));
     } else if (entryCount < (1 << 16)) {
@@ -285,9 +293,9 @@ public final class MessageWriter<T> implements Closeable {
    * </ul>
    */
   public void writeRawStringHeader(int byteCount) {
-    requireValidLength(byteCount);
+    requirePositiveLength(byteCount);
     try {
-      Utf8StringEncoder.writeHeader(byteCount, buffer, sink);
+      Utf8StringEncoder.encodeHeader(byteCount, buffer, sink);
     } catch (IOException e) {
       throw Exceptions.ioErrorWritingToSink(e);
     }
@@ -300,7 +308,7 @@ public final class MessageWriter<T> implements Closeable {
    * write exactly {@code byteCount} bytes in total.
    */
   public void writeBinaryHeader(int byteCount) {
-    requireValidLength(byteCount);
+    requirePositiveLength(byteCount);
     if (byteCount < (1 << 8)) {
       putByte(ValueFormat.BIN8, (byte) byteCount);
     } else if (byteCount < (1 << 16)) {
@@ -311,8 +319,7 @@ public final class MessageWriter<T> implements Closeable {
   }
 
   public void writeExtensionHeader(int byteCount, byte type) {
-    requireValidLength(byteCount);
-    if (type < 0) throw Exceptions.invalidExtensionType(type);
+    requirePositiveLength(byteCount);
     switch (byteCount) {
       case 1 -> putByte(ValueFormat.FIXEXT1, type);
       case 2 -> putByte(ValueFormat.FIXEXT2, type);
@@ -336,17 +343,12 @@ public final class MessageWriter<T> implements Closeable {
    * Writes the given buffer's {@linkplain ByteBuffer#remaining() length} bytes, starting at the
    * buffer's current {@linkplain ByteBuffer#position() position}.
    *
-   * <p>This method is used together with {@link #writeBinaryHeader} or {@link
+   * <p>This method must be called after {@link #writeBinaryHeader} or {@link
    * #writeRawStringHeader}.
    */
   public int writePayload(ByteBuffer buffer) {
-    writeEntireBuffer();
+    writeBuffer();
     return writeToSink(buffer);
-  }
-
-  public int writePayload(ByteBuffer buffer, int minBytesToWrite) {
-    writeEntireBuffer();
-    return writeToSink(buffer, minBytesToWrite);
   }
 
   /**
@@ -354,7 +356,7 @@ public final class MessageWriter<T> implements Closeable {
    * {@linkplain MessageSink sink}.
    */
   public void flush() {
-    writeEntireBuffer();
+    writeBuffer();
     try {
       sink.flush();
     } catch (IOException e) {
@@ -374,8 +376,8 @@ public final class MessageWriter<T> implements Closeable {
     }
   }
 
-  private void requireValidLength(int length) {
-    if (length < 0) throw Exceptions.invalidLength(length);
+  private void requirePositiveLength(int length) {
+    if (length < 0) throw Exceptions.negativeLength(length);
   }
 
   private void putByte(byte value) {
@@ -415,20 +417,10 @@ public final class MessageWriter<T> implements Closeable {
     }
   }
 
-  private void writeEntireBuffer() {
+  private void writeBuffer() {
     buffer.flip();
-    while (buffer.hasRemaining()) {
-      writeToSink(buffer);
-    }
+    writeToSink(buffer);
     buffer.clear();
-  }
-
-  private int writeToSink(ByteBuffer buffer, int minBytes) {
-    try {
-      return sink.writeAtLeast(buffer, minBytes);
-    } catch (IOException e) {
-      throw Exceptions.ioErrorWritingToSink(e);
-    }
   }
 
   private int writeToSink(ByteBuffer buffer) {

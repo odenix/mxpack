@@ -17,22 +17,22 @@ public final class Utf8StringEncoder implements StringEncoder<CharSequence> {
   }
 
   @Override
-  public void write(CharSequence string, ByteBuffer writeBuffer, MessageSink sink)
+  public void encode(CharSequence string, ByteBuffer writeBuffer, MessageSink sink)
       throws IOException {
     var length = utf8Length(string);
     if (length > stringSizeLimit) {
-      throw Exceptions.stringTooLarge(length, stringSizeLimit);
+      throw Exceptions.stringTooLargeOnWrite(length, stringSizeLimit);
     }
     if (length < 0) {
-      writeHeader(-length, writeBuffer, sink);
-      writeAscii(string, writeBuffer, sink);
+      encodeHeader(-length, writeBuffer, sink);
+      encodeAscii(string, writeBuffer, sink);
     } else {
-      writeHeader(length, writeBuffer, sink);
-      writeNonAscii(string, writeBuffer, sink);
+      encodeHeader(length, writeBuffer, sink);
+      encodeNonAscii(string, writeBuffer, sink);
     }
   }
 
-  public static void writeHeader(int length, ByteBuffer buffer, MessageSink sink)
+  public static void encodeHeader(int length, ByteBuffer buffer, MessageSink sink)
       throws IOException {
     if (length < (1 << 5)) {
       sink.ensureRemaining(buffer, 1);
@@ -78,7 +78,7 @@ public final class Utf8StringEncoder implements StringEncoder<CharSequence> {
     return result;
   }
 
-  private static void writeAscii(CharSequence string, ByteBuffer buffer, MessageSink sink)
+  private static void encodeAscii(CharSequence string, ByteBuffer buffer, MessageSink sink)
       throws IOException {
     var length = string.length();
     var i = 0;
@@ -94,7 +94,7 @@ public final class Utf8StringEncoder implements StringEncoder<CharSequence> {
     }
   }
 
-  private static void writeNonAscii(CharSequence string, ByteBuffer buffer, MessageSink sink)
+  private static void encodeNonAscii(CharSequence string, ByteBuffer buffer, MessageSink sink)
       throws IOException {
     var length = string.length();
     for (var i = 0; i < length; i++) {

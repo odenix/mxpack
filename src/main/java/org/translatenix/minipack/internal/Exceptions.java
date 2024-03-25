@@ -16,17 +16,25 @@ public final class Exceptions {
 
   public static IllegalArgumentException arrayBackedBufferRequired() {
     return new IllegalArgumentException(
-        "This message source/sink requires a ByteBuffer backed by an accessible array"
-            + " (buffer.hasArray()).");
+        "This message source/sink requires a byte buffer backed by an accessible array"
+            + " (ByteBuffer.hasArray()).");
   }
 
-  public static ReaderException stringTooLarge(long requestedCapacity, int maxCapacity) {
-    // tailor message to current use of BufferAllocator
+  public static ReaderException stringTooLargeOnRead(long actualSize, int maxSize) {
     return new ReaderException(
-        "MessagePack string has a length of "
-            + requestedCapacity
-            + " bytes, exceeding the maximum allowed length of "
-            + maxCapacity
+        "MessagePack string size "
+            + actualSize
+            + " exceeds the maximum allowed size of "
+            + maxSize
+            + " bytes.");
+  }
+
+  public static WriterException stringTooLargeOnWrite(long actualSize, int maxSize) {
+    return new WriterException(
+        "MessagePack string size "
+            + actualSize
+            + " exceeds the maximum allowed size of "
+            + maxSize
             + " bytes.");
   }
 
@@ -39,21 +47,17 @@ public final class Exceptions {
             + " bytes.");
   }
 
-  public static IllegalArgumentException invalidCapacityLimits(int minCapacity, int maxCapacity) {
-    return new IllegalArgumentException(
-        "Invalid allocator capacity limits: minCapacity="
-            + minCapacity
-            + ", maxCapacity="
-            + maxCapacity);
-  }
-
   public static IllegalStateException sourceRequired() {
     return new IllegalStateException("MessageReader.Builder.source() must be set.");
   }
 
   public static IllegalStateException bufferTooSmall(int capacity, int minCapacity) {
     return new IllegalStateException(
-        "The minimum supported ByteBuffer capacity is " + minCapacity + ", but got: " + capacity);
+        "ByteBuffer capacity "
+            + capacity
+            + " is less than the minimum required capacity "
+            + minCapacity
+            + ".");
   }
 
   public static ReaderException typeMismatch(byte format, RequestedType requestedType) {
@@ -82,13 +86,13 @@ public final class Exceptions {
     return new ReaderException("I/O error reading from message source.", e);
   }
 
-  public static ReaderException lengthTooLarge(int length, ValueType valueType) {
+  public static ReaderException lengthOverflow(long length, ValueType valueType) {
     return new ReaderException(
         "MessagePack value of type "
             + valueType
             + " has a length of "
             + length
-            + " bytes, exceeding the maximum supported length 2^31-1 (Integer.MAX_VALUE).");
+            + ", exceeding the maximum supported length 2^31-1 (Integer.MAX_VALUE).");
   }
 
   public static WriterException ioErrorClosingSource(IOException e) {
@@ -116,11 +120,20 @@ public final class Exceptions {
     return new WriterException("I/O error closing message sink.", e);
   }
 
-  public static IllegalArgumentException invalidLength(int length) {
-    return new IllegalArgumentException("TODO");
+  public static IllegalArgumentException negativeLength(int length) {
+    return new IllegalArgumentException(
+        "Expected a positive length value, but got " + length + ".");
   }
 
-  public static IllegalArgumentException invalidExtensionType(byte type) {
-    return new IllegalArgumentException("TODO");
+  public static WriterException nonBlockingWriteableChannel() {
+    return new WriterException(
+        "Detected a *non-blocking* WritableByteChannel, which is not supported by this message"
+            + " sink.");
+  }
+
+  public static ReaderException nonBlockingReadableChannel() {
+    return new ReaderException(
+        "Detected a *non-blocking* ReadableByteChannel, which is not supported by this message"
+            + " source.");
   }
 }
