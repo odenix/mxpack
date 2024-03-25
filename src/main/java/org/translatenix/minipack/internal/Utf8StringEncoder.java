@@ -7,13 +7,22 @@ package org.translatenix.minipack.internal;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import org.translatenix.minipack.MessageSink;
-import org.translatenix.minipack.StringWriter;
+import org.translatenix.minipack.StringEncoder;
 
-public final class Utf8StringWriter implements StringWriter<CharSequence> {
+public final class Utf8StringEncoder implements StringEncoder<CharSequence> {
+  private final int stringSizeLimit;
+
+  public Utf8StringEncoder(int stringSizeLimit) {
+    this.stringSizeLimit = stringSizeLimit;
+  }
+
   @Override
   public void write(CharSequence string, ByteBuffer writeBuffer, MessageSink sink)
       throws IOException {
     var length = utf8Length(string);
+    if (length > stringSizeLimit) {
+      throw Exceptions.stringTooLarge(length, stringSizeLimit);
+    }
     if (length < 0) {
       writeHeader(-length, writeBuffer, sink);
       writeAscii(string, writeBuffer, sink);
@@ -25,7 +34,6 @@ public final class Utf8StringWriter implements StringWriter<CharSequence> {
 
   public static void writeHeader(int length, ByteBuffer buffer, MessageSink sink)
       throws IOException {
-    if (length < 0) throw Exceptions.invalidLength(length);
     if (length < (1 << 5)) {
       sink.ensureRemaining(buffer, 1);
       buffer.put((byte) (ValueFormat.FIXSTR_PREFIX | length));

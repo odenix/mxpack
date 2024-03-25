@@ -12,11 +12,11 @@ import java.nio.channels.ReadableByteChannel;
 import org.jspecify.annotations.Nullable;
 import org.translatenix.minipack.internal.Exceptions;
 import org.translatenix.minipack.internal.RequestedType;
-import org.translatenix.minipack.internal.Utf8StringReader;
+import org.translatenix.minipack.internal.Utf8StringDecoder;
 import org.translatenix.minipack.internal.ValueFormat;
 
 /**
- * Reads messages encoded in the <a href="https://msgpack.org/">MessagePack</a> binary serialization
+ * Reads values encoded in the <a href="https://msgpack.org/">MessagePack</a> binary serialization
  * format.
  *
  * <p>To create a new {@code MessageReader}, use a {@linkplain #builder() builder}. To read a value,
@@ -24,7 +24,11 @@ import org.translatenix.minipack.internal.ValueFormat;
  * #nextType()}.
  *
  * <p>Unless otherwise noted, methods throw {@link ReaderException} if an error occurs. The most
- * common type of error is an I/O error.
+ * common type of error is an I/O error originating from the underlying source.
+ *
+ * @param <T> the return type of {@link #readString()}
+ *            ({@code java.lang.String} unless this reader is {@linkplain Builder#build(StringDecoder) built}
+ *            with a custom {@link StringDecoder})
  */
 public final class MessageReader<T> implements Closeable {
   private static final int MIN_BUFFER_CAPACITY = 9;
@@ -33,7 +37,7 @@ public final class MessageReader<T> implements Closeable {
 
   private final MessageSource source;
   private final ByteBuffer buffer;
-  private final StringReader<T> stringReader;
+  private final StringDecoder<T> stringDecoder;
 
   /** A builder of {@link MessageReader}. */
   public static final class Builder {
@@ -46,12 +50,12 @@ public final class MessageReader<T> implements Closeable {
       return this;
     }
 
-    /** Shorthand for {@code source(MessageSource.of(stream))}. */
+    /** Equivalent to {@code source(MessageSource.of(stream))}. */
     public Builder source(InputStream stream) {
       return source(MessageSource.of(stream));
     }
 
-    /** Shorthand for {@code source(MessageSource.of(channel))}. */
+    /** Equivalent to {@code source(MessageSource.of(channel))}. */
     public Builder source(ReadableByteChannel channel) {
       return source(MessageSource.of(channel));
     }
@@ -68,22 +72,25 @@ public final class MessageReader<T> implements Closeable {
       return this;
     }
 
-    /** Creates a new {@code MessageReader} from this builder's current state. */
+    /**
+     * Equivalent to {@code build(StringReader.withSizeLimit(1 << 20))}.
+     */
     public MessageReader<String> build() {
-      return new MessageReader<>(this, new Utf8StringReader(DEFAULT_STRING_SIZE_LIMIT));
+      return new MessageReader<>(this, new Utf8StringDecoder(DEFAULT_STRING_SIZE_LIMIT));
     }
 
-    public <T> MessageReader<T> build(StringReader<T> stringReader) {
-      return new MessageReader<>(this, stringReader);
+    /** Creates a new {@code MessageReader} from this builder's current state and the given {@code StringReader}. */
+    public <T> MessageReader<T> build(StringDecoder<T> stringDecoder) {
+      return new MessageReader<>(this, stringDecoder);
     }
   }
 
-  /** Creates a new {@code MessageWriter} builder. */
+  /** Creates a new {@code MessageReader} builder. */
   public static Builder builder() {
     return new Builder();
   }
 
-  private MessageReader(Builder builder, StringReader<T> stringReader) {
+  private MessageReader(Builder builder, StringDecoder<T> stringDecoder) {
     if (builder.source == null) {
       throw Exceptions.sourceRequired();
     }
@@ -95,14 +102,15 @@ public final class MessageReader<T> implements Closeable {
     if (buffer.capacity() < MIN_BUFFER_CAPACITY) {
       throw Exceptions.bufferTooSmall(buffer.capacity(), MIN_BUFFER_CAPACITY);
     }
-    this.stringReader = stringReader;
+    this.stringDecoder = stringDecoder;
   }
 
   /** Returns the type of the next value to be read. */
   public ValueType nextType() {
     ensureRemaining(1);
     // don't change position
-    return ValueFormat.toType(buffer.get(buffer.position()));
+    var format = buffer.get(buffer.position());
+    return ValueFormat.toType(format);
   }
 
   /** Reads a nil (null) value. */
@@ -258,7 +266,7 @@ public final class MessageReader<T> implements Closeable {
       }
       default -> {
         if (ValueFormat.isFixInt(format)) yield format;
-        throw Exceptions.typeMismatch(format, RequestedType.INT);
+        throw Exceptions.typeMismatch(format, RequestedType.LONG);
       }
     };
   }
@@ -280,11 +288,14 @@ public final class MessageReader<T> implements Closeable {
   /**
    * Reads a string value.
    *
-   * <p>For a lower-level way to read strings, see {@link #readRawStringHeader()}.
+   * <p>The type of the returned value is determined by the {@link StringDecoder}
+   * that this message reader was {@linkplain Builder#build(StringDecoder) built} with.
+   *
+   * <p>To read a string as a sequence of bytes, use {@link #readRawStringHeader()} together with {@link #readPayload}.
    */
   public T readString() {
     try {
-      return stringReader.read(buffer, source);
+      return stringDecoder.read(buffer, source);
     } catch (IOException e) {
       throw Exceptions.ioErrorReadingFromSource(e);
     }
@@ -293,7 +304,7 @@ public final class MessageReader<T> implements Closeable {
   /**
    * Starts reading an array value.
    *
-   * <p>A call to this method MUST be followed by {@code n} calls that read the array's elements,
+   * <p>A call to this method <i>must</i> be followed by {@code n} calls that read the array's elements,
    * where {@code n} is the number of array elements returned by this method.
    */
   public int readArrayHeader() {
@@ -313,7 +324,7 @@ public final class MessageReader<T> implements Closeable {
   /**
    * Starts reading a map value.
    *
-   * <p>A call to this method MUST be followed by {@code n*2} calls that alternately read the map's
+   * <p>A call to this method <i>must</i> be followed by {@code n*2} calls that alternately read the map's
    * keys and values, where {@code n} is the number of map entries returned by this method.
    */
   public int readMapHeader() {
@@ -333,8 +344,8 @@ public final class MessageReader<T> implements Closeable {
   /**
    * Starts reading a binary value.
    *
-   * <p>A call to this method MUST be followed by one or more calls to {@link #readPayload} that
-   * read <i>exactly</i> the number of bytes returned by this method.
+   * <p>A call to this method <i>must</i> be followed by one or multiple calls to {@link #readPayload} that
+   * in total read <i>exactly</i> the number of bytes returned by this method.
    */
   public int readBinaryHeader() {
     var format = getByte();
@@ -347,19 +358,12 @@ public final class MessageReader<T> implements Closeable {
   }
 
   /**
-   * Starts reading a string value.
+   * Starts reading a string value as a sequence of bytes.
    *
-   * <p>A call to this method MUST be followed by one or more calls to {@link #readPayload} that
-   * read <i>exactly</i> the number of bytes returned by this method.
+   * <p>A call to this method <i>must</i> be followed by one or more calls to {@link #readPayload} that
+   * in total read <i>exactly</i> the number of bytes returned by this method.
    *
-   * <p>This method is a low-level alternative to {@link #readString()}. It can be useful in the
-   * following cases:
-   *
-   * <ul>
-   *   <li>There is no need to convert a MessagePack string's UTF-8 payload to {@code
-   *       java.lang.String}.
-   *   <li>Full control over conversion from UTF-8 to {@code java.lang.String} is required.
-   * </ul>
+   * <p>This method is a low-level alternative to {@link #readString()}.
    */
   public int readRawStringHeader() {
     var format = getByte();
@@ -377,6 +381,13 @@ public final class MessageReader<T> implements Closeable {
     };
   }
 
+  /**
+   * Starts reading an extension value.
+   *
+   * <p>A call to this method <i>must</i> be followed by one or multiple calls to {@link #readPayload}
+   * that in total read <i>exactly</i> the number of bytes stated in the returned {@code Header}.
+   *
+   */
   public ExtensionType.Header readExtensionHeader() {
     var format = getByte();
     return switch (format) {
@@ -394,16 +405,21 @@ public final class MessageReader<T> implements Closeable {
   }
 
   /**
-   * Reads {@linkplain ByteBuffer#remaining() remaining} bytes into the given buffer, starting at
-   * the buffer's current {@linkplain ByteBuffer#position() position}.
+   * Equivalent to {@code readPayload(buffer, 1)}.
    *
-   * <p>This method is used together with {@link #readBinaryHeader()} or {@link
-   * #readRawStringHeader()}.
+   * @see #readPayload(ByteBuffer, int)
    */
   public int readPayload(ByteBuffer buffer) {
     return readFromSource(buffer, 1);
   }
 
+  /**
+   * Reads between {@code minBytes} and {@linkplain ByteBuffer#remaining() remaining} bytes into the given buffer, starting at
+   * the buffer's current {@linkplain ByteBuffer#position() position}.
+   *
+   * <p>This method is meant to be called one or multiple times after {@link #readBinaryHeader()} or {@link
+   * #readRawStringHeader()}.
+   */
   public int readPayload(ByteBuffer buffer, int minBytes) {
     return readFromSource(buffer, minBytes);
   }

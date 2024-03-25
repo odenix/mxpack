@@ -15,16 +15,18 @@ import org.translatenix.minipack.internal.OutputStreamSink;
 /** The underlying sink of a {@link MessageWriter}. */
 public interface MessageSink extends Closeable {
   /**
-   * Writes the {@linkplain ByteBuffer#remaining() remaining} bytes of the given buffer.
-   *
-   * <p>Conceptually, this method makes {@code n} calls to {@link ByteBuffer#get()}, where {@code n}
-   * is the number of bytes {@linkplain ByteBuffer#remaining() remaining} in the buffer.
+   * Writes between 1 and {@linkplain ByteBuffer#remaining() remaining} bytes from the given buffer to this sink,
+   * returning the actual number of bytes written.
    */
   int write(ByteBuffer buffer) throws IOException;
 
-  /** Flushes this message sink. */
+  /** Flushes this sink. */
   void flush() throws IOException;
 
+  /**
+   * Writes between {@code minBytes} and {@linkplain ByteBuffer#remaining() remaining} bytes from the given buffer to this sink,
+   * returning the actual number of bytes written.
+   */
   default int writeAtLeast(ByteBuffer buffer, int minBytes) throws IOException {
     var totalBytesWritten = 0;
     while (totalBytesWritten < minBytes) {
@@ -34,6 +36,12 @@ public interface MessageSink extends Closeable {
     return totalBytesWritten;
   }
 
+  /**
+   * Writes enough bytes from the given buffer to this sink
+   * for {@linkplain ByteBuffer#put putting} at least {@code byteCount} bytes into the buffer.
+   *
+   * <p>The number of bytes written is between 0 and {@linkplain ByteBuffer#remaining() remaining}.
+   */
   default void ensureRemaining(ByteBuffer buffer, int byteCount) throws IOException {
     assert byteCount <= buffer.capacity();
     var minBytes = byteCount - buffer.remaining();
@@ -44,12 +52,12 @@ public interface MessageSink extends Closeable {
     }
   }
 
-  /** Returns a message sink that writes to the given stream. */
+  /** Returns a sink that writes to the given output stream. */
   static MessageSink of(OutputStream stream) {
     return new OutputStreamSink(stream);
   }
 
-  /** Returns a message sink that writes to the given channel. */
+  /** Returns a sink that writes to the given channel. */
   static MessageSink of(WritableByteChannel channel) {
     return new ChannelSink(channel);
   }

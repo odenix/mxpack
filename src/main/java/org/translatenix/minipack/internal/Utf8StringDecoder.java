@@ -9,12 +9,12 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import org.jspecify.annotations.Nullable;
 import org.translatenix.minipack.MessageSource;
-import org.translatenix.minipack.StringReader;
+import org.translatenix.minipack.StringDecoder;
 
-public final class Utf8StringReader implements StringReader<String> {
+public final class Utf8StringDecoder implements StringDecoder<String> {
   private final GrowableBuffer growableBuffer;
 
-  public Utf8StringReader(int stringSizeLimit) {
+  public Utf8StringDecoder(int stringSizeLimit) {
     growableBuffer = new GrowableBuffer(1024, stringSizeLimit);
   }
 

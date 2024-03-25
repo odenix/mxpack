@@ -16,14 +16,23 @@ import org.translatenix.minipack.internal.InputStreamSource;
 /** The underlying source of a {@link MessageReader}. */
 public interface MessageSource extends Closeable {
   /**
-   * Reads at least {@code minBytes} bytes into the given buffer.
+   * Reads between 1 and {@linkplain ByteBuffer#remaining()
+   * remaining} bytes from this source into the given buffer,
+   * returning the actual number of bytes read.
    *
-   * <p>Conceptually, this method makes {@code n} calls to {@link ByteBuffer#put(byte)}, where
-   * {@code n} is between {@code minBytes} and the buffer's {@linkplain ByteBuffer#remaining()
-   * remaining} bytes.
+   * <p>Returns {@code -1} if no more bytes can be read from this source.
+   *
+   * <p>{@code minBytesHint} indicates the minimum number of bytes that the caller would like to read.
+   * However, unlike {@link #readAtLeast}, this method does not guarantee that more than 1 byte will be read.
    */
   int read(ByteBuffer buffer, int minBytesHint) throws IOException;
 
+  /**
+   * Reads between {@code minBytes} and {@linkplain ByteBuffer#remaining()
+   * remaining} bytes from this source into the given buffer, returning the actual number of bytes read.
+   *
+   * <p>Throws {@link java.io.EOFException} if the end of input is reached before {@code minBytes} bytes have been read.
+   */
   default int readAtLeast(ByteBuffer buffer, int minBytes) throws IOException {
     assert minBytes <= buffer.remaining();
     var totalBytesRead = 0;
@@ -41,6 +50,12 @@ public interface MessageSource extends Closeable {
     return totalBytesRead;
   }
 
+  /**
+   * Reads enough bytes from this source into the given buffer for {@linkplain ByteBuffer#get() getting}
+   * at least {@code length} bytes from the buffer.
+   *
+   * <p>The number of bytes read is between 0 and {@link ByteBuffer#remaining()}.
+   */
   default void ensureRemaining(int length, ByteBuffer buffer) throws IOException {
     int minBytes = length - buffer.remaining();
     if (minBytes > 0) {
@@ -51,12 +66,12 @@ public interface MessageSource extends Closeable {
     }
   }
 
-  /** Returns a message source that reads from the given stream. */
+  /** Returns a source that reads from the given input stream. */
   static MessageSource of(InputStream stream) {
     return new InputStreamSource(stream);
   }
 
-  /** Returns a message source that reads from the given channel. */
+  /** Returns a source that reads from the given channel. */
   static MessageSource of(ReadableByteChannel channel) {
     return new ChannelSource(channel);
   }
