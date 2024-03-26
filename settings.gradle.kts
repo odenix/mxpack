@@ -2,6 +2,9 @@
 
 rootProject.name = "minipack"
 
+include("core")
+include("ext")
+
 dependencyResolutionManagement {
   repositories {
     mavenCentral()
