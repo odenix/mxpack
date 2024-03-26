@@ -23,10 +23,10 @@ public final class StringEncoder implements Encoder<CharSequence> {
       throw Exceptions.stringTooLargeOnWrite(length, maxStringSize);
     }
     if (length < 0) {
-      sink.putStringHeader(-length, buffer);
+      sink.putStringHeader(buffer, -length);
       encodeAscii(string, buffer, sink);
     } else {
-      sink.putStringHeader(length, buffer);
+      sink.putStringHeader(buffer, length);
       encodeNonAscii(string, buffer, sink);
     }
   }

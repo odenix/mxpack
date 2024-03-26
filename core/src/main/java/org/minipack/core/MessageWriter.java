@@ -45,10 +45,9 @@ public final class MessageWriter implements Closeable {
 
     private @Nullable MessageSink sink;
     private @Nullable ByteBuffer buffer;
-    private Encoder<CharSequence> stringEncoder =
-        Encoder.defaultStringEncoder(DEFAULT_STRING_SIZE_LIMIT);
+    private Encoder<CharSequence> stringEncoder = Encoder.stringEncoder(DEFAULT_STRING_SIZE_LIMIT);
     private Encoder<String> identifierEncoder =
-        Encoder.defaultIdentifierEncoder(DEFAULT_IDENTIFIER_CACHE_LIMIT);
+        Encoder.identifierEncoder(DEFAULT_IDENTIFIER_CACHE_LIMIT);
     private final Map<Class<?>, Encoder<?>> valueEncoders = new HashMap<>();
 
     /** Sets the message sink to write to. */
@@ -310,7 +309,7 @@ public final class MessageWriter implements Closeable {
    * </ul>
    */
   public void writeRawStringHeader(int byteCount) throws IOException {
-    sink.putStringHeader(byteCount, buffer);
+    sink.putStringHeader(buffer, byteCount);
   }
 
   /**
@@ -320,11 +319,11 @@ public final class MessageWriter implements Closeable {
    * write exactly {@code byteCount} bytes in total.
    */
   public void writeBinaryHeader(int byteCount) throws IOException {
-    sink.putBinaryHeader(byteCount, buffer);
+    sink.putBinaryHeader(buffer, byteCount);
   }
 
   public void writeExtensionHeader(int byteCount, byte type) throws IOException {
-    sink.putExtensionHeader(byteCount, type, buffer);
+    sink.putExtensionHeader(buffer, byteCount, type);
   }
 
   /**

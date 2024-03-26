@@ -10,11 +10,12 @@ import org.minipack.core.internal.IdentifierEncoder;
 import org.minipack.core.internal.StringEncoder;
 
 public interface Encoder<T> {
-  static Encoder<CharSequence> defaultStringEncoder(int maxStringSize) {
+  static Encoder<CharSequence> stringEncoder(int maxStringSize) {
     return new StringEncoder(maxStringSize);
   }
 
-  static Encoder<String> defaultIdentifierEncoder(int maxCacheSize) {
+  /** The returned encoder is thread-safe and can be shared between multiple message write. */
+  static Encoder<String> identifierEncoder(int maxCacheSize) {
     return new IdentifierEncoder(maxCacheSize);
   }
 

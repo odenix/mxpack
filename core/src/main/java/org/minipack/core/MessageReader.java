@@ -43,9 +43,9 @@ public final class MessageReader implements Closeable {
   public static final class Builder {
     private @Nullable MessageSource source;
     private @Nullable ByteBuffer buffer;
-    private Decoder<String> stringDecoder = Decoder.defaultStringDecoder(DEFAULT_STRING_SIZE_LIMIT);
+    private Decoder<String> stringDecoder = Decoder.stringDecoder(DEFAULT_STRING_SIZE_LIMIT);
     private Decoder<String> identifierDecoder =
-        Decoder.defaultIdentifierDecoder(DEFAULT_IDENTIFIER_CACHE_LIMIT);
+        Decoder.identifierDecoder(DEFAULT_IDENTIFIER_CACHE_LIMIT);
     private final Map<Class<?>, Decoder<?>> valueDecoders = new HashMap<>();
 
     /** Sets the underlying source to read from. */
@@ -97,8 +97,8 @@ public final class MessageReader implements Closeable {
      * Equivalent to {@code build(Decoder.defaultStringDecoder(1024 * 1024),
      * Decoder.defaultIdentifierDecoder(1024))}.
      *
-     * @see Decoder#defaultStringDecoder(int)
-     * @see Decoder#defaultIdentifierDecoder(int)
+     * @see Decoder#stringDecoder(int)
+     * @see Decoder#identifierDecoder(int)
      */
     public MessageReader build() {
       return new MessageReader(this);
@@ -292,7 +292,7 @@ public final class MessageReader implements Closeable {
 
   /** Reads a floating point value that fits into a Java float. */
   public float readFloat() throws IOException {
-    source.ensureRemaining(5, buffer);
+    source.ensureRemaining(buffer, 5);
     var format = buffer.get();
     if (format == ValueFormat.FLOAT32) return buffer.getFloat();
     throw Exceptions.typeMismatch(format, RequestedType.FLOAT);
@@ -300,7 +300,7 @@ public final class MessageReader implements Closeable {
 
   /** Reads a floating point value that fits into a Java double. */
   public double readDouble() throws IOException {
-    source.ensureRemaining(9, buffer);
+    source.ensureRemaining(buffer, 9);
     var format = buffer.get();
     if (format == ValueFormat.FLOAT64) return buffer.getDouble();
     throw Exceptions.typeMismatch(format, RequestedType.DOUBLE);

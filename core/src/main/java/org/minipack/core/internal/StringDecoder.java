@@ -31,7 +31,7 @@ public final class StringDecoder implements Decoder<String> {
 
   private String decode(ByteBuffer buffer, int length, MessageSource source) throws IOException {
     if (buffer.hasArray() && length <= buffer.capacity()) {
-      source.ensureRemaining(length, buffer);
+      source.ensureRemaining(buffer, length);
       var result = decode(buffer, length);
       buffer.position(buffer.position() + length);
       return result;

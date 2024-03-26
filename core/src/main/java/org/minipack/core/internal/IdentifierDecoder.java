@@ -14,26 +14,23 @@ import org.minipack.core.MessageSource;
 
 public final class IdentifierDecoder implements Decoder<String> {
   private final ConcurrentMap<byte[], String> cache = new ConcurrentHashMap<>();
-  private final int maxSize;
+  private final int maxCacheSize;
 
-  public IdentifierDecoder(int maxSize) {
-    this.maxSize = maxSize;
+  public IdentifierDecoder(int maxCacheSize) {
+    this.maxCacheSize = maxCacheSize;
   }
 
   @Override
   public String decode(ByteBuffer buffer, MessageSource source) throws IOException {
     var length = source.getStringHeader(buffer);
-    source.ensureRemaining(length, buffer);
-    source.readAtLeast(buffer, length);
-    var bytes = new byte[buffer.remaining()];
-    buffer.get(bytes);
-    var string = cache.computeIfAbsent(bytes, (bs) -> new String(bs, StandardCharsets.UTF_8));
+    var bytes = source.getBytes(buffer, length);
+    var string = cache.computeIfAbsent(bytes, (b) -> new String(b, StandardCharsets.UTF_8));
     evictIfNecessary();
     return string;
   }
 
   private void evictIfNecessary() {
-    if (cache.size() > maxSize) {
+    if (cache.size() > maxCacheSize) {
       // evict any entry
       var key = cache.keySet().iterator().next();
       cache.remove(key);

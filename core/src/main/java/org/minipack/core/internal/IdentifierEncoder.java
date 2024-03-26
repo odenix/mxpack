@@ -23,9 +23,8 @@ public final class IdentifierEncoder implements Encoder<String> {
   public void encode(String value, ByteBuffer buffer, MessageSink sink) throws IOException {
     var bytes = cache.computeIfAbsent(value, (str) -> str.getBytes(StandardCharsets.UTF_8));
     evictIfNecessary();
-    sink.putStringHeader(bytes.length, buffer);
-    sink.ensureRemaining(buffer, bytes.length);
-    buffer.put(bytes);
+    sink.putStringHeader(buffer, bytes.length);
+    sink.putBytes(buffer, bytes);
   }
 
   private void evictIfNecessary() {

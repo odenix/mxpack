@@ -118,7 +118,7 @@ public abstract class MessageSink implements Closeable {
    * Puts a MessagePack string header with the given length into the given buffer, ensuring that the
    * buffer has enough space remaining.
    */
-  public final void putStringHeader(int length, ByteBuffer buffer) throws IOException {
+  public final void putStringHeader(ByteBuffer buffer, int length) throws IOException {
     if (length < 0) {
       throw Exceptions.negativeLength(length);
     }
@@ -137,7 +137,7 @@ public abstract class MessageSink implements Closeable {
    * Puts a MessagePack binary header with the given length into the given buffer, ensuring that the
    * buffer has enough space remaining.
    */
-  public final void putBinaryHeader(int length, ByteBuffer buffer) throws IOException {
+  public final void putBinaryHeader(ByteBuffer buffer, int length) throws IOException {
     if (length < 0) {
       throw Exceptions.negativeLength(length);
     }
@@ -154,7 +154,7 @@ public abstract class MessageSink implements Closeable {
    * Puts a MessagePack extension header with the given length into the given buffer, ensuring that
    * the buffer has enough space remaining.
    */
-  public final void putExtensionHeader(int length, byte type, ByteBuffer buffer)
+  public final void putExtensionHeader(ByteBuffer buffer, int length, byte type)
       throws IOException {
     if (length < 0) {
       throw Exceptions.negativeLength(length);

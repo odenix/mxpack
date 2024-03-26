@@ -61,7 +61,7 @@ public abstract class MessageSource implements Closeable {
    *
    * <p>The number of bytes read is between 0 and {@link ByteBuffer#remaining()}.
    */
-  public final void ensureRemaining(int length, ByteBuffer buffer) throws IOException {
+  public final void ensureRemaining(ByteBuffer buffer, int length) throws IOException {
     int minBytes = length - buffer.remaining();
     if (minBytes > 0) {
       buffer.compact();
@@ -72,24 +72,24 @@ public abstract class MessageSource implements Closeable {
   }
 
   public final byte getByte(ByteBuffer buffer) throws IOException {
-    ensureRemaining(1, buffer);
+    ensureRemaining(buffer, 1);
     return buffer.get();
   }
 
   public final byte[] getBytes(ByteBuffer buffer, int length) throws IOException {
-    ensureRemaining(length, buffer);
+    ensureRemaining(buffer, length);
     var bytes = new byte[length];
     buffer.get(bytes);
     return bytes;
   }
 
   public final short getShort(ByteBuffer buffer) throws IOException {
-    ensureRemaining(2, buffer);
+    ensureRemaining(buffer, 2);
     return buffer.getShort();
   }
 
   public final int getInt(ByteBuffer buffer) throws IOException {
-    ensureRemaining(4, buffer);
+    ensureRemaining(buffer, 4);
     return buffer.getInt();
   }
 
@@ -147,27 +147,27 @@ public abstract class MessageSource implements Closeable {
   }
 
   final byte nextByte(ByteBuffer buffer) throws IOException {
-    ensureRemaining(1, buffer);
+    ensureRemaining(buffer, 1);
     return buffer.get(buffer.position());
   }
 
   final long getLong(ByteBuffer buffer) throws IOException {
-    ensureRemaining(8, buffer);
+    ensureRemaining(buffer, 8);
     return buffer.getLong();
   }
 
   final short getUByte(ByteBuffer buffer) throws IOException {
-    ensureRemaining(1, buffer);
+    ensureRemaining(buffer, 1);
     return (short) (buffer.get() & 0xff);
   }
 
   final int getUShort(ByteBuffer buffer) throws IOException {
-    ensureRemaining(2, buffer);
+    ensureRemaining(buffer, 2);
     return buffer.getShort() & 0xffff;
   }
 
   final long getUInt(ByteBuffer buffer) throws IOException {
-    ensureRemaining(4, buffer);
+    ensureRemaining(buffer, 4);
     return buffer.getInt() & 0xffffffffL;
   }
 
