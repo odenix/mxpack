@@ -68,6 +68,11 @@ public final class Exceptions {
             + ".");
   }
 
+  public static ReaderException extensionTypeMismatch(byte expectedType, byte actualType) {
+    return new ReaderException(
+        "Type mismatch: Expected extension type " + expectedType + ", but got " + actualType + ".");
+  }
+
   public static ReaderException integerOverflow(long value, RequestedType requestedType) {
     return new ReaderException(
         "Integer overflow: MessagePack value "
@@ -126,7 +131,7 @@ public final class Exceptions {
         "Identifier cache size has exceeded maximum allowed size " + maximumSize + ".");
   }
 
-  public static IllegalArgumentException unknownValueType(Class<?> type) {
-    return new IllegalArgumentException("No encoder/decoder is registered for type " + type + ".");
+  public static ReaderException invalidTimestampLength(int length) {
+    return new ReaderException("Encountered Timestamp value with invalid length " + length + ".");
   }
 }

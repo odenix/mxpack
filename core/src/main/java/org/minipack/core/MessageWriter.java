@@ -9,10 +9,10 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
-import java.util.HashMap;
-import java.util.Map;
+import java.time.Instant;
 import org.jspecify.annotations.Nullable;
 import org.minipack.core.internal.Exceptions;
+import org.minipack.core.internal.TimestampEncoder;
 import org.minipack.core.internal.ValueFormat;
 
 /**
@@ -37,7 +37,6 @@ public final class MessageWriter implements Closeable {
   private final ByteBuffer buffer;
   private final Encoder<CharSequence> stringEncoder;
   private final Encoder<String> identifierEncoder;
-  private final Map<Class<?>, Encoder<?>> valueEncoders;
 
   /** A builder of {@code MessageWriter}. */
   public static final class Builder {
@@ -48,7 +47,6 @@ public final class MessageWriter implements Closeable {
     private Encoder<CharSequence> stringEncoder = Encoder.stringEncoder(DEFAULT_STRING_SIZE_LIMIT);
     private Encoder<String> identifierEncoder =
         Encoder.identifierEncoder(DEFAULT_IDENTIFIER_CACHE_LIMIT);
-    private final Map<Class<?>, Encoder<?>> valueEncoders = new HashMap<>();
 
     /** Sets the message sink to write to. */
     public Builder sink(MessageSink sink) {
@@ -97,11 +95,6 @@ public final class MessageWriter implements Closeable {
       return this;
     }
 
-    public <T> Builder valueEncoder(Class<T> type, Encoder<? super T> encoder) {
-      valueEncoders.put(type, encoder);
-      return this;
-    }
-
     /** Creates a new {@code MessageWriter} from this builder's current state. */
     public MessageWriter build() {
       return new MessageWriter(this);
@@ -127,7 +120,6 @@ public final class MessageWriter implements Closeable {
     }
     stringEncoder = builder.stringEncoder;
     identifierEncoder = builder.identifierEncoder;
-    valueEncoders = Map.copyOf(builder.valueEncoders);
   }
 
   /** Writes a nil (null) value. */
@@ -240,8 +232,13 @@ public final class MessageWriter implements Closeable {
     putFloat64(value);
   }
 
+  /** Writes a timestamp value. */
+  public void write(Instant timestamp) throws IOException {
+    TimestampEncoder.INSTANCE.encode(timestamp, buffer, sink);
+  }
+
   /** Writes a string value. */
-  public void writeString(CharSequence string) throws IOException {
+  public void write(CharSequence string) throws IOException {
     stringEncoder.encode(string, buffer, sink);
   }
 
@@ -250,13 +247,7 @@ public final class MessageWriter implements Closeable {
     identifierEncoder.encode(identifier, buffer, sink);
   }
 
-  public <T> void writeValue(T value) throws IOException {
-    var type = value.getClass();
-    @SuppressWarnings("unchecked")
-    var encoder = (Encoder<T>) valueEncoders.get(type);
-    if (encoder == null) {
-      throw Exceptions.unknownValueType(type);
-    }
+  public <T> void writeValue(T value, Encoder<T> encoder) throws IOException {
     encoder.encode(value, buffer, sink);
   }
 
@@ -300,8 +291,8 @@ public final class MessageWriter implements Closeable {
    * <p>A call to this method MUST be followed by one or more calls to {@link #writePayload} that
    * write exactly {@code byteCount} bytes in total.
    *
-   * <p>This method is a low-level alternative to {@link #writeString}. It can be useful in the
-   * following cases:
+   * <p>This method is a low-level alternative to {@link #write}. It can be useful in the following
+   * cases:
    *
    * <ul>
    *   <li>The string to write is already available as UTF-8 byte sequence.

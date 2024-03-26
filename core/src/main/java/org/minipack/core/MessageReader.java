@@ -9,11 +9,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
-import java.util.HashMap;
-import java.util.Map;
+import java.time.Instant;
 import org.jspecify.annotations.Nullable;
 import org.minipack.core.internal.Exceptions;
 import org.minipack.core.internal.RequestedType;
+import org.minipack.core.internal.TimestampDecoder;
 import org.minipack.core.internal.ValueFormat;
 
 /**
@@ -37,7 +37,6 @@ public final class MessageReader implements Closeable {
   private final ByteBuffer buffer;
   private final Decoder<String> stringDecoder;
   private final Decoder<String> identifierDecoder;
-  private final Map<Class<?>, Decoder<?>> valueDecoders;
 
   /** A builder of {@link MessageReader}. */
   public static final class Builder {
@@ -46,7 +45,6 @@ public final class MessageReader implements Closeable {
     private Decoder<String> stringDecoder = Decoder.stringDecoder(DEFAULT_STRING_SIZE_LIMIT);
     private Decoder<String> identifierDecoder =
         Decoder.identifierDecoder(DEFAULT_IDENTIFIER_CACHE_LIMIT);
-    private final Map<Class<?>, Decoder<?>> valueDecoders = new HashMap<>();
 
     /** Sets the underlying source to read from. */
     public Builder source(MessageSource source) {
@@ -88,11 +86,6 @@ public final class MessageReader implements Closeable {
       return this;
     }
 
-    public <T> Builder valueDecoder(Class<T> type, Decoder<? extends T> decoder) {
-      valueDecoders.put(type, decoder);
-      return this;
-    }
-
     /**
      * Equivalent to {@code build(Decoder.defaultStringDecoder(1024 * 1024),
      * Decoder.defaultIdentifierDecoder(1024))}.
@@ -124,7 +117,6 @@ public final class MessageReader implements Closeable {
     }
     stringDecoder = builder.stringDecoder;
     identifierDecoder = builder.identifierDecoder;
-    valueDecoders = Map.copyOf(builder.valueDecoders);
   }
 
   /** Returns the type of the next value to be read. */
@@ -306,6 +298,11 @@ public final class MessageReader implements Closeable {
     throw Exceptions.typeMismatch(format, RequestedType.DOUBLE);
   }
 
+  /** Reads a timestamp value. */
+  public Instant readTimestamp() throws IOException {
+    return TimestampDecoder.INSTANCE.decode(buffer, source);
+  }
+
   /**
    * Reads a string value.
    *
@@ -320,12 +317,7 @@ public final class MessageReader implements Closeable {
     return identifierDecoder.decode(buffer, source);
   }
 
-  public <T> T readValue(Class<T> type) throws IOException {
-    @SuppressWarnings("unchecked")
-    var decoder = (Decoder<T>) valueDecoders.get(type);
-    if (decoder == null) {
-      throw Exceptions.unknownValueType(type);
-    }
+  public <T> T readValue(Decoder<T> decoder) throws IOException {
     return decoder.decode(buffer, source);
   }
 
@@ -398,7 +390,7 @@ public final class MessageReader implements Closeable {
    * #readPayload} that in total read <i>exactly</i> the number of bytes stated in the returned
    * {@code Header}.
    */
-  public ExtensionType.Header readExtensionHeader() throws IOException {
+  public ExtensionHeader readExtensionHeader() throws IOException {
     return source.getExtensionHeader(buffer);
   }
 

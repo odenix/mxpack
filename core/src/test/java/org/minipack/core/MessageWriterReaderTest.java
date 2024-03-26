@@ -182,7 +182,7 @@ public class MessageWriterReaderTest {
     writer.write(l);
     writer.write(f);
     writer.write(d);
-    writer.writeString(str);
+    writer.write(str);
     writer.flush();
 
     assertThat(reader.nextType()).isEqualTo(ValueType.ARRAY);
@@ -202,7 +202,7 @@ public class MessageWriterReaderTest {
   public void writeReadStringArray(@ForAll List<String> strings) throws IOException {
     writer.writeArrayHeader(strings.size());
     for (var str : strings) {
-      writer.writeString(str);
+      writer.write(str);
     }
     writer.flush();
 
@@ -239,8 +239,8 @@ public class MessageWriterReaderTest {
     writer.write(f);
     writer.write(d);
     writer.write(d);
-    writer.writeString(str);
-    writer.writeString(str);
+    writer.write(str);
+    writer.write(str);
     writer.writeNil();
     writer.flush();
 
@@ -270,8 +270,8 @@ public class MessageWriterReaderTest {
   public void writeReadStringMap(@ForAll Map<String, String> strings) throws IOException {
     writer.writeMapHeader(strings.size());
     for (var entry : strings.entrySet()) {
-      writer.writeString(entry.getKey());
-      writer.writeString(entry.getValue());
+      writer.write(entry.getKey());
+      writer.write(entry.getValue());
     }
     writer.flush();
 
@@ -283,7 +283,7 @@ public class MessageWriterReaderTest {
   }
 
   private void doWriteReadString(String input) throws IOException {
-    writer.writeString(input);
+    writer.write(input);
     writer.flush();
     assertThat(reader.nextFormat())
         .satisfiesAnyOf(

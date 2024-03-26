@@ -93,6 +93,11 @@ public abstract class MessageSource implements Closeable {
     return buffer.getInt();
   }
 
+  public final long getLong(ByteBuffer buffer) throws IOException {
+    ensureRemaining(buffer, 8);
+    return buffer.getLong();
+  }
+
   /**
    * Gets a MessagePack string header from the given buffer, ensuring that the buffer has enough
    * space remaining.
@@ -130,18 +135,18 @@ public abstract class MessageSource implements Closeable {
    * Gets a MessagePack extension header from the given buffer, ensuring that the buffer has enough
    * space remaining.
    */
-  public final ExtensionType.Header getExtensionHeader(ByteBuffer buffer) throws IOException {
+  public final ExtensionHeader getExtensionHeader(ByteBuffer buffer) throws IOException {
     var format = getByte(buffer);
     return switch (format) {
-      case ValueFormat.FIXEXT1 -> new ExtensionType.Header(1, getByte(buffer));
-      case ValueFormat.FIXEXT2 -> new ExtensionType.Header(2, getByte(buffer));
-      case ValueFormat.FIXEXT4 -> new ExtensionType.Header(4, getByte(buffer));
-      case ValueFormat.FIXEXT8 -> new ExtensionType.Header(8, getByte(buffer));
-      case ValueFormat.FIXEXT16 -> new ExtensionType.Header(16, getByte(buffer));
-      case ValueFormat.EXT8 -> new ExtensionType.Header(getLength8(buffer), getByte(buffer));
-      case ValueFormat.EXT16 -> new ExtensionType.Header(getLength16(buffer), getByte(buffer));
+      case ValueFormat.FIXEXT1 -> new ExtensionHeader(1, getByte(buffer));
+      case ValueFormat.FIXEXT2 -> new ExtensionHeader(2, getByte(buffer));
+      case ValueFormat.FIXEXT4 -> new ExtensionHeader(4, getByte(buffer));
+      case ValueFormat.FIXEXT8 -> new ExtensionHeader(8, getByte(buffer));
+      case ValueFormat.FIXEXT16 -> new ExtensionHeader(16, getByte(buffer));
+      case ValueFormat.EXT8 -> new ExtensionHeader(getLength8(buffer), getByte(buffer));
+      case ValueFormat.EXT16 -> new ExtensionHeader(getLength16(buffer), getByte(buffer));
       case ValueFormat.EXT32 ->
-          new ExtensionType.Header(getLength32(buffer, ValueType.EXTENSION), getByte(buffer));
+          new ExtensionHeader(getLength32(buffer, ValueType.EXTENSION), getByte(buffer));
       default -> throw Exceptions.typeMismatch(format, RequestedType.EXTENSION);
     };
   }
@@ -149,11 +154,6 @@ public abstract class MessageSource implements Closeable {
   final byte nextByte(ByteBuffer buffer) throws IOException {
     ensureRemaining(buffer, 1);
     return buffer.get(buffer.position());
-  }
-
-  final long getLong(ByteBuffer buffer) throws IOException {
-    ensureRemaining(buffer, 8);
-    return buffer.getLong();
   }
 
   final short getUByte(ByteBuffer buffer) throws IOException {
