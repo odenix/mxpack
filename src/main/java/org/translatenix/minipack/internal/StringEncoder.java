@@ -6,21 +6,21 @@ package org.translatenix.minipack.internal;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import org.translatenix.minipack.Encoder;
 import org.translatenix.minipack.MessageSink;
-import org.translatenix.minipack.StringEncoder;
 
-public final class Utf8StringEncoder implements StringEncoder<CharSequence> {
-  private final int stringSizeLimit;
+public final class StringEncoder implements Encoder<CharSequence> {
+  private final int maxStringSize;
 
-  public Utf8StringEncoder(int stringSizeLimit) {
-    this.stringSizeLimit = stringSizeLimit;
+  public StringEncoder(int maxStringSize) {
+    this.maxStringSize = maxStringSize;
   }
 
   @Override
   public void encode(CharSequence string, ByteBuffer buffer, MessageSink sink) throws IOException {
     var length = utf8Length(string);
-    if (length > stringSizeLimit) {
-      throw Exceptions.stringTooLargeOnWrite(length, stringSizeLimit);
+    if (length > maxStringSize) {
+      throw Exceptions.stringTooLargeOnWrite(length, maxStringSize);
     }
     if (length < 0) {
       sink.putStringHeader(-length, buffer);

@@ -33,7 +33,7 @@ public abstract class MessageSource implements Closeable {
    * read. However, unlike {@link #readAtLeast}, this method does not guarantee that more than 1
    * byte will be read.
    */
-  public abstract int read(ByteBuffer buffer, int minBytesHint) throws IOException;
+  public abstract int readAny(ByteBuffer buffer, int minBytesHint) throws IOException;
 
   /**
    * Reads between {@code minBytes} and {@linkplain ByteBuffer#remaining() remaining} bytes from
@@ -46,7 +46,7 @@ public abstract class MessageSource implements Closeable {
     assert minBytes <= buffer.remaining();
     var totalBytesRead = 0;
     while (totalBytesRead < minBytes) {
-      var bytesRead = read(buffer, minBytes);
+      var bytesRead = readAny(buffer, minBytes);
       if (bytesRead == -1) {
         throw Exceptions.prematureEndOfInput(minBytes, totalBytesRead);
       }
@@ -69,98 +69,6 @@ public abstract class MessageSource implements Closeable {
       buffer.flip();
       assert buffer.remaining() >= length;
     }
-  }
-
-  public final byte peekByte(ByteBuffer buffer) throws IOException {
-    ensureRemaining(1, buffer);
-    return buffer.get(buffer.position());
-  }
-
-  /**
-   * Gets a byte value from the given buffer, ensuring that the buffer has enough space remaining.
-   */
-  public final byte getByte(ByteBuffer buffer) throws IOException {
-    ensureRemaining(1, buffer);
-    return buffer.get();
-  }
-
-  /**
-   * Gets a short value from the given buffer, ensuring that the buffer has enough space remaining.
-   */
-  public final short getShort(ByteBuffer buffer) throws IOException {
-    ensureRemaining(2, buffer);
-    return buffer.getShort();
-  }
-
-  /**
-   * Gets an int value from the given buffer, ensuring that the buffer has enough space remaining.
-   */
-  public final int getInt(ByteBuffer buffer) throws IOException {
-    ensureRemaining(4, buffer);
-    return buffer.getInt();
-  }
-
-  /**
-   * Gets a long value from the given buffer, ensuring that the buffer has enough space remaining.
-   */
-  public final long getLong(ByteBuffer buffer) throws IOException {
-    ensureRemaining(8, buffer);
-    return buffer.getLong();
-  }
-
-  /**
-   * Gets an unsigned byte value from the given buffer, ensuring that the buffer has enough space
-   * remaining.
-   */
-  public final short getUByte(ByteBuffer buffer) throws IOException {
-    ensureRemaining(1, buffer);
-    return (short) (buffer.get() & 0xff);
-  }
-
-  /**
-   * Gets an unsigned short value from the given buffer, ensuring that the buffer has enough space
-   * remaining.
-   */
-  public final int getUShort(ByteBuffer buffer) throws IOException {
-    ensureRemaining(2, buffer);
-    return buffer.getShort() & 0xffff;
-  }
-
-  /**
-   * Gets an unsigned int value from the given buffer, ensuring that the buffer has enough space
-   * remaining.
-   */
-  public final long getUInt(ByteBuffer buffer) throws IOException {
-    ensureRemaining(4, buffer);
-    return buffer.getInt() & 0xffffffffL;
-  }
-
-  /**
-   * Gets an 8-bit length value from the given buffer, ensuring that the buffer has enough space
-   * remaining.
-   */
-  public final short getLength8(ByteBuffer buffer) throws IOException {
-    return getUByte(buffer);
-  }
-
-  /**
-   * Gets a 16-bit length value from the given buffer, ensuring that the buffer has enough space
-   * remaining.
-   */
-  public final int getLength16(ByteBuffer buffer) throws IOException {
-    return getUShort(buffer);
-  }
-
-  /**
-   * Gets a 32-bit length value from the given buffer, ensuring that the buffer has enough space
-   * remaining.
-   */
-  public final int getLength32(ByteBuffer buffer, ValueType type) throws IOException {
-    var length = getInt(buffer);
-    if (length < 0) {
-      throw Exceptions.lengthOverflow(length & 0xffffffffL, type);
-    }
-    return length;
   }
 
   /**
@@ -214,5 +122,61 @@ public abstract class MessageSource implements Closeable {
           new ExtensionType.Header(getLength32(buffer, ValueType.EXTENSION), getByte(buffer));
       default -> throw Exceptions.typeMismatch(format, RequestedType.EXTENSION);
     };
+  }
+
+  final byte nextByte(ByteBuffer buffer) throws IOException {
+    ensureRemaining(1, buffer);
+    return buffer.get(buffer.position());
+  }
+
+  final byte getByte(ByteBuffer buffer) throws IOException {
+    ensureRemaining(1, buffer);
+    return buffer.get();
+  }
+
+  final short getShort(ByteBuffer buffer) throws IOException {
+    ensureRemaining(2, buffer);
+    return buffer.getShort();
+  }
+
+  final int getInt(ByteBuffer buffer) throws IOException {
+    ensureRemaining(4, buffer);
+    return buffer.getInt();
+  }
+
+  final long getLong(ByteBuffer buffer) throws IOException {
+    ensureRemaining(8, buffer);
+    return buffer.getLong();
+  }
+
+  final short getUByte(ByteBuffer buffer) throws IOException {
+    ensureRemaining(1, buffer);
+    return (short) (buffer.get() & 0xff);
+  }
+
+  final int getUShort(ByteBuffer buffer) throws IOException {
+    ensureRemaining(2, buffer);
+    return buffer.getShort() & 0xffff;
+  }
+
+  final long getUInt(ByteBuffer buffer) throws IOException {
+    ensureRemaining(4, buffer);
+    return buffer.getInt() & 0xffffffffL;
+  }
+
+  final short getLength8(ByteBuffer buffer) throws IOException {
+    return getUByte(buffer);
+  }
+
+  final int getLength16(ByteBuffer buffer) throws IOException {
+    return getUShort(buffer);
+  }
+
+  final int getLength32(ByteBuffer buffer, ValueType type) throws IOException {
+    var length = getInt(buffer);
+    if (length < 0) {
+      throw Exceptions.lengthOverflow(length & 0xffffffffL, type);
+    }
+    return length;
   }
 }

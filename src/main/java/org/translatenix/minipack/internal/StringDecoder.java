@@ -8,23 +8,23 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import org.jspecify.annotations.Nullable;
+import org.translatenix.minipack.Decoder;
 import org.translatenix.minipack.MessageSource;
-import org.translatenix.minipack.StringDecoder;
 
-public final class Utf8StringDecoder implements StringDecoder<String> {
-  private final int stringSizeLimit;
+public final class StringDecoder implements Decoder<String> {
+  private final int sizeLimit;
   private final GrowableBuffer growableBuffer;
 
-  public Utf8StringDecoder(int stringSizeLimit) {
-    this.stringSizeLimit = stringSizeLimit;
-    growableBuffer = new GrowableBuffer(stringSizeLimit);
+  public StringDecoder(int sizeLimit) {
+    this.sizeLimit = sizeLimit;
+    growableBuffer = new GrowableBuffer(sizeLimit);
   }
 
   @Override
   public String decode(ByteBuffer buffer, MessageSource source) throws IOException {
     var length = source.getStringHeader(buffer);
-    if (length > stringSizeLimit) {
-      throw Exceptions.stringTooLargeOnRead(length, stringSizeLimit);
+    if (length > sizeLimit) {
+      throw Exceptions.stringTooLargeOnRead(length, sizeLimit);
     }
     return decode(buffer, length, source);
   }

@@ -22,8 +22,8 @@ import org.translatenix.minipack.internal.ValueFormat;
 
 /** Tests {@link MessageReader} against {@link MessageWriter}. */
 public class MessageWriterReaderTest {
-  private final MessageWriter<CharSequence> writer;
-  private final MessageReader<String> reader;
+  private final MessageWriter<CharSequence, String> writer;
+  private final MessageReader<String, String> reader;
 
   public MessageWriterReaderTest() throws IOException {
     var in = new PipedInputStream(1 << 16);

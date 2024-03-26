@@ -18,7 +18,7 @@ public final class InputStreamSource extends MessageSource {
   }
 
   @Override
-  public int read(ByteBuffer buffer, int minBytesHint) throws IOException {
+  public int readAny(ByteBuffer buffer, int minBytesHint) throws IOException {
     if (!buffer.hasArray()) {
       throw Exceptions.arrayBackedBufferRequired();
     }

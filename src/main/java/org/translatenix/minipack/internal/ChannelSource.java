@@ -18,7 +18,7 @@ public final class ChannelSource extends MessageSource {
   }
 
   @Override
-  public int read(ByteBuffer buffer, int minBytesHint) throws IOException {
+  public int readAny(ByteBuffer buffer, int minBytesHint) throws IOException {
     var remaining = buffer.remaining();
     var bytesRead = blockingChannel.read(buffer);
     if (bytesRead == 0 && remaining > 0) {

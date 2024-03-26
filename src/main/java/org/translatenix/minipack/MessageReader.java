@@ -10,10 +10,7 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
 import org.jspecify.annotations.Nullable;
-import org.translatenix.minipack.internal.Exceptions;
-import org.translatenix.minipack.internal.RequestedType;
-import org.translatenix.minipack.internal.Utf8StringDecoder;
-import org.translatenix.minipack.internal.ValueFormat;
+import org.translatenix.minipack.internal.*;
 
 /**
  * Reads values encoded in the <a href="https://msgpack.org/">MessagePack</a> binary serialization
@@ -23,20 +20,24 @@ import org.translatenix.minipack.internal.ValueFormat;
  * call one of the {@code readXYZ()} methods. To determine the next value's type, call {@link
  * #nextType()}. To close this reader, call {@link #close()}.
  *
- * <p>Unless otherwise noted, methods throw {@link IOException} if an I/O error occurs,
- * and {@link ReaderException} if some other error occurs.
+ * <p>Unless otherwise noted, methods throw {@link IOException} if an I/O error occurs, and {@link
+ * ReaderException} if some other error occurs.
  *
- * @param <T> the return type of {@link #readString()} ({@code java.lang.String} unless this reader
- *     is {@linkplain Builder#build(StringDecoder) built} with a custom {@link StringDecoder})
+ * @param <S> the return type of {@link #readString()} ({@code java.lang.String} unless this reader
+ *     is {@linkplain Builder#build built} with a custom string {@link Decoder})
+ * @param <I> the return type of {@link #readIdentifier()} ({@code java.lang.String} unless this
+ *     reader is {@linkplain Builder#build built} with a custom identifier {@link Decoder})
  */
-public final class MessageReader<T> implements Closeable {
+public final class MessageReader<S, I> implements Closeable {
   private static final int MIN_BUFFER_CAPACITY = 9;
   private static final int DEFAULT_BUFFER_CAPACITY = 1 << 13;
   private static final int DEFAULT_STRING_SIZE_LIMIT = 1 << 20;
+  private static final int DEFAULT_IDENTIFIER_CACHE_LIMIT = 1 << 10;
 
   private final MessageSource source;
   private final ByteBuffer buffer;
-  private final StringDecoder<T> stringDecoder;
+  private final Decoder<S> stringDecoder;
+  private final Decoder<I> identifierDecoder;
 
   /** A builder of {@link MessageReader}. */
   public static final class Builder {
@@ -74,20 +75,26 @@ public final class MessageReader<T> implements Closeable {
     }
 
     /**
-     * Equivalent to {@code build(StringDecoder.defaultDecoder(1024 * 1024))}.
+     * Equivalent to {@code build(Decoder.defaultStringDecoder(1024 * 1024),
+     * Decoder.defaultIdentifierDecoder(1024))}.
      *
-     * @see StringDecoder#defaultDecoder(int)
+     * @see Decoder#defaultStringDecoder(int)
+     * @see Decoder#defaultIdentifierDecoder(int)
      */
-    public MessageReader<String> build() {
-      return new MessageReader<>(this, new Utf8StringDecoder(DEFAULT_STRING_SIZE_LIMIT));
+    public MessageReader<String, String> build() {
+      return new MessageReader<>(
+          this,
+          Decoder.defaultStringDecoder(DEFAULT_STRING_SIZE_LIMIT),
+          Decoder.defaultIdentifierDecoder(DEFAULT_IDENTIFIER_CACHE_LIMIT));
     }
 
     /**
      * Creates a new {@code MessageReader} from this builder's current state and the given string
      * decoder.
      */
-    public <T> MessageReader<T> build(StringDecoder<T> stringDecoder) {
-      return new MessageReader<>(this, stringDecoder);
+    public <S, I> MessageReader<S, I> build(
+        Decoder<S> stringDecoder, Decoder<I> identifierDecoder) {
+      return new MessageReader<>(this, stringDecoder, identifierDecoder);
     }
   }
 
@@ -96,7 +103,7 @@ public final class MessageReader<T> implements Closeable {
     return new Builder();
   }
 
-  private MessageReader(Builder builder, StringDecoder<T> stringDecoder) {
+  private MessageReader(Builder builder, Decoder<S> stringDecoder, Decoder<I> identifierDecoder) {
     if (builder.source == null) {
       throw Exceptions.sourceRequired();
     }
@@ -109,11 +116,12 @@ public final class MessageReader<T> implements Closeable {
       throw Exceptions.bufferTooSmall(buffer.capacity(), MIN_BUFFER_CAPACITY);
     }
     this.stringDecoder = stringDecoder;
+    this.identifierDecoder = identifierDecoder;
   }
 
   /** Returns the type of the next value to be read. */
   public ValueType nextType() throws IOException {
-    return ValueFormat.toType(source.peekByte(buffer));
+    return ValueFormat.toType(source.nextByte(buffer));
   }
 
   /** Reads a nil (null) value. */
@@ -293,14 +301,18 @@ public final class MessageReader<T> implements Closeable {
   /**
    * Reads a string value.
    *
-   * <p>The type of the returned value is determined by the {@link StringDecoder} that this message
-   * reader was {@linkplain Builder#build(StringDecoder) built} with.
+   * <p>The type of the returned value is determined by the string {@link Decoder} that this message
+   * reader was {@linkplain Builder#build built} with.
    *
    * <p>To read a string as a sequence of bytes, use {@link #readRawStringHeader()} together with
    * {@link #readPayload}.
    */
-  public T readString() throws IOException {
+  public S readString() throws IOException {
     return stringDecoder.decode(buffer, source);
+  }
+
+  public I readIdentifier() throws IOException {
+    return identifierDecoder.decode(buffer, source);
   }
 
   /**
@@ -444,6 +456,6 @@ public final class MessageReader<T> implements Closeable {
 
   // non-private for testing
   byte nextFormat() throws IOException {
-    return source.peekByte(buffer);
+    return source.nextByte(buffer);
   }
 }

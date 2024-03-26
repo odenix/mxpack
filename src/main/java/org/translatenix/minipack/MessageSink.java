@@ -27,8 +27,8 @@ public abstract class MessageSink implements Closeable {
   }
 
   /**
-   * Writes between 1 and {@linkplain ByteBuffer#remaining() remaining} bytes from the given buffer
-   * to this sink, returning the actual number of bytes written.
+   * Writes the {@linkplain ByteBuffer#remaining() remaining} bytes from the given buffer to this
+   * sink, returning the number of bytes written.
    */
   public abstract int write(ByteBuffer buffer) throws IOException;
 
@@ -57,30 +57,6 @@ public abstract class MessageSink implements Closeable {
   public final void putByte(ByteBuffer buffer, byte value) throws IOException {
     ensureRemaining(buffer, 1);
     buffer.put(value);
-  }
-
-  /**
-   * Puts a short value into the given buffer, ensuring that the buffer has enough space remaining.
-   */
-  public final void putShort(ByteBuffer buffer, short value) throws IOException {
-    ensureRemaining(buffer, 2);
-    buffer.putShort(value);
-  }
-
-  /**
-   * Puts an int value into the given buffer, ensuring that the buffer has enough space remaining.
-   */
-  public final void putInt(ByteBuffer buffer, int value) throws IOException {
-    ensureRemaining(buffer, 4);
-    buffer.putInt(value);
-  }
-
-  /**
-   * Puts a long value into the given buffer, ensuring that the buffer has enough space remaining.
-   */
-  public final void putLong(ByteBuffer buffer, long value) throws IOException {
-    ensureRemaining(buffer, 8);
-    buffer.putLong(value);
   }
 
   /**
@@ -116,37 +92,6 @@ public abstract class MessageSink implements Closeable {
     buffer.put(value2);
     buffer.put(value3);
     buffer.put(value4);
-  }
-
-  /**
-   * Puts a byte and short value into the given buffer, ensuring that the buffer has enough space
-   * remaining.
-   */
-  public final void putByteAndShort(ByteBuffer buffer, byte value1, short value2)
-      throws IOException {
-    ensureRemaining(buffer, 3);
-    buffer.put(value1);
-    buffer.putShort(value2);
-  }
-
-  /**
-   * Puts a byte and int value into the given buffer, ensuring that the buffer has enough space
-   * remaining.
-   */
-  public final void putByteAndInt(ByteBuffer buffer, byte value1, int value2) throws IOException {
-    ensureRemaining(buffer, 5);
-    buffer.put(value1);
-    buffer.putInt(value2);
-  }
-
-  /**
-   * Puts a byte and long value into the given buffer, ensuring that the buffer has enough space
-   * remaining.
-   */
-  public final void putByteAndLong(ByteBuffer buffer, byte value1, long value2) throws IOException {
-    ensureRemaining(buffer, 9);
-    buffer.put(value1);
-    buffer.putLong(value2);
   }
 
   /**
@@ -211,5 +156,35 @@ public abstract class MessageSink implements Closeable {
         putByte(buffer, type);
       }
     }
+  }
+
+  final void putByteAndShort(ByteBuffer buffer, byte value1, short value2) throws IOException {
+    ensureRemaining(buffer, 3);
+    buffer.put(value1);
+    buffer.putShort(value2);
+  }
+
+  final void putByteAndInt(ByteBuffer buffer, byte value1, int value2) throws IOException {
+    ensureRemaining(buffer, 5);
+    buffer.put(value1);
+    buffer.putInt(value2);
+  }
+
+  final void putByteAndLong(ByteBuffer buffer, byte value1, long value2) throws IOException {
+    ensureRemaining(buffer, 9);
+    buffer.put(value1);
+    buffer.putLong(value2);
+  }
+
+  final void putByteAndFloat(ByteBuffer buffer, float value) throws IOException {
+    ensureRemaining(buffer, 5);
+    buffer.put(ValueFormat.FLOAT32);
+    buffer.putFloat(value);
+  }
+
+  final void putByteAndDouble(ByteBuffer buffer, double value) throws IOException {
+    ensureRemaining(buffer, 9);
+    buffer.put(ValueFormat.FLOAT64);
+    buffer.putDouble(value);
   }
 }
