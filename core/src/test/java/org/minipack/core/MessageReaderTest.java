@@ -25,7 +25,7 @@ import org.msgpack.core.MessagePacker;
 /** Tests {@link MessageReader} against {@link org.msgpack.core.MessagePacker}. */
 public class MessageReaderTest {
   private final MessagePacker packer;
-  private final MessageReader<String, String> reader;
+  private final MessageReader reader;
 
   public MessageReaderTest() throws IOException {
     var in = new PipedInputStream(1 << 16);

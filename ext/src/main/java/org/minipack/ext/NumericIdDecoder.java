@@ -18,6 +18,10 @@ public final class NumericIdDecoder implements Decoder<String> {
   private final byte refExtensionType;
   private final int maxCacheSize;
 
+  public NumeridIdDecoder(int maxCacheSize) {
+    this(0, 1, maxCacheSize);
+  }
+
   public NumericIdDecoder(byte idExtensionType, byte refExtensionType, int maxCacheSize) {
     this.idExtensionType = idExtensionType;
     this.refExtensionType = refExtensionType;

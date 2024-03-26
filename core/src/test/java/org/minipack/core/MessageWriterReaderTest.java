@@ -22,8 +22,8 @@ import org.minipack.core.internal.ValueFormat;
 
 /** Tests {@link MessageReader} against {@link MessageWriter}. */
 public class MessageWriterReaderTest {
-  private final MessageWriter<CharSequence, String> writer;
-  private final MessageReader<String, String> reader;
+  private final MessageWriter writer;
+  private final MessageReader reader;
 
   public MessageWriterReaderTest() throws IOException {
     var in = new PipedInputStream(1 << 16);

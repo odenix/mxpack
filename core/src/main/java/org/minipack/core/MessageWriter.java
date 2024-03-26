@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
+import java.util.HashMap;
+import java.util.Map;
 import org.jspecify.annotations.Nullable;
 import org.minipack.core.internal.Exceptions;
 import org.minipack.core.internal.ValueFormat;
@@ -24,15 +26,8 @@ import org.minipack.core.internal.ValueFormat;
  *
  * <p>Unless otherwise noted, methods throw {@link IOException} if an I/O error occurs, and {@link
  * WriterException} if some other error occurs.
- *
- * @param <S> the parameter type of {@link #writeString} ({@code java.lang.CharSequence} unless this
- *     writer is {@linkplain MessageWriter.Builder#build built} with a custom string {@link
- *     Encoder})
- * @param <I> the parameter type of {@link #writeIdentifier} ({@code java.lang.String} unless this
- *     writer is {@linkplain MessageWriter.Builder#build built} with a custom identifier {@link
- *     Encoder})
  */
-public final class MessageWriter<S, I> implements Closeable {
+public final class MessageWriter implements Closeable {
   private static final int MIN_BUFFER_CAPACITY = 9;
   private static final int DEFAULT_BUFFER_CAPACITY = 1 << 13;
   private static final int DEFAULT_STRING_SIZE_LIMIT = 1 << 20;
@@ -40,8 +35,9 @@ public final class MessageWriter<S, I> implements Closeable {
 
   private final MessageSink sink;
   private final ByteBuffer buffer;
-  private final Encoder<S> stringEncoder;
-  private final Encoder<I> identifierEncoder;
+  private final Encoder<CharSequence> stringEncoder;
+  private final Encoder<String> identifierEncoder;
+  private final Map<Class<?>, Encoder<?>> valueEncoders;
 
   /** A builder of {@code MessageWriter}. */
   public static final class Builder {
@@ -49,6 +45,11 @@ public final class MessageWriter<S, I> implements Closeable {
 
     private @Nullable MessageSink sink;
     private @Nullable ByteBuffer buffer;
+    private Encoder<CharSequence> stringEncoder =
+        Encoder.defaultStringEncoder(DEFAULT_STRING_SIZE_LIMIT);
+    private Encoder<String> identifierEncoder =
+        Encoder.defaultIdentifierEncoder(DEFAULT_IDENTIFIER_CACHE_LIMIT);
+    private final Map<Class<?>, Encoder<?>> valueEncoders = new HashMap<>();
 
     /** Sets the message sink to write to. */
     public Builder sink(MessageSink sink) {
@@ -87,27 +88,24 @@ public final class MessageWriter<S, I> implements Closeable {
       return this;
     }
 
-    /**
-     * Equivalent to {@code build(Encoder.defaultStringEncoder(1024 * 1024),
-     * Encoder.defaultIdentifierEncoder(1024))}.
-     *
-     * @see Encoder#defaultStringEncoder(int)
-     * @see Encoder#defaultIdentifierEncoder(int)
-     */
-    public MessageWriter<CharSequence, String> build() {
-      return new MessageWriter<>(
-          this,
-          Encoder.defaultStringEncoder(DEFAULT_STRING_SIZE_LIMIT),
-          Encoder.defaultIdentifierEncoder(DEFAULT_IDENTIFIER_CACHE_LIMIT));
+    public Builder stringEncoder(Encoder<CharSequence> encoder) {
+      stringEncoder = encoder;
+      return this;
     }
 
-    /**
-     * Creates a new {@code MessageWriter} from this builder's current state and the given string
-     * encoder.
-     */
-    public <S, I> MessageWriter<S, I> build(
-        Encoder<S> stringEncoder, Encoder<I> identifierEncoder) {
-      return new MessageWriter<>(this, stringEncoder, identifierEncoder);
+    public Builder identifierEncoder(Encoder<String> encoder) {
+      identifierEncoder = encoder;
+      return this;
+    }
+
+    public <T> Builder valueEncoder(Class<T> type, Encoder<? super T> encoder) {
+      valueEncoders.put(type, encoder);
+      return this;
+    }
+
+    /** Creates a new {@code MessageWriter} from this builder's current state. */
+    public MessageWriter build() {
+      return new MessageWriter(this);
     }
   }
 
@@ -116,7 +114,7 @@ public final class MessageWriter<S, I> implements Closeable {
     return new Builder();
   }
 
-  private MessageWriter(Builder builder, Encoder<S> stringEncoder, Encoder<I> identifierEncoder) {
+  private MessageWriter(Builder builder) {
     if (builder.sink == null) {
       throw Exceptions.sinkRequired();
     }
@@ -128,8 +126,9 @@ public final class MessageWriter<S, I> implements Closeable {
     if (buffer.capacity() < MIN_BUFFER_CAPACITY) {
       throw Exceptions.bufferTooSmall(buffer.capacity(), MIN_BUFFER_CAPACITY);
     }
-    this.stringEncoder = stringEncoder;
-    this.identifierEncoder = identifierEncoder;
+    stringEncoder = builder.stringEncoder;
+    identifierEncoder = builder.identifierEncoder;
+    valueEncoders = Map.copyOf(builder.valueEncoders);
   }
 
   /** Writes a nil (null) value. */
@@ -243,13 +242,23 @@ public final class MessageWriter<S, I> implements Closeable {
   }
 
   /** Writes a string value. */
-  public void writeString(S string) throws IOException {
+  public void writeString(CharSequence string) throws IOException {
     stringEncoder.encode(string, buffer, sink);
   }
 
   /** Writes an identifier value. */
-  public void writeIdentifier(I identifier) throws IOException {
+  public void writeIdentifier(String identifier) throws IOException {
     identifierEncoder.encode(identifier, buffer, sink);
+  }
+
+  public <T> void writeValue(T value) throws IOException {
+    var type = value.getClass();
+    @SuppressWarnings("unchecked")
+    var encoder = (Encoder<T>) valueEncoders.get(type);
+    if (encoder == null) {
+      throw Exceptions.unknownValueType(type);
+    }
+    encoder.encode(value, buffer, sink);
   }
 
   /**

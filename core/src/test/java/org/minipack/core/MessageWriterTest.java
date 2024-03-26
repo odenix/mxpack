@@ -24,7 +24,7 @@ import org.msgpack.value.ValueType;
 /** Tests {@link MessageWriter} against {@link org.msgpack.core.MessageUnpacker}. */
 public class MessageWriterTest {
   private final MessageUnpacker unpacker;
-  private final MessageWriter<CharSequence, String> writer;
+  private final MessageWriter writer;
 
   public MessageWriterTest() throws IOException {
     var in = new PipedInputStream(1 << 16);

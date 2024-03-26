@@ -9,8 +9,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
+import java.util.HashMap;
+import java.util.Map;
 import org.jspecify.annotations.Nullable;
-import org.minipack.core.internal.*;
 import org.minipack.core.internal.Exceptions;
 import org.minipack.core.internal.RequestedType;
 import org.minipack.core.internal.ValueFormat;
@@ -25,13 +26,8 @@ import org.minipack.core.internal.ValueFormat;
  *
  * <p>Unless otherwise noted, methods throw {@link IOException} if an I/O error occurs, and {@link
  * ReaderException} if some other error occurs.
- *
- * @param <S> the return type of {@link #readString()} ({@code java.lang.String} unless this reader
- *     is {@linkplain Builder#build built} with a custom string {@link Decoder})
- * @param <I> the return type of {@link #readIdentifier()} ({@code java.lang.String} unless this
- *     reader is {@linkplain Builder#build built} with a custom identifier {@link Decoder})
  */
-public final class MessageReader<S, I> implements Closeable {
+public final class MessageReader implements Closeable {
   private static final int MIN_BUFFER_CAPACITY = 9;
   private static final int DEFAULT_BUFFER_CAPACITY = 1 << 13;
   private static final int DEFAULT_STRING_SIZE_LIMIT = 1 << 20;
@@ -39,13 +35,18 @@ public final class MessageReader<S, I> implements Closeable {
 
   private final MessageSource source;
   private final ByteBuffer buffer;
-  private final Decoder<S> stringDecoder;
-  private final Decoder<I> identifierDecoder;
+  private final Decoder<String> stringDecoder;
+  private final Decoder<String> identifierDecoder;
+  private final Map<Class<?>, Decoder<?>> valueDecoders;
 
   /** A builder of {@link MessageReader}. */
   public static final class Builder {
     private @Nullable MessageSource source;
     private @Nullable ByteBuffer buffer;
+    private Decoder<String> stringDecoder = Decoder.defaultStringDecoder(DEFAULT_STRING_SIZE_LIMIT);
+    private Decoder<String> identifierDecoder =
+        Decoder.defaultIdentifierDecoder(DEFAULT_IDENTIFIER_CACHE_LIMIT);
+    private final Map<Class<?>, Decoder<?>> valueDecoders = new HashMap<>();
 
     /** Sets the underlying source to read from. */
     public Builder source(MessageSource source) {
@@ -77,6 +78,21 @@ public final class MessageReader<S, I> implements Closeable {
       return this;
     }
 
+    public Builder stringDecoder(Decoder<String> decoder) {
+      stringDecoder = decoder;
+      return this;
+    }
+
+    public Builder identifierDecoder(Decoder<String> decoder) {
+      identifierDecoder = decoder;
+      return this;
+    }
+
+    public <T> Builder valueDecoder(Class<T> type, Decoder<? extends T> decoder) {
+      valueDecoders.put(type, decoder);
+      return this;
+    }
+
     /**
      * Equivalent to {@code build(Decoder.defaultStringDecoder(1024 * 1024),
      * Decoder.defaultIdentifierDecoder(1024))}.
@@ -84,20 +100,8 @@ public final class MessageReader<S, I> implements Closeable {
      * @see Decoder#defaultStringDecoder(int)
      * @see Decoder#defaultIdentifierDecoder(int)
      */
-    public MessageReader<String, String> build() {
-      return new MessageReader<>(
-          this,
-          Decoder.defaultStringDecoder(DEFAULT_STRING_SIZE_LIMIT),
-          Decoder.defaultIdentifierDecoder(DEFAULT_IDENTIFIER_CACHE_LIMIT));
-    }
-
-    /**
-     * Creates a new {@code MessageReader} from this builder's current state and the given string
-     * decoder.
-     */
-    public <S, I> MessageReader<S, I> build(
-        Decoder<S> stringDecoder, Decoder<I> identifierDecoder) {
-      return new MessageReader<>(this, stringDecoder, identifierDecoder);
+    public MessageReader build() {
+      return new MessageReader(this);
     }
   }
 
@@ -106,20 +110,21 @@ public final class MessageReader<S, I> implements Closeable {
     return new Builder();
   }
 
-  private MessageReader(Builder builder, Decoder<S> stringDecoder, Decoder<I> identifierDecoder) {
+  private MessageReader(Builder builder) {
     if (builder.source == null) {
       throw Exceptions.sourceRequired();
     }
-    this.source = builder.source;
-    this.buffer =
+    source = builder.source;
+    buffer =
         builder.buffer != null
             ? builder.buffer.position(0).limit(0)
             : ByteBuffer.allocate(DEFAULT_BUFFER_CAPACITY).limit(0);
     if (buffer.capacity() < MIN_BUFFER_CAPACITY) {
       throw Exceptions.bufferTooSmall(buffer.capacity(), MIN_BUFFER_CAPACITY);
     }
-    this.stringDecoder = stringDecoder;
-    this.identifierDecoder = identifierDecoder;
+    stringDecoder = builder.stringDecoder;
+    identifierDecoder = builder.identifierDecoder;
+    valueDecoders = Map.copyOf(builder.valueDecoders);
   }
 
   /** Returns the type of the next value to be read. */
@@ -304,18 +309,24 @@ public final class MessageReader<S, I> implements Closeable {
   /**
    * Reads a string value.
    *
-   * <p>The type of the returned value is determined by the string {@link Decoder} that this message
-   * reader was {@linkplain Builder#build built} with.
-   *
    * <p>To read a string as a sequence of bytes, use {@link #readRawStringHeader()} together with
    * {@link #readPayload}.
    */
-  public S readString() throws IOException {
+  public String readString() throws IOException {
     return stringDecoder.decode(buffer, source);
   }
 
-  public I readIdentifier() throws IOException {
+  public String readIdentifier() throws IOException {
     return identifierDecoder.decode(buffer, source);
+  }
+
+  public <T> T readValue(Class<T> type) throws IOException {
+    @SuppressWarnings("unchecked")
+    var decoder = (Decoder<T>) valueDecoders.get(type);
+    if (decoder == null) {
+      throw Exceptions.unknownValueType(type);
+    }
+    return decoder.decode(buffer, source);
   }
 
   /**

@@ -125,4 +125,8 @@ public final class Exceptions {
     return new ReaderException(
         "Identifier cache size has exceeded maximum allowed size " + maximumSize + ".");
   }
+
+  public static IllegalArgumentException unknownValueType(Class<?> type) {
+    return new IllegalArgumentException("No encoder/decoder is registered for type " + type + ".");
+  }
 }
