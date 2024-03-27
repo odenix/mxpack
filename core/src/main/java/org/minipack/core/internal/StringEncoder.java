@@ -69,7 +69,9 @@ public final class StringEncoder implements Encoder<CharSequence> {
         buffer.put((byte) string.charAt(i));
       }
       if (i == length) break;
+      buffer.flip();
       sink.write(buffer);
+      buffer.clear();
     }
   }
 

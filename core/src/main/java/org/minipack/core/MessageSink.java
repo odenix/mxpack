@@ -42,7 +42,11 @@ public abstract class MessageSink implements Closeable {
   public final void ensureRemaining(ByteBuffer buffer, int byteCount) throws IOException {
     assert byteCount <= buffer.capacity();
     var minBytes = byteCount - buffer.remaining();
-    if (minBytes > 0) write(buffer);
+    if (minBytes > 0) {
+      buffer.flip();
+      write(buffer);
+      buffer.clear();
+    }
   }
 
   /**

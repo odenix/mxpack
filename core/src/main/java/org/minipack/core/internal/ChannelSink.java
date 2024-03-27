@@ -19,11 +19,9 @@ public final class ChannelSink extends MessageSink {
 
   @Override
   public int write(ByteBuffer buffer) throws IOException {
-    buffer.flip();
-    var bytesToWrite = buffer.limit();
+    var remaining = buffer.remaining();
     var bytesWritten = blockingChannel.write(buffer);
-    buffer.clear();
-    if (bytesWritten != bytesToWrite) {
+    if (bytesWritten != remaining) {
       throw Exceptions.nonBlockingWriteableChannel();
     }
     return bytesWritten;

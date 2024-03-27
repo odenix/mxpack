@@ -378,7 +378,7 @@ public final class MessageWriter implements Closeable {
    * {@linkplain MessageSink sink}.
    */
   public void flush() throws IOException {
-    sink.write(buffer);
+    writeBuffer();
     sink.flush();
   }
 
@@ -448,6 +448,12 @@ public final class MessageWriter implements Closeable {
 
   private void putFloat64(double value) throws IOException {
     putByteAndDouble(value);
+  }
+
+  private void writeBuffer() throws IOException {
+    buffer.flip();
+    sink.write(buffer);
+    buffer.clear();
   }
 
   private void putByteAndShort(byte value1, short value2) throws IOException {
