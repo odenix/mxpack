@@ -29,9 +29,9 @@ import org.minipack.core.internal.ValueFormat;
  */
 public final class MessageWriter implements Closeable {
   private static final int MIN_BUFFER_CAPACITY = 9;
-  private static final int DEFAULT_BUFFER_CAPACITY = 1 << 13;
-  private static final int DEFAULT_STRING_SIZE_LIMIT = 1 << 20;
-  private static final int DEFAULT_IDENTIFIER_CACHE_LIMIT = 1 << 10;
+  private static final int DEFAULT_BUFFER_CAPACITY = 1024 * 8;
+  private static final int DEFAULT_STRING_SIZE_LIMIT = 1024 * 1024;
+  private static final int DEFAULT_IDENTIFIER_CACHE_LIMIT = 1024 * 64;
   private static final byte TIMESTAMP_EXTENSION_TYPE = -1;
 
   private final MessageSink sink;

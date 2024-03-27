@@ -56,7 +56,7 @@ public final class StringDecoder implements Decoder<String> {
   }
 
   private static final class GrowableBuffer {
-    private static final int DEFAULT_MIN_CAPACITY = 1 << 10; // TODO
+    private static final int DEFAULT_MIN_CAPACITY = 1024; // TODO
 
     private final int minCapacity;
     private final int maxCapacity;

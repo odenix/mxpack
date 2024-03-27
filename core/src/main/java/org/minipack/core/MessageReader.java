@@ -29,9 +29,9 @@ import org.minipack.core.internal.ValueFormat;
  */
 public final class MessageReader implements Closeable {
   private static final int MIN_BUFFER_CAPACITY = 9;
-  private static final int DEFAULT_BUFFER_CAPACITY = 1 << 13;
-  private static final int DEFAULT_STRING_SIZE_LIMIT = 1 << 20;
-  private static final int DEFAULT_IDENTIFIER_CACHE_LIMIT = 1 << 10;
+  private static final int DEFAULT_BUFFER_CAPACITY = 1024 * 8;
+  private static final int DEFAULT_STRING_SIZE_LIMIT = 1024 * 1024;
+  private static final int DEFAULT_IDENTIFIER_CACHE_LIMIT = 1024 * 64;
   private static final byte TIMESTAMP_EXTENSION_TYPE = -1;
   private static final long LOWER_34_BITS_MASK = 0x3ffffffffL;
 
