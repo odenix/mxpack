@@ -71,6 +71,11 @@ public abstract class MessageSource implements Closeable {
     }
   }
 
+  public final byte nextByte(ByteBuffer buffer) throws IOException {
+    ensureRemaining(buffer, 1);
+    return buffer.get(buffer.position());
+  }
+
   public final byte getByte(ByteBuffer buffer) throws IOException {
     ensureRemaining(buffer, 1);
     return buffer.get();
@@ -96,94 +101,5 @@ public abstract class MessageSource implements Closeable {
   public final long getLong(ByteBuffer buffer) throws IOException {
     ensureRemaining(buffer, 8);
     return buffer.getLong();
-  }
-
-  /**
-   * Gets a MessagePack string header from the given buffer, ensuring that the buffer has enough
-   * space remaining.
-   */
-  public final int getStringHeader(ByteBuffer buffer) throws IOException {
-    var format = getByte(buffer);
-    return switch (format) {
-      case ValueFormat.STR8 -> getLength8(buffer);
-      case ValueFormat.STR16 -> getLength16(buffer);
-      case ValueFormat.STR32 -> getLength32(buffer, ValueType.STRING);
-      default -> {
-        if (ValueFormat.isFixStr(format)) {
-          yield ValueFormat.getFixStrLength(format);
-        }
-        throw Exceptions.typeMismatch(format, RequestedType.STRING);
-      }
-    };
-  }
-
-  /**
-   * Gets a MessagePack binary header from the given buffer, ensuring that the buffer has enough
-   * space remaining.
-   */
-  public final int getBinaryHeader(ByteBuffer buffer) throws IOException {
-    var format = getByte(buffer);
-    return switch (format) {
-      case ValueFormat.BIN8 -> getLength8(buffer);
-      case ValueFormat.BIN16 -> getLength16(buffer);
-      case ValueFormat.BIN32 -> getLength32(buffer, ValueType.BINARY);
-      default -> throw Exceptions.typeMismatch(format, RequestedType.BINARY);
-    };
-  }
-
-  /**
-   * Gets a MessagePack extension header from the given buffer, ensuring that the buffer has enough
-   * space remaining.
-   */
-  public final ExtensionHeader getExtensionHeader(ByteBuffer buffer) throws IOException {
-    var format = getByte(buffer);
-    return switch (format) {
-      case ValueFormat.FIXEXT1 -> new ExtensionHeader(1, getByte(buffer));
-      case ValueFormat.FIXEXT2 -> new ExtensionHeader(2, getByte(buffer));
-      case ValueFormat.FIXEXT4 -> new ExtensionHeader(4, getByte(buffer));
-      case ValueFormat.FIXEXT8 -> new ExtensionHeader(8, getByte(buffer));
-      case ValueFormat.FIXEXT16 -> new ExtensionHeader(16, getByte(buffer));
-      case ValueFormat.EXT8 -> new ExtensionHeader(getLength8(buffer), getByte(buffer));
-      case ValueFormat.EXT16 -> new ExtensionHeader(getLength16(buffer), getByte(buffer));
-      case ValueFormat.EXT32 ->
-          new ExtensionHeader(getLength32(buffer, ValueType.EXTENSION), getByte(buffer));
-      default -> throw Exceptions.typeMismatch(format, RequestedType.EXTENSION);
-    };
-  }
-
-  final byte nextByte(ByteBuffer buffer) throws IOException {
-    ensureRemaining(buffer, 1);
-    return buffer.get(buffer.position());
-  }
-
-  final short getUByte(ByteBuffer buffer) throws IOException {
-    ensureRemaining(buffer, 1);
-    return (short) (buffer.get() & 0xff);
-  }
-
-  final int getUShort(ByteBuffer buffer) throws IOException {
-    ensureRemaining(buffer, 2);
-    return buffer.getShort() & 0xffff;
-  }
-
-  final long getUInt(ByteBuffer buffer) throws IOException {
-    ensureRemaining(buffer, 4);
-    return buffer.getInt() & 0xffffffffL;
-  }
-
-  final short getLength8(ByteBuffer buffer) throws IOException {
-    return getUByte(buffer);
-  }
-
-  final int getLength16(ByteBuffer buffer) throws IOException {
-    return getUShort(buffer);
-  }
-
-  final int getLength32(ByteBuffer buffer, ValueType type) throws IOException {
-    var length = getInt(buffer);
-    if (length < 0) {
-      throw Exceptions.lengthOverflow(length & 0xffffffffL, type);
-    }
-    return length;
   }
 }

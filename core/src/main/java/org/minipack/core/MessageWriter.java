@@ -234,21 +234,21 @@ public final class MessageWriter implements Closeable {
 
   /** Writes a timestamp value. */
   public void write(Instant timestamp) throws IOException {
-    TimestampEncoder.INSTANCE.encode(timestamp, buffer, sink);
+    TimestampEncoder.INSTANCE.encode(timestamp, buffer, sink, this);
   }
 
   /** Writes a string value. */
   public void write(CharSequence string) throws IOException {
-    stringEncoder.encode(string, buffer, sink);
+    stringEncoder.encode(string, buffer, sink, this);
   }
 
   /** Writes an identifier value. */
   public void writeIdentifier(String identifier) throws IOException {
-    identifierEncoder.encode(identifier, buffer, sink);
+    identifierEncoder.encode(identifier, buffer, sink, this);
   }
 
   public <T> void writeValue(T value, Encoder<T> encoder) throws IOException {
-    encoder.encode(value, buffer, sink);
+    encoder.encode(value, buffer, sink, this);
   }
 
   /**
@@ -299,8 +299,19 @@ public final class MessageWriter implements Closeable {
    *   <li>Full control over conversion from {@code java.lang.String} to UTF-8 is required.
    * </ul>
    */
-  public void writeRawStringHeader(int byteCount) throws IOException {
-    sink.putStringHeader(buffer, byteCount);
+  public void writeStringHeader(int length) throws IOException {
+    if (length < 0) {
+      throw Exceptions.negativeLength(length);
+    }
+    if (length < (1 << 5)) {
+      putByte((byte) (ValueFormat.FIXSTR_PREFIX | length));
+    } else if (length < (1 << 8)) {
+      putBytes(ValueFormat.STR8, (byte) length);
+    } else if (length < (1 << 16)) {
+      putByteAndShort(ValueFormat.STR16, (short) length);
+    } else {
+      putByteAndInt(ValueFormat.STR32, length);
+    }
   }
 
   /**
@@ -309,20 +320,47 @@ public final class MessageWriter implements Closeable {
    * <p>A call to this method MUST be followed by one or more calls to {@link #writePayload} that
    * write exactly {@code byteCount} bytes in total.
    */
-  public void writeBinaryHeader(int byteCount) throws IOException {
-    sink.putBinaryHeader(buffer, byteCount);
+  public void writeBinaryHeader(int length) throws IOException {
+    if (length < 0) {
+      throw Exceptions.negativeLength(length);
+    }
+    if (length < (1 << 8)) {
+      putBytes(ValueFormat.BIN8, (byte) length);
+    } else if (length < (1 << 16)) {
+      putByteAndShort(ValueFormat.BIN16, (short) length);
+    } else {
+      putByteAndInt(ValueFormat.BIN32, length);
+    }
   }
 
-  public void writeExtensionHeader(int byteCount, byte type) throws IOException {
-    sink.putExtensionHeader(buffer, byteCount, type);
+  public void writeExtensionHeader(int length, byte type) throws IOException {
+    if (length < 0) {
+      throw Exceptions.negativeLength(length);
+    }
+    switch (length) {
+      case 1 -> putBytes(ValueFormat.FIXEXT1, type);
+      case 2 -> putBytes(ValueFormat.FIXEXT2, type);
+      case 4 -> putBytes(ValueFormat.FIXEXT4, type);
+      case 8 -> putBytes(ValueFormat.FIXEXT8, type);
+      case 16 -> putBytes(ValueFormat.FIXEXT16, type);
+      default -> {
+        if (length < (1 << 8)) {
+          putBytes(ValueFormat.EXT8, (byte) length);
+        } else if (length < (1 << 16)) {
+          putByteAndShort(ValueFormat.EXT16, (short) length);
+        } else {
+          putByteAndInt(ValueFormat.EXT32, length);
+        }
+        putByte(type);
+      }
+    }
   }
 
   /**
    * Writes the given buffer's {@linkplain ByteBuffer#remaining() length} bytes, starting at the
    * buffer's current {@linkplain ByteBuffer#position() position}.
    *
-   * <p>This method must be called after {@link #writeBinaryHeader} or {@link
-   * #writeRawStringHeader}.
+   * <p>This method must be called after {@link #writeBinaryHeader} or {@link #writeStringHeader}.
    */
   public int writePayload(ByteBuffer buffer) throws IOException {
     writeBuffer();
@@ -358,57 +396,79 @@ public final class MessageWriter implements Closeable {
     sink.putBytes(buffer, value1, value2);
   }
 
-  private void putByteAndShort(byte value1, short value2) throws IOException {
-    sink.putByteAndShort(buffer, value1, value2);
-  }
-
-  private void putByteAndInt(byte value1, int value2) throws IOException {
-    sink.putByteAndInt(buffer, value1, value2);
-  }
-
   private void putInt8(byte value) throws IOException {
-    sink.putBytes(buffer, ValueFormat.INT8, value);
+    putBytes(ValueFormat.INT8, value);
   }
 
   private void putUInt8(byte value) throws IOException {
-    sink.putBytes(buffer, ValueFormat.UINT8, value);
+    putBytes(ValueFormat.UINT8, value);
   }
 
   private void putInt16(short value) throws IOException {
-    sink.putByteAndShort(buffer, ValueFormat.INT16, value);
+    putByteAndShort(ValueFormat.INT16, value);
   }
 
   private void putUInt16(short value) throws IOException {
-    sink.putByteAndShort(buffer, ValueFormat.UINT16, value);
+    putByteAndShort(ValueFormat.UINT16, value);
   }
 
   private void putInt32(int value) throws IOException {
-    sink.putByteAndInt(buffer, ValueFormat.INT32, value);
+    putByteAndInt(ValueFormat.INT32, value);
   }
 
   private void putUInt32(int value) throws IOException {
-    sink.putByteAndInt(buffer, ValueFormat.UINT32, value);
+    putByteAndInt(ValueFormat.UINT32, value);
   }
 
   private void putInt64(long value) throws IOException {
-    sink.putByteAndLong(buffer, ValueFormat.INT64, value);
+    putByteAndLong(ValueFormat.INT64, value);
   }
 
   private void putUInt64(long value) throws IOException {
-    sink.putByteAndLong(buffer, ValueFormat.UINT64, value);
+    putByteAndLong(ValueFormat.UINT64, value);
   }
 
   private void putFloat32(float value) throws IOException {
-    sink.putByteAndFloat(buffer, value);
+    putByteAndFloat(value);
   }
 
   private void putFloat64(double value) throws IOException {
-    sink.putByteAndDouble(buffer, value);
+    putByteAndDouble(value);
   }
 
   private void writeBuffer() throws IOException {
     buffer.flip();
     sink.write(buffer);
     buffer.clear();
+  }
+
+  private void putByteAndShort(byte value1, short value2) throws IOException {
+    sink.ensureRemaining(buffer, 3);
+    buffer.put(value1);
+    buffer.putShort(value2);
+  }
+
+  private void putByteAndInt(byte value1, int value2) throws IOException {
+    sink.ensureRemaining(buffer, 5);
+    buffer.put(value1);
+    buffer.putInt(value2);
+  }
+
+  private void putByteAndLong(byte value1, long value2) throws IOException {
+    sink.ensureRemaining(buffer, 9);
+    buffer.put(value1);
+    buffer.putLong(value2);
+  }
+
+  private void putByteAndFloat(float value) throws IOException {
+    sink.ensureRemaining(buffer, 5);
+    buffer.put(ValueFormat.FLOAT32);
+    buffer.putFloat(value);
+  }
+
+  private void putByteAndDouble(double value) throws IOException {
+    sink.ensureRemaining(buffer, 9);
+    buffer.put(ValueFormat.FLOAT64);
+    buffer.putDouble(value);
   }
 }

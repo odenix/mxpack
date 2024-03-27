@@ -19,5 +19,5 @@ public interface Decoder<T> {
     return new IdentifierDecoder(maxCacheSize);
   }
 
-  T decode(ByteBuffer buffer, MessageSource source) throws IOException;
+  T decode(ByteBuffer buffer, MessageSource source, MessageReader reader) throws IOException;
 }

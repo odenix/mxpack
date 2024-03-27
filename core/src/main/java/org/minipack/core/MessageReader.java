@@ -121,7 +121,7 @@ public final class MessageReader implements Closeable {
 
   /** Returns the type of the next value to be read. */
   public ValueType nextType() throws IOException {
-    return ValueFormat.toType(source.nextByte(buffer));
+    return ValueFormat.toType(nextFormat());
   }
 
   /** Reads a nil (null) value. */
@@ -300,25 +300,25 @@ public final class MessageReader implements Closeable {
 
   /** Reads a timestamp value. */
   public Instant readTimestamp() throws IOException {
-    return TimestampDecoder.INSTANCE.decode(buffer, source);
+    return TimestampDecoder.INSTANCE.decode(buffer, source, this);
   }
 
   /**
    * Reads a string value.
    *
-   * <p>To read a string as a sequence of bytes, use {@link #readRawStringHeader()} together with
+   * <p>To read a string as a sequence of bytes, use {@link #readStringHeader()} together with
    * {@link #readPayload}.
    */
   public String readString() throws IOException {
-    return stringDecoder.decode(buffer, source);
+    return stringDecoder.decode(buffer, source, this);
   }
 
   public String readIdentifier() throws IOException {
-    return identifierDecoder.decode(buffer, source);
+    return identifierDecoder.decode(buffer, source, this);
   }
 
   public <T> T readValue(Decoder<T> decoder) throws IOException {
-    return decoder.decode(buffer, source);
+    return decoder.decode(buffer, source, this);
   }
 
   /**
@@ -368,7 +368,13 @@ public final class MessageReader implements Closeable {
    * #readPayload} that in total read <i>exactly</i> the number of bytes returned by this method.
    */
   public int readBinaryHeader() throws IOException {
-    return source.getBinaryHeader(buffer);
+    var format = getByte();
+    return switch (format) {
+      case ValueFormat.BIN8 -> getLength8();
+      case ValueFormat.BIN16 -> getLength16();
+      case ValueFormat.BIN32 -> getLength32(ValueType.BINARY);
+      default -> throw Exceptions.typeMismatch(format, RequestedType.BINARY);
+    };
   }
 
   /**
@@ -379,8 +385,19 @@ public final class MessageReader implements Closeable {
    *
    * <p>This method is a low-level alternative to {@link #readString()}.
    */
-  public int readRawStringHeader() throws IOException {
-    return source.getStringHeader(buffer);
+  public int readStringHeader() throws IOException {
+    var format = getByte();
+    return switch (format) {
+      case ValueFormat.STR8 -> getLength8();
+      case ValueFormat.STR16 -> getLength16();
+      case ValueFormat.STR32 -> getLength32(ValueType.STRING);
+      default -> {
+        if (ValueFormat.isFixStr(format)) {
+          yield ValueFormat.getFixStrLength(format);
+        }
+        throw Exceptions.typeMismatch(format, RequestedType.STRING);
+      }
+    };
   }
 
   /**
@@ -391,7 +408,18 @@ public final class MessageReader implements Closeable {
    * {@code Header}.
    */
   public ExtensionHeader readExtensionHeader() throws IOException {
-    return source.getExtensionHeader(buffer);
+    var format = getByte();
+    return switch (format) {
+      case ValueFormat.FIXEXT1 -> new ExtensionHeader(1, getByte());
+      case ValueFormat.FIXEXT2 -> new ExtensionHeader(2, getByte());
+      case ValueFormat.FIXEXT4 -> new ExtensionHeader(4, getByte());
+      case ValueFormat.FIXEXT8 -> new ExtensionHeader(8, getByte());
+      case ValueFormat.FIXEXT16 -> new ExtensionHeader(16, getByte());
+      case ValueFormat.EXT8 -> new ExtensionHeader(getLength8(), getByte());
+      case ValueFormat.EXT16 -> new ExtensionHeader(getLength16(), getByte());
+      case ValueFormat.EXT32 -> new ExtensionHeader(getLength32(ValueType.EXTENSION), getByte());
+      default -> throw Exceptions.typeMismatch(format, RequestedType.EXTENSION);
+    };
   }
 
   /**
@@ -400,7 +428,7 @@ public final class MessageReader implements Closeable {
    * @see #readPayload(ByteBuffer, int)
    */
   public int readPayload(ByteBuffer buffer) throws IOException {
-    return source.readAtLeast(buffer, 1);
+    return source.readAtLeast(buffer, 1); // TODO
   }
 
   /**
@@ -408,10 +436,10 @@ public final class MessageReader implements Closeable {
    * given buffer, starting at the buffer's current {@linkplain ByteBuffer#position() position}.
    *
    * <p>This method is meant to be called one or multiple times after {@link #readBinaryHeader()} or
-   * {@link #readRawStringHeader()}.
+   * {@link #readStringHeader()}.
    */
   public int readPayload(ByteBuffer buffer, int minBytes) throws IOException {
-    return source.readAtLeast(buffer, minBytes);
+    return source.readAtLeast(buffer, minBytes); // TODO
   }
 
   /** Closes the underlying message {@linkplain MessageSource source}. */
@@ -436,32 +464,39 @@ public final class MessageReader implements Closeable {
     return source.getLong(buffer);
   }
 
-  private short getUByte() throws IOException {
-    return source.getUByte(buffer);
-  }
-
-  private int getUShort() throws IOException {
-    return source.getUShort(buffer);
-  }
-
-  private long getUInt() throws IOException {
-    return source.getUInt(buffer);
-  }
-
-  private int getLength8() throws IOException {
-    return source.getLength8(buffer);
-  }
-
-  private int getLength16() throws IOException {
-    return source.getLength16(buffer);
-  }
-
-  private int getLength32(ValueType valueType) throws IOException {
-    return source.getLength32(buffer, valueType);
-  }
-
   // non-private for testing
   byte nextFormat() throws IOException {
     return source.nextByte(buffer);
+  }
+
+  private short getUByte() throws IOException {
+    source.ensureRemaining(buffer, 1);
+    return (short) (buffer.get() & 0xff);
+  }
+
+  private int getUShort() throws IOException {
+    source.ensureRemaining(buffer, 2);
+    return buffer.getShort() & 0xffff;
+  }
+
+  private long getUInt() throws IOException {
+    source.ensureRemaining(buffer, 4);
+    return buffer.getInt() & 0xffffffffL;
+  }
+
+  private short getLength8() throws IOException {
+    return getUByte();
+  }
+
+  private int getLength16() throws IOException {
+    return getUShort();
+  }
+
+  private int getLength32(ValueType type) throws IOException {
+    var length = getInt();
+    if (length < 0) {
+      throw Exceptions.lengthOverflow(length & 0xffffffffL, type);
+    }
+    return length;
   }
 }

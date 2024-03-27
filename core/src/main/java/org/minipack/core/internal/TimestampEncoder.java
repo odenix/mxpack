@@ -9,6 +9,7 @@ import java.nio.ByteBuffer;
 import java.time.Instant;
 import org.minipack.core.Encoder;
 import org.minipack.core.MessageSink;
+import org.minipack.core.MessageWriter;
 
 public final class TimestampEncoder implements Encoder<Instant> {
   public static final TimestampEncoder INSTANCE = new TimestampEncoder();
@@ -18,17 +19,18 @@ public final class TimestampEncoder implements Encoder<Instant> {
   private TimestampEncoder() {}
 
   @Override
-  public void encode(Instant value, ByteBuffer buffer, MessageSink sink) throws IOException {
+  public void encode(Instant value, ByteBuffer buffer, MessageSink sink, MessageWriter writer)
+      throws IOException {
     var seconds = value.getEpochSecond();
     var nanos = value.getNano();
     if (nanos == 0 && seconds >= 0 && seconds < (1L << 32)) {
-      sink.putExtensionHeader(buffer, 4, EXTENSION_TYPE);
+      writer.writeExtensionHeader(4, EXTENSION_TYPE);
       sink.putInt(buffer, (int) seconds);
     } else if (seconds >= 0 && seconds < (1L << 34)) {
-      sink.putExtensionHeader(buffer, 8, EXTENSION_TYPE);
+      writer.writeExtensionHeader(8, EXTENSION_TYPE);
       sink.putLong(buffer, ((long) nanos) << 34 | seconds);
     } else {
-      sink.putExtensionHeader(buffer, 12, EXTENSION_TYPE);
+      writer.writeExtensionHeader(12, EXTENSION_TYPE);
       sink.putInt(buffer, nanos);
       sink.putLong(buffer, seconds);
     }

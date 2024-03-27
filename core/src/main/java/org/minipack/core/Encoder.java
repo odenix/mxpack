@@ -19,5 +19,6 @@ public interface Encoder<T> {
     return new IdentifierEncoder(maxCacheSize);
   }
 
-  void encode(T value, ByteBuffer buffer, MessageSink sink) throws IOException;
+  void encode(T value, ByteBuffer buffer, MessageSink sink, MessageWriter writer)
+      throws IOException;
 }

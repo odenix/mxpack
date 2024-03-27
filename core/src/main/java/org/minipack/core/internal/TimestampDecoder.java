@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.time.Instant;
 import org.minipack.core.Decoder;
+import org.minipack.core.MessageReader;
 import org.minipack.core.MessageSource;
 
 public final class TimestampDecoder implements Decoder<Instant> {
@@ -19,8 +20,9 @@ public final class TimestampDecoder implements Decoder<Instant> {
   private TimestampDecoder() {}
 
   @Override
-  public Instant decode(ByteBuffer buffer, MessageSource source) throws IOException {
-    var header = source.getExtensionHeader(buffer);
+  public Instant decode(ByteBuffer buffer, MessageSource source, MessageReader reader)
+      throws IOException {
+    var header = reader.readExtensionHeader();
     if (header.type() != EXTENSION_TYPE) {
       throw Exceptions.extensionTypeMismatch(EXTENSION_TYPE, header.type());
     }

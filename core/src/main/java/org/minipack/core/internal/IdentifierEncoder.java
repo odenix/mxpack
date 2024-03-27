@@ -20,10 +20,11 @@ public final class IdentifierEncoder implements Encoder<String> {
   }
 
   @Override
-  public void encode(String value, ByteBuffer buffer, MessageSink sink) throws IOException {
+  public void encode(String value, ByteBuffer buffer, MessageSink sink, MessageWriter writer)
+      throws IOException {
     var bytes = cache.computeIfAbsent(value, (str) -> str.getBytes(StandardCharsets.UTF_8));
     evictIfNecessary();
-    sink.putStringHeader(buffer, bytes.length);
+    writer.writeStringHeader(bytes.length);
     sink.putBytes(buffer, bytes);
   }
 

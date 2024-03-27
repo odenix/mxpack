@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import org.minipack.core.Encoder;
 import org.minipack.core.MessageSink;
+import org.minipack.core.MessageWriter;
 
 public final class StringEncoder implements Encoder<CharSequence> {
   private final int maxStringSize;
@@ -17,16 +18,17 @@ public final class StringEncoder implements Encoder<CharSequence> {
   }
 
   @Override
-  public void encode(CharSequence string, ByteBuffer buffer, MessageSink sink) throws IOException {
+  public void encode(CharSequence string, ByteBuffer buffer, MessageSink sink, MessageWriter writer)
+      throws IOException {
     var length = utf8Length(string);
     if (length > maxStringSize) {
       throw Exceptions.stringTooLargeOnWrite(length, maxStringSize);
     }
     if (length < 0) {
-      sink.putStringHeader(buffer, -length);
+      writer.writeStringHeader(-length);
       encodeAscii(string, buffer, sink);
     } else {
-      sink.putStringHeader(buffer, length);
+      writer.writeStringHeader(length);
       encodeNonAscii(string, buffer, sink);
     }
   }
@@ -69,7 +71,7 @@ public final class StringEncoder implements Encoder<CharSequence> {
       if (i == length) break;
       buffer.flip();
       sink.write(buffer);
-      buffer.compact();
+      buffer.clear();
     }
   }
 

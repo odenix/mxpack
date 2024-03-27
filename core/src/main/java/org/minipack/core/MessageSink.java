@@ -10,9 +10,7 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
 import org.minipack.core.internal.ChannelSink;
-import org.minipack.core.internal.Exceptions;
 import org.minipack.core.internal.OutputStreamSink;
-import org.minipack.core.internal.ValueFormat;
 
 /** The underlying sink of a {@link MessageWriter}. */
 public abstract class MessageSink implements Closeable {
@@ -47,7 +45,7 @@ public abstract class MessageSink implements Closeable {
     if (minBytes > 0) {
       buffer.flip();
       write(buffer);
-      buffer.compact();
+      buffer.clear();
     }
   }
 
@@ -112,99 +110,5 @@ public abstract class MessageSink implements Closeable {
   public final void putLong(ByteBuffer buffer, long value) throws IOException {
     ensureRemaining(buffer, 8);
     buffer.putLong(value);
-  }
-
-  /**
-   * Puts a MessagePack string header with the given length into the given buffer, ensuring that the
-   * buffer has enough space remaining.
-   */
-  public final void putStringHeader(ByteBuffer buffer, int length) throws IOException {
-    if (length < 0) {
-      throw Exceptions.negativeLength(length);
-    }
-    if (length < (1 << 5)) {
-      putByte(buffer, (byte) (ValueFormat.FIXSTR_PREFIX | length));
-    } else if (length < (1 << 8)) {
-      putBytes(buffer, ValueFormat.STR8, (byte) length);
-    } else if (length < (1 << 16)) {
-      putByteAndShort(buffer, ValueFormat.STR16, (short) length);
-    } else {
-      putByteAndInt(buffer, ValueFormat.STR32, length);
-    }
-  }
-
-  /**
-   * Puts a MessagePack binary header with the given length into the given buffer, ensuring that the
-   * buffer has enough space remaining.
-   */
-  public final void putBinaryHeader(ByteBuffer buffer, int length) throws IOException {
-    if (length < 0) {
-      throw Exceptions.negativeLength(length);
-    }
-    if (length < (1 << 8)) {
-      putBytes(buffer, ValueFormat.BIN8, (byte) length);
-    } else if (length < (1 << 16)) {
-      putByteAndShort(buffer, ValueFormat.BIN16, (short) length);
-    } else {
-      putByteAndInt(buffer, ValueFormat.BIN32, length);
-    }
-  }
-
-  /**
-   * Puts a MessagePack extension header with the given length into the given buffer, ensuring that
-   * the buffer has enough space remaining.
-   */
-  public final void putExtensionHeader(ByteBuffer buffer, int length, byte type)
-      throws IOException {
-    if (length < 0) {
-      throw Exceptions.negativeLength(length);
-    }
-    switch (length) {
-      case 1 -> putBytes(buffer, ValueFormat.FIXEXT1, type);
-      case 2 -> putBytes(buffer, ValueFormat.FIXEXT2, type);
-      case 4 -> putBytes(buffer, ValueFormat.FIXEXT4, type);
-      case 8 -> putBytes(buffer, ValueFormat.FIXEXT8, type);
-      case 16 -> putBytes(buffer, ValueFormat.FIXEXT16, type);
-      default -> {
-        if (length < (1 << 8)) {
-          putBytes(buffer, ValueFormat.EXT8, (byte) length);
-        } else if (length < (1 << 16)) {
-          putByteAndShort(buffer, ValueFormat.EXT16, (short) length);
-        } else {
-          putByteAndInt(buffer, ValueFormat.EXT32, length);
-        }
-        putByte(buffer, type);
-      }
-    }
-  }
-
-  final void putByteAndShort(ByteBuffer buffer, byte value1, short value2) throws IOException {
-    ensureRemaining(buffer, 3);
-    buffer.put(value1);
-    buffer.putShort(value2);
-  }
-
-  final void putByteAndInt(ByteBuffer buffer, byte value1, int value2) throws IOException {
-    ensureRemaining(buffer, 5);
-    buffer.put(value1);
-    buffer.putInt(value2);
-  }
-
-  final void putByteAndLong(ByteBuffer buffer, byte value1, long value2) throws IOException {
-    ensureRemaining(buffer, 9);
-    buffer.put(value1);
-    buffer.putLong(value2);
-  }
-
-  final void putByteAndFloat(ByteBuffer buffer, float value) throws IOException {
-    ensureRemaining(buffer, 5);
-    buffer.put(ValueFormat.FLOAT32);
-    buffer.putFloat(value);
-  }
-
-  final void putByteAndDouble(ByteBuffer buffer, double value) throws IOException {
-    ensureRemaining(buffer, 9);
-    buffer.put(ValueFormat.FLOAT64);
-    buffer.putDouble(value);
   }
 }

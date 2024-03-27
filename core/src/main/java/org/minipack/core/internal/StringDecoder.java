@@ -9,6 +9,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import org.jspecify.annotations.Nullable;
 import org.minipack.core.Decoder;
+import org.minipack.core.MessageReader;
 import org.minipack.core.MessageSource;
 
 public final class StringDecoder implements Decoder<String> {
@@ -21,8 +22,9 @@ public final class StringDecoder implements Decoder<String> {
   }
 
   @Override
-  public String decode(ByteBuffer buffer, MessageSource source) throws IOException {
-    var length = source.getStringHeader(buffer);
+  public String decode(ByteBuffer buffer, MessageSource source, MessageReader reader)
+      throws IOException {
+    var length = reader.readStringHeader();
     if (length > sizeLimit) {
       throw Exceptions.stringTooLargeOnRead(length, sizeLimit);
     }
