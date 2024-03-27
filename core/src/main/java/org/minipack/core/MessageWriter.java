@@ -10,9 +10,9 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
 import java.time.Instant;
+import java.util.function.BiConsumer;
 import org.jspecify.annotations.Nullable;
 import org.minipack.core.internal.Exceptions;
-import org.minipack.core.internal.TimestampEncoder;
 import org.minipack.core.internal.ValueFormat;
 
 /**
@@ -32,6 +32,7 @@ public final class MessageWriter implements Closeable {
   private static final int DEFAULT_BUFFER_CAPACITY = 1 << 13;
   private static final int DEFAULT_STRING_SIZE_LIMIT = 1 << 20;
   private static final int DEFAULT_IDENTIFIER_CACHE_LIMIT = 1 << 10;
+  private static final byte TIMESTAMP_EXTENSION_TYPE = -1;
 
   private final MessageSink sink;
   private final ByteBuffer buffer;
@@ -233,8 +234,20 @@ public final class MessageWriter implements Closeable {
   }
 
   /** Writes a timestamp value. */
-  public void write(Instant timestamp) throws IOException {
-    TimestampEncoder.INSTANCE.encode(timestamp, buffer, sink, this);
+  public void write(Instant value) throws IOException {
+    var seconds = value.getEpochSecond();
+    var nanos = value.getNano();
+    if (nanos == 0 && seconds >= 0 && seconds < (1L << 32)) {
+      writeExtensionHeader(4, TIMESTAMP_EXTENSION_TYPE);
+      putInt((int) seconds);
+    } else if (seconds >= 0 && seconds < (1L << 34)) {
+      writeExtensionHeader(8, TIMESTAMP_EXTENSION_TYPE);
+      putLong(((long) nanos) << 34 | seconds);
+    } else {
+      writeExtensionHeader(12, TIMESTAMP_EXTENSION_TYPE);
+      putInt(nanos);
+      putLong(seconds);
+    }
   }
 
   /** Writes a string value. */
@@ -356,15 +369,8 @@ public final class MessageWriter implements Closeable {
     }
   }
 
-  /**
-   * Writes the given buffer's {@linkplain ByteBuffer#remaining() length} bytes, starting at the
-   * buffer's current {@linkplain ByteBuffer#position() position}.
-   *
-   * <p>This method must be called after {@link #writeBinaryHeader} or {@link #writeStringHeader}.
-   */
-  public int writePayload(ByteBuffer buffer) throws IOException {
-    writeBuffer();
-    return sink.write(buffer);
+  public void writePayload(BiConsumer<ByteBuffer, MessageSink> writer) {
+    writer.accept(buffer, sink);
   }
 
   /**
@@ -372,7 +378,7 @@ public final class MessageWriter implements Closeable {
    * {@linkplain MessageSink sink}.
    */
   public void flush() throws IOException {
-    writeBuffer();
+    sink.write(buffer);
     sink.flush();
   }
 
@@ -394,6 +400,14 @@ public final class MessageWriter implements Closeable {
 
   private void putBytes(byte value1, byte value2) throws IOException {
     sink.putBytes(buffer, value1, value2);
+  }
+
+  private void putInt(int value) throws IOException {
+    sink.putInt(buffer, value);
+  }
+
+  private void putLong(long value) throws IOException {
+    sink.putLong(buffer, value);
   }
 
   private void putInt8(byte value) throws IOException {
@@ -434,12 +448,6 @@ public final class MessageWriter implements Closeable {
 
   private void putFloat64(double value) throws IOException {
     putByteAndDouble(value);
-  }
-
-  private void writeBuffer() throws IOException {
-    buffer.flip();
-    sink.write(buffer);
-    buffer.clear();
   }
 
   private void putByteAndShort(byte value1, short value2) throws IOException {

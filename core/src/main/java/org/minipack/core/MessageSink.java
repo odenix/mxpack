@@ -25,8 +25,8 @@ public abstract class MessageSink implements Closeable {
   }
 
   /**
-   * Writes the {@linkplain ByteBuffer#remaining() remaining} bytes from the given buffer to this
-   * sink, returning the number of bytes written.
+   * Writes the given buffer's bytes from index 0 to the buffer's current position to this sink,
+   * then clears the buffer. Returns the number of bytes written.
    */
   public abstract int write(ByteBuffer buffer) throws IOException;
 
@@ -42,11 +42,7 @@ public abstract class MessageSink implements Closeable {
   public final void ensureRemaining(ByteBuffer buffer, int byteCount) throws IOException {
     assert byteCount <= buffer.capacity();
     var minBytes = byteCount - buffer.remaining();
-    if (minBytes > 0) {
-      buffer.flip();
-      write(buffer);
-      buffer.clear();
-    }
+    if (minBytes > 0) write(buffer);
   }
 
   /**

@@ -10,10 +10,10 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
 import java.time.Instant;
+import java.util.function.BiConsumer;
 import org.jspecify.annotations.Nullable;
 import org.minipack.core.internal.Exceptions;
 import org.minipack.core.internal.RequestedType;
-import org.minipack.core.internal.TimestampDecoder;
 import org.minipack.core.internal.ValueFormat;
 
 /**
@@ -32,6 +32,8 @@ public final class MessageReader implements Closeable {
   private static final int DEFAULT_BUFFER_CAPACITY = 1 << 13;
   private static final int DEFAULT_STRING_SIZE_LIMIT = 1 << 20;
   private static final int DEFAULT_IDENTIFIER_CACHE_LIMIT = 1 << 10;
+  private static final byte TIMESTAMP_EXTENSION_TYPE = -1;
+  private static final long LOWER_34_BITS_MASK = 0x3ffffffffL;
 
   private final MessageSource source;
   private final ByteBuffer buffer;
@@ -300,14 +302,32 @@ public final class MessageReader implements Closeable {
 
   /** Reads a timestamp value. */
   public Instant readTimestamp() throws IOException {
-    return TimestampDecoder.INSTANCE.decode(buffer, source, this);
+    var header = readExtensionHeader();
+    if (header.type() != TIMESTAMP_EXTENSION_TYPE) {
+      throw Exceptions.extensionTypeMismatch(TIMESTAMP_EXTENSION_TYPE, header.type());
+    }
+    return switch (header.length()) {
+      case 4 -> Instant.ofEpochSecond(source.getInt(buffer));
+      case 8 -> {
+        var value = source.getLong(buffer);
+        var nanos = value >>> 34;
+        var seconds = value & LOWER_34_BITS_MASK;
+        yield Instant.ofEpochSecond(seconds, nanos);
+      }
+      case 12 -> {
+        var nanos = source.getInt(buffer);
+        var seconds = source.getLong(buffer);
+        yield Instant.ofEpochSecond(seconds, nanos);
+      }
+      default -> throw Exceptions.invalidTimestampLength(header.length());
+    };
   }
 
   /**
    * Reads a string value.
    *
    * <p>To read a string as a sequence of bytes, use {@link #readStringHeader()} together with
-   * {@link #readPayload}.
+   * {@link #readPayload(BiConsumer)}.
    */
   public String readString() throws IOException {
     return stringDecoder.decode(buffer, source, this);
@@ -364,8 +384,7 @@ public final class MessageReader implements Closeable {
   /**
    * Starts reading a binary value.
    *
-   * <p>A call to this method <i>must</i> be followed by one or multiple calls to {@link
-   * #readPayload} that in total read <i>exactly</i> the number of bytes returned by this method.
+   * <p>A call to this method <i>must</i> be followed by a call to {@link #readPayload}.
    */
   public int readBinaryHeader() throws IOException {
     var format = getByte();
@@ -380,8 +399,7 @@ public final class MessageReader implements Closeable {
   /**
    * Starts reading a string value as a sequence of bytes.
    *
-   * <p>A call to this method <i>must</i> be followed by one or more calls to {@link #readPayload}
-   * that in total read <i>exactly</i> the number of bytes returned by this method.
+   * <p>A call to this method <i>must</i> be followed by a call to {@link #readPayload}.
    *
    * <p>This method is a low-level alternative to {@link #readString()}.
    */
@@ -403,9 +421,7 @@ public final class MessageReader implements Closeable {
   /**
    * Starts reading an extension value.
    *
-   * <p>A call to this method <i>must</i> be followed by one or multiple calls to {@link
-   * #readPayload} that in total read <i>exactly</i> the number of bytes stated in the returned
-   * {@code Header}.
+   * <p>A call to this method <i>must</i> be followed by a call to {@link #readPayload}.
    */
   public ExtensionHeader readExtensionHeader() throws IOException {
     var format = getByte();
@@ -422,24 +438,8 @@ public final class MessageReader implements Closeable {
     };
   }
 
-  /**
-   * Equivalent to {@code readPayload(buffer, 1)}.
-   *
-   * @see #readPayload(ByteBuffer, int)
-   */
-  public int readPayload(ByteBuffer buffer) throws IOException {
-    return source.readAtLeast(buffer, 1); // TODO
-  }
-
-  /**
-   * Reads between {@code minBytes} and {@linkplain ByteBuffer#remaining() remaining} bytes into the
-   * given buffer, starting at the buffer's current {@linkplain ByteBuffer#position() position}.
-   *
-   * <p>This method is meant to be called one or multiple times after {@link #readBinaryHeader()} or
-   * {@link #readStringHeader()}.
-   */
-  public int readPayload(ByteBuffer buffer, int minBytes) throws IOException {
-    return source.readAtLeast(buffer, minBytes); // TODO
+  public void readPayload(BiConsumer<ByteBuffer, MessageSource> reader) {
+    reader.accept(buffer, source);
   }
 
   /** Closes the underlying message {@linkplain MessageSource source}. */

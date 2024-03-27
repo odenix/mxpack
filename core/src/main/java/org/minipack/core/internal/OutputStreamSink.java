@@ -22,9 +22,10 @@ public final class OutputStreamSink extends MessageSink {
     if (!buffer.hasArray()) {
       throw Exceptions.arrayBackedBufferRequired();
     }
-    var bytesToWrite = buffer.remaining();
-    out.write(buffer.array(), buffer.arrayOffset() + buffer.position(), bytesToWrite);
-    buffer.position(buffer.position() + bytesToWrite);
+    buffer.flip();
+    var bytesToWrite = buffer.limit();
+    out.write(buffer.array(), buffer.arrayOffset(), bytesToWrite);
+    buffer.clear();
     return bytesToWrite;
   }
 
