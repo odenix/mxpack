@@ -13,20 +13,20 @@ import org.minipack.core.MessageReader;
 import org.minipack.core.MessageSource;
 
 public final class StringDecoder implements Decoder<String> {
-  private final int sizeLimit;
+  private final int maxStringSize;
   private final GrowableBuffer growableBuffer;
 
-  public StringDecoder(int sizeLimit) {
-    this.sizeLimit = sizeLimit;
-    growableBuffer = new GrowableBuffer(sizeLimit);
+  public StringDecoder(int minBufferSize, int maxStringSize) {
+    this.maxStringSize = maxStringSize;
+    growableBuffer = new GrowableBuffer(minBufferSize, maxStringSize);
   }
 
   @Override
   public String decode(ByteBuffer buffer, MessageSource source, MessageReader reader)
       throws IOException {
     var length = reader.readStringHeader();
-    if (length > sizeLimit) {
-      throw Exceptions.stringTooLargeOnRead(length, sizeLimit);
+    if (length > maxStringSize) {
+      throw Exceptions.stringTooLargeOnRead(length, maxStringSize);
     }
     return decode(buffer, length, source);
   }
@@ -56,14 +56,12 @@ public final class StringDecoder implements Decoder<String> {
   }
 
   private static final class GrowableBuffer {
-    private static final int DEFAULT_MIN_CAPACITY = 1024; // TODO
-
     private final int minCapacity;
     private final int maxCapacity;
     private @Nullable ByteBuffer buffer;
 
-    GrowableBuffer(int maxCapacity) {
-      this.minCapacity = Math.min(DEFAULT_MIN_CAPACITY, maxCapacity);
+    GrowableBuffer(int minCapacity, int maxCapacity) {
+      this.minCapacity = Math.min(minCapacity, maxCapacity);
       this.maxCapacity = maxCapacity;
     }
 

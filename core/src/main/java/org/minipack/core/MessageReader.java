@@ -28,10 +28,11 @@ import org.minipack.core.internal.ValueFormat;
  * ReaderException} if some other error occurs.
  */
 public final class MessageReader implements Closeable {
-  private static final int MIN_BUFFER_CAPACITY = 9;
-  private static final int DEFAULT_BUFFER_CAPACITY = 1024 * 8;
-  private static final int DEFAULT_STRING_SIZE_LIMIT = 1024 * 1024;
-  private static final int DEFAULT_IDENTIFIER_CACHE_LIMIT = 1024 * 64;
+  private static final int MIN_BUFFER_SIZE = 9;
+  private static final int DEFAULT_BUFFER_SIZE = 1024 * 8;
+  private static final int MAX_STRING_SIZE = 1024 * 1024;
+  private static final int MAX_IDENTIFIER_STRING_SIZE = 1024;
+  private static final int MAX_IDENTIFIER_CACHE_SIZE = 1024 * 8;
   private static final byte TIMESTAMP_EXTENSION_TYPE = -1;
   private static final long LOWER_34_BITS_MASK = 0x3ffffffffL;
 
@@ -44,9 +45,9 @@ public final class MessageReader implements Closeable {
   public static final class Builder {
     private @Nullable MessageSource source;
     private @Nullable ByteBuffer buffer;
-    private Decoder<String> stringDecoder = Decoder.stringDecoder(DEFAULT_STRING_SIZE_LIMIT);
+    private @Nullable Decoder<String> stringDecoder;
     private Decoder<String> identifierDecoder =
-        Decoder.identifierDecoder(DEFAULT_IDENTIFIER_CACHE_LIMIT);
+        Decoder.identifierDecoder(MAX_IDENTIFIER_STRING_SIZE, MAX_IDENTIFIER_CACHE_SIZE);
 
     /** Sets the underlying source to read from. */
     public Builder source(MessageSource source) {
@@ -88,13 +89,7 @@ public final class MessageReader implements Closeable {
       return this;
     }
 
-    /**
-     * Equivalent to {@code build(Decoder.defaultStringDecoder(1024 * 1024),
-     * Decoder.defaultIdentifierDecoder(1024))}.
-     *
-     * @see Decoder#stringDecoder(int)
-     * @see Decoder#identifierDecoder(int)
-     */
+    /** Builds a {@code MessageReader} from this builder's current state. */
     public MessageReader build() {
       return new MessageReader(this);
     }
@@ -113,11 +108,14 @@ public final class MessageReader implements Closeable {
     buffer =
         builder.buffer != null
             ? builder.buffer.position(0).limit(0)
-            : ByteBuffer.allocate(DEFAULT_BUFFER_CAPACITY).limit(0);
-    if (buffer.capacity() < MIN_BUFFER_CAPACITY) {
-      throw Exceptions.bufferTooSmall(buffer.capacity(), MIN_BUFFER_CAPACITY);
+            : ByteBuffer.allocate(DEFAULT_BUFFER_SIZE).limit(0);
+    if (buffer.capacity() < MIN_BUFFER_SIZE) {
+      throw Exceptions.bufferTooSmall(buffer.capacity(), MIN_BUFFER_SIZE);
     }
-    stringDecoder = builder.stringDecoder;
+    stringDecoder =
+        builder.stringDecoder != null
+            ? builder.stringDecoder
+            : Decoder.stringDecoder(buffer.capacity() * 2, MAX_STRING_SIZE);
     identifierDecoder = builder.identifierDecoder;
   }
 

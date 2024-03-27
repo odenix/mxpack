@@ -28,10 +28,11 @@ import org.minipack.core.internal.ValueFormat;
  * WriterException} if some other error occurs.
  */
 public final class MessageWriter implements Closeable {
-  private static final int MIN_BUFFER_CAPACITY = 9;
-  private static final int DEFAULT_BUFFER_CAPACITY = 1024 * 8;
-  private static final int DEFAULT_STRING_SIZE_LIMIT = 1024 * 1024;
-  private static final int DEFAULT_IDENTIFIER_CACHE_LIMIT = 1024 * 64;
+  private static final int MIN_BUFFER_SIZE = 9;
+  private static final int DEFAULT_BUFFER_SIZE = 1024 * 8;
+  private static final int MAX_STRING_SIZE = 1024 * 1024;
+  private static final int MAX_IDENTIFIER_STRING_SIZE = 1024;
+  private static final int MAX_IDENTIFIER_CACHE_SIZE = 1024 * 8;
   private static final byte TIMESTAMP_EXTENSION_TYPE = -1;
 
   private final MessageSink sink;
@@ -45,9 +46,9 @@ public final class MessageWriter implements Closeable {
 
     private @Nullable MessageSink sink;
     private @Nullable ByteBuffer buffer;
-    private Encoder<CharSequence> stringEncoder = Encoder.stringEncoder(DEFAULT_STRING_SIZE_LIMIT);
+    private Encoder<CharSequence> stringEncoder = Encoder.stringEncoder(MAX_STRING_SIZE);
     private Encoder<String> identifierEncoder =
-        Encoder.identifierEncoder(DEFAULT_IDENTIFIER_CACHE_LIMIT);
+        Encoder.identifierEncoder(MAX_IDENTIFIER_STRING_SIZE, MAX_IDENTIFIER_CACHE_SIZE);
 
     /** Sets the message sink to write to. */
     public Builder sink(MessageSink sink) {
@@ -113,11 +114,9 @@ public final class MessageWriter implements Closeable {
     }
     sink = builder.sink;
     buffer =
-        builder.buffer != null
-            ? builder.buffer.clear()
-            : ByteBuffer.allocate(DEFAULT_BUFFER_CAPACITY);
-    if (buffer.capacity() < MIN_BUFFER_CAPACITY) {
-      throw Exceptions.bufferTooSmall(buffer.capacity(), MIN_BUFFER_CAPACITY);
+        builder.buffer != null ? builder.buffer.clear() : ByteBuffer.allocate(DEFAULT_BUFFER_SIZE);
+    if (buffer.capacity() < MIN_BUFFER_SIZE) {
+      throw Exceptions.bufferTooSmall(buffer.capacity(), MIN_BUFFER_SIZE);
     }
     stringEncoder = builder.stringEncoder;
     identifierEncoder = builder.identifierEncoder;

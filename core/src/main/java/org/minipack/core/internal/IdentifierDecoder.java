@@ -15,9 +15,11 @@ import org.minipack.core.MessageSource;
 
 public final class IdentifierDecoder implements Decoder<String> {
   private final ConcurrentMap<byte[], String> cache = new ConcurrentHashMap<>();
+  private final int maxStringSize;
   private final int maxCacheSize;
 
-  public IdentifierDecoder(int maxCacheSize) {
+  public IdentifierDecoder(int maxStringSize, int maxCacheSize) {
+    this.maxStringSize = maxStringSize;
     this.maxCacheSize = maxCacheSize;
   }
 
@@ -25,17 +27,18 @@ public final class IdentifierDecoder implements Decoder<String> {
   public String decode(ByteBuffer buffer, MessageSource source, MessageReader reader)
       throws IOException {
     var length = reader.readStringHeader();
-    var bytes = source.getBytes(buffer, length);
-    var string = cache.computeIfAbsent(bytes, (b) -> new String(b, StandardCharsets.UTF_8));
-    evictIfNecessary();
-    return string;
-  }
-
-  private void evictIfNecessary() {
-    if (cache.size() > maxCacheSize) {
-      // evict any entry
-      var key = cache.keySet().iterator().next();
-      cache.remove(key);
+    if (length > maxStringSize) {
+      throw Exceptions.stringTooLargeOnRead(length, maxStringSize);
     }
+    var bytes = source.getBytes(buffer, length);
+    return cache.computeIfAbsent(
+        bytes,
+        (b) -> {
+          var str = new String(b, StandardCharsets.UTF_8);
+          if (cache.size() > maxCacheSize) {
+            throw Exceptions.identifierCacheSizeExceeded(maxCacheSize);
+          }
+          return str;
+        });
   }
 }

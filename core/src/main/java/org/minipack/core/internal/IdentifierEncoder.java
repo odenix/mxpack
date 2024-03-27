@@ -13,26 +13,31 @@ import org.minipack.core.*;
 
 public final class IdentifierEncoder implements Encoder<String> {
   private final ConcurrentMap<String, byte[]> cache = new ConcurrentHashMap<>();
+  private final int maxStringSize;
   private final int maxCacheSize;
 
-  public IdentifierEncoder(int maxCacheSize) {
+  public IdentifierEncoder(int maxStringSize, int maxCacheSize) {
+    this.maxStringSize = maxStringSize;
     this.maxCacheSize = maxCacheSize;
   }
 
   @Override
   public void encode(String value, ByteBuffer buffer, MessageSink sink, MessageWriter writer)
       throws IOException {
-    var bytes = cache.computeIfAbsent(value, (str) -> str.getBytes(StandardCharsets.UTF_8));
-    evictIfNecessary();
+    var bytes =
+        cache.computeIfAbsent(
+            value,
+            (str) -> {
+              var b = str.getBytes(StandardCharsets.UTF_8);
+              if (b.length > maxStringSize) {
+                throw Exceptions.stringTooLargeOnWrite(b.length, maxStringSize);
+              }
+              if (cache.size() > maxCacheSize) {
+                throw Exceptions.identifierCacheSizeExceeded(maxCacheSize);
+              }
+              return b;
+            });
     writer.writeStringHeader(bytes.length);
     sink.putBytes(buffer, bytes);
-  }
-
-  private void evictIfNecessary() {
-    if (cache.size() > maxCacheSize) {
-      // evict any entry
-      var key = cache.keySet().iterator().next();
-      cache.remove(key);
-    }
   }
 }
