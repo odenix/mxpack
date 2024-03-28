@@ -12,7 +12,6 @@ import java.nio.channels.WritableByteChannel;
 import org.minipack.core.internal.ChannelSink;
 import org.minipack.core.internal.Exceptions;
 import org.minipack.core.internal.OutputStreamSink;
-import org.minipack.core.internal.ValueFormat;
 
 /** The underlying sink of a {@link MessageWriter}. */
 public abstract class MessageSink implements Closeable {
@@ -172,15 +171,15 @@ public abstract class MessageSink implements Closeable {
     buffer.putLong(value2);
   }
 
-  public void putByteAndFloat(float value) throws IOException {
+  public void putByteAndFloat(byte value1, float value2) throws IOException {
     ensureRemaining(5);
-    buffer.put(ValueFormat.FLOAT32);
-    buffer.putFloat(value);
+    buffer.put(value1);
+    buffer.putFloat(value2);
   }
 
-  public void putByteAndDouble(double value) throws IOException {
+  public void putByteAndDouble(byte value1, double value2) throws IOException {
     ensureRemaining(9);
-    buffer.put(ValueFormat.FLOAT64);
-    buffer.putDouble(value);
+    buffer.put(value1);
+    buffer.putDouble(value2);
   }
 }

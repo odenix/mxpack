@@ -351,44 +351,44 @@ public final class MessageWriter implements Closeable {
     sink.write(buffer);
   }
 
-  public void writeInt8(byte value) throws IOException {
+  private void writeInt8(byte value) throws IOException {
     sink.putBytes(ValueFormat.INT8, value);
   }
 
-  public void writeUInt8(byte value) throws IOException {
+  private void writeUInt8(byte value) throws IOException {
     sink.putBytes(ValueFormat.UINT8, value);
   }
 
-  public void writeInt16(short value) throws IOException {
+  private void writeInt16(short value) throws IOException {
     sink.putByteAndShort(ValueFormat.INT16, value);
   }
 
-  public void writeUInt16(short value) throws IOException {
+  private void writeUInt16(short value) throws IOException {
     sink.putByteAndShort(ValueFormat.UINT16, value);
   }
 
-  public void writeInt32(int value) throws IOException {
+  private void writeInt32(int value) throws IOException {
     sink.putByteAndInt(ValueFormat.INT32, value);
   }
 
-  public void writeUInt32(int value) throws IOException {
+  private void writeUInt32(int value) throws IOException {
     sink.putByteAndInt(ValueFormat.UINT32, value);
   }
 
-  public void writeInt64(long value) throws IOException {
+  private void writeInt64(long value) throws IOException {
     sink.putByteAndLong(ValueFormat.INT64, value);
   }
 
-  public void writeUInt64(long value) throws IOException {
+  private void writeUInt64(long value) throws IOException {
     sink.putByteAndLong(ValueFormat.UINT64, value);
   }
 
-  public void writeFloat32(float value) throws IOException {
-    sink.putByteAndFloat(value);
+  private void writeFloat32(float value) throws IOException {
+    sink.putByteAndFloat(ValueFormat.FLOAT32, value);
   }
 
-  public void writeFloat64(double value) throws IOException {
-    sink.putByteAndDouble(value);
+  private void writeFloat64(double value) throws IOException {
+    sink.putByteAndDouble(ValueFormat.FLOAT64, value);
   }
 
   /**
