@@ -13,14 +13,35 @@ import org.minipack.core.internal.*;
 
 /** The underlying source of a {@link MessageReader}. */
 public abstract class MessageSource implements Closeable {
+  private static final int MIN_BUFFER_SIZE = 9;
+
+  private final ByteBuffer buffer;
+
   /** Returns a source that reads from the given input stream. */
   static MessageSource of(InputStream stream) {
     return new InputStreamSource(stream);
   }
 
+  /** Returns a source that reads from the given input stream. */
+  static MessageSource of(InputStream stream, ByteBuffer buffer) {
+    return new InputStreamSource(stream, buffer);
+  }
+
   /** Returns a source that reads from the given blocking channel. */
   static MessageSource of(ReadableByteChannel blockingChannel) {
     return new ChannelSource(blockingChannel);
+  }
+
+  /** Returns a source that reads from the given blocking channel. */
+  static MessageSource of(ReadableByteChannel blockingChannel, ByteBuffer buffer) {
+    return new ChannelSource(blockingChannel, buffer);
+  }
+
+  public MessageSource(ByteBuffer buffer) {
+    if (buffer.capacity() < MIN_BUFFER_SIZE) {
+      throw Exceptions.bufferTooSmall(buffer.capacity(), MIN_BUFFER_SIZE);
+    }
+    this.buffer = buffer.position(0).limit(0);
   }
 
   /**
@@ -34,6 +55,10 @@ public abstract class MessageSource implements Closeable {
    * byte will be read.
    */
   public abstract int readAny(ByteBuffer buffer, int minBytesHint) throws IOException;
+
+  public ByteBuffer buffer() {
+    return buffer;
+  }
 
   /**
    * Reads between {@code minBytes} and {@linkplain ByteBuffer#remaining() remaining} bytes from
@@ -61,55 +86,82 @@ public abstract class MessageSource implements Closeable {
    *
    * <p>The number of bytes read is between 0 and {@link ByteBuffer#remaining()}.
    */
-  public final void ensureRemaining(ByteBuffer buffer, int length) throws IOException {
+  public final void ensureRemaining(int length) throws IOException {
     int minBytes = length - buffer.remaining();
     if (minBytes > 0) {
       buffer.compact();
       readAtLeast(buffer, minBytes);
       buffer.flip();
-      assert buffer.remaining() >= length;
     }
   }
 
-  public final byte nextByte(ByteBuffer buffer) throws IOException {
-    ensureRemaining(buffer, 1);
+  public final byte nextByte() throws IOException {
+    ensureRemaining(1);
     return buffer.get(buffer.position());
   }
 
-  public final byte getByte(ByteBuffer buffer) throws IOException {
-    ensureRemaining(buffer, 1);
+  public final byte getByte() throws IOException {
+    ensureRemaining(1);
     return buffer.get();
   }
 
-  public final byte[] getBytes(ByteBuffer buffer, int length) throws IOException {
-    ensureRemaining(buffer, length);
+  public final byte[] getBytes(int length) throws IOException {
+    ensureRemaining(length);
     var bytes = new byte[length];
     buffer.get(bytes);
     return bytes;
   }
 
-  public final short getShort(ByteBuffer buffer) throws IOException {
-    ensureRemaining(buffer, 2);
+  public final short getShort() throws IOException {
+    ensureRemaining(2);
     return buffer.getShort();
   }
 
-  public final int getInt(ByteBuffer buffer) throws IOException {
-    ensureRemaining(buffer, 4);
+  public final int getInt() throws IOException {
+    ensureRemaining(4);
     return buffer.getInt();
   }
 
-  public final long getLong(ByteBuffer buffer) throws IOException {
-    ensureRemaining(buffer, 8);
+  public final long getLong() throws IOException {
+    ensureRemaining(8);
     return buffer.getLong();
   }
 
-  public final float getFloat(ByteBuffer buffer) throws IOException {
-    ensureRemaining(buffer, 4);
+  public final float getFloat() throws IOException {
+    ensureRemaining(4);
     return buffer.getFloat();
   }
 
-  public final double getDouble(ByteBuffer buffer) throws IOException {
-    ensureRemaining(buffer, 8);
+  public final double getDouble() throws IOException {
+    ensureRemaining(8);
     return buffer.getDouble();
+  }
+
+  public short getUByte() throws IOException {
+    return (short) (getByte() & 0xff);
+  }
+
+  public int getUShort() throws IOException {
+    return getShort() & 0xffff;
+  }
+
+  public long getUInt() throws IOException {
+    return getInt() & 0xffffffffL;
+  }
+
+  public short getLength8() throws IOException {
+    return getUByte();
+  }
+
+  public int getLength16() throws IOException {
+    return getUShort();
+  }
+
+  public int getLength32(ValueType type) throws IOException {
+    var length = getInt();
+    if (length < 0) {
+      throw Exceptions.lengthOverflow(length & 0xffffffffL, type);
+    }
+    return length;
   }
 }

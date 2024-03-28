@@ -50,10 +50,13 @@ public abstract class MessageWriterReaderTest {
                     ? MessageSink.of(Channels.newChannel(out), writeBuffer)
                     : MessageSink.of(out, writeBuffer))
             .build();
+    var readBuffer = ByteBuffer.allocate(1 << 9);
     reader =
         MessageReader.builder()
-            .source(isChannel ? MessageSource.of(in) : MessageSource.of(Channels.newChannel(in)))
-            .buffer(ByteBuffer.allocate(1 << 9))
+            .source(
+                isChannel
+                    ? MessageSource.of(in, readBuffer)
+                    : MessageSource.of(Channels.newChannel(in), readBuffer))
             .build();
   }
 

@@ -22,14 +22,14 @@ public final class StringDecoder implements Decoder<String> {
   }
 
   @Override
-  public String decode(ByteBuffer buffer, MessageSource source, MessageReader reader)
-      throws IOException {
+  public String decode(MessageSource source, MessageReader reader) throws IOException {
     var length = reader.readStringHeader();
     if (length > maxStringSize) {
       throw Exceptions.stringTooLargeOnRead(length, maxStringSize);
     }
+    var buffer = source.buffer();
     if (buffer.hasArray() && length <= buffer.capacity()) {
-      source.ensureRemaining(buffer, length);
+      source.ensureRemaining(length);
       var result = decode(buffer, length);
       buffer.position(buffer.position() + length);
       return result;

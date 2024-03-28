@@ -5,7 +5,6 @@
 package org.minipack.core;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import org.minipack.core.internal.IdentifierDecoder;
 import org.minipack.core.internal.StringDecoder;
 
@@ -24,5 +23,5 @@ public interface Decoder<T> {
     return new IdentifierDecoder(maxCacheSize);
   }
 
-  T decode(ByteBuffer buffer, MessageSource source, MessageReader reader) throws IOException;
+  T decode(MessageSource source, MessageReader reader) throws IOException;
 }

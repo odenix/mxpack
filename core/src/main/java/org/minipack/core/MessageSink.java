@@ -24,7 +24,7 @@ public abstract class MessageSink implements Closeable {
     if (buffer.capacity() < MIN_BUFFER_SIZE) {
       throw Exceptions.bufferTooSmall(buffer.capacity(), MIN_BUFFER_SIZE);
     }
-    this.buffer = buffer;
+    this.buffer = buffer.position(0).limit(buffer.capacity());
   }
 
   public ByteBuffer buffer() {

@@ -11,9 +11,17 @@ import org.minipack.core.MessageSource;
 
 /** A message source that reads from an {@link InputStream}. */
 public final class InputStreamSource extends MessageSource {
+  private static final int DEFAULT_BUFFER_SIZE = 1024 * 8;
+
   private final InputStream in;
 
   public InputStreamSource(InputStream in) {
+    super(ByteBuffer.allocate(DEFAULT_BUFFER_SIZE));
+    this.in = in;
+  }
+
+  public InputStreamSource(InputStream in, ByteBuffer buffer) {
+    super(buffer);
     this.in = in;
   }
 
