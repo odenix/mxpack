@@ -9,6 +9,7 @@ import static org.assertj.core.api.Assertions.assertThatNoException;
 
 import java.io.*;
 import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -23,15 +24,31 @@ import org.msgpack.core.MessageUnpacker;
 import org.msgpack.value.ValueType;
 
 /** Tests {@link MessageWriter} against {@link org.msgpack.core.MessageUnpacker}. */
-public class MessageWriterTest {
+public abstract class MessageWriterTest {
   private final MessageUnpacker unpacker;
   private final MessageWriter writer;
 
-  public MessageWriterTest() throws IOException {
+  public static class OutputStreamTest extends MessageWriterTest {
+    public OutputStreamTest() throws IOException {
+      super(false);
+    }
+  }
+
+  public static class ChannelTest extends MessageWriterTest {
+    public ChannelTest() throws IOException {
+      super(true);
+    }
+  }
+
+  public MessageWriterTest(boolean isChannel) throws IOException {
     var in = new PipedInputStream(1 << 16);
     var out = new PipedOutputStream(in);
     unpacker = MessagePack.newDefaultUnpacker(in);
-    writer = MessageWriter.builder().sink(out).buffer(ByteBuffer.allocate(1 << 8)).build();
+    writer =
+        MessageWriter.builder()
+            .sink(isChannel ? MessageSink.of(Channels.newChannel(out)) : MessageSink.of(out))
+            .buffer(ByteBuffer.allocate(1 << 8))
+            .build();
   }
 
   @Example

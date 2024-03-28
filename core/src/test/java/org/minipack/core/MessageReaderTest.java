@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -24,15 +25,31 @@ import org.msgpack.core.MessagePack;
 import org.msgpack.core.MessagePacker;
 
 /** Tests {@link MessageReader} against {@link org.msgpack.core.MessagePacker}. */
-public class MessageReaderTest {
+public abstract class MessageReaderTest {
   private final MessagePacker packer;
   private final MessageReader reader;
 
-  public MessageReaderTest() throws IOException {
+  public static class OutputStreamTest extends MessageWriterTest {
+    public OutputStreamTest() throws IOException {
+      super(false);
+    }
+  }
+
+  public static class ChannelTest extends MessageWriterTest {
+    public ChannelTest() throws IOException {
+      super(true);
+    }
+  }
+
+  public MessageReaderTest(boolean isChannel) throws IOException {
     var in = new PipedInputStream(1 << 16);
     var out = new PipedOutputStream(in);
     packer = MessagePack.newDefaultPacker(out);
-    reader = MessageReader.builder().source(in).buffer(ByteBuffer.allocate(1 << 8)).build();
+    reader =
+        MessageReader.builder()
+            .source(isChannel ? MessageSource.of(Channels.newChannel(in)) : MessageSource.of(in))
+            .buffer(ByteBuffer.allocate(1 << 8))
+            .build();
   }
 
   @Example

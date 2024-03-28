@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -21,15 +22,35 @@ import net.jqwik.api.constraints.StringLength;
 import org.minipack.core.internal.ValueFormat;
 
 /** Tests {@link MessageReader} against {@link MessageWriter}. */
-public class MessageWriterReaderTest {
+public abstract class MessageWriterReaderTest {
   private final MessageWriter writer;
   private final MessageReader reader;
 
-  public MessageWriterReaderTest() throws IOException {
+  public static class ChannelToStreamTest extends MessageWriterReaderTest {
+    public ChannelToStreamTest() throws IOException {
+      super(true);
+    }
+  }
+
+  public static class StreamToChannelTest extends MessageWriterReaderTest {
+    public StreamToChannelTest() throws IOException {
+      super(false);
+    }
+  }
+
+  public MessageWriterReaderTest(boolean isChannel) throws IOException {
     var in = new PipedInputStream(1 << 16);
     var out = new PipedOutputStream(in);
-    writer = MessageWriter.builder().sink(out).buffer(ByteBuffer.allocate(1 << 7)).build();
-    reader = MessageReader.builder().source(in).buffer(ByteBuffer.allocate(1 << 9)).build();
+    writer =
+        MessageWriter.builder()
+            .sink(isChannel ? MessageSink.of(Channels.newChannel(out)) : MessageSink.of(out))
+            .buffer(ByteBuffer.allocate(1 << 7))
+            .build();
+    reader =
+        MessageReader.builder()
+            .source(isChannel ? MessageSource.of(in) : MessageSource.of(Channels.newChannel(in)))
+            .buffer(ByteBuffer.allocate(1 << 9))
+            .build();
   }
 
   @Example
