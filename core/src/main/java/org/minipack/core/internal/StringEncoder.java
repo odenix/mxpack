@@ -5,7 +5,6 @@
 package org.minipack.core.internal;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import org.minipack.core.Encoder;
 import org.minipack.core.MessageSink;
 import org.minipack.core.MessageWriter;
@@ -18,7 +17,7 @@ public final class StringEncoder implements Encoder<CharSequence> {
   }
 
   @Override
-  public void encode(CharSequence string, ByteBuffer buffer, MessageSink sink, MessageWriter writer)
+  public void encode(CharSequence string, MessageSink sink, MessageWriter writer)
       throws IOException {
     var length = utf8Length(string);
     if (length > maxStringSize) {
@@ -26,10 +25,10 @@ public final class StringEncoder implements Encoder<CharSequence> {
     }
     if (length < 0) {
       writer.writeStringHeader(-length);
-      encodeAscii(string, buffer, sink);
+      encodeAscii(string, sink);
     } else {
       writer.writeStringHeader(length);
-      encodeNonAscii(string, buffer, sink);
+      encodeNonAscii(string, sink);
     }
   }
 
@@ -59,9 +58,9 @@ public final class StringEncoder implements Encoder<CharSequence> {
     return result;
   }
 
-  private static void encodeAscii(CharSequence string, ByteBuffer buffer, MessageSink sink)
-      throws IOException {
+  private static void encodeAscii(CharSequence string, MessageSink sink) throws IOException {
     var length = string.length();
+    var buffer = sink.buffer();
     var i = 0;
     while (true) { // repeat filling and writing buffer until done
       var nextStop = Math.min(length, i + buffer.remaining());
@@ -75,18 +74,16 @@ public final class StringEncoder implements Encoder<CharSequence> {
     }
   }
 
-  private static void encodeNonAscii(CharSequence string, ByteBuffer buffer, MessageSink sink)
-      throws IOException {
+  private static void encodeNonAscii(CharSequence string, MessageSink sink) throws IOException {
     var length = string.length();
     for (var i = 0; i < length; i++) {
       var ch = string.charAt(i);
       if (ch < 0x80) {
-        sink.putByte(buffer, (byte) ch);
+        sink.putByte((byte) ch);
       } else if (ch < 0x800) {
-        sink.putBytes(buffer, (byte) (0xc0 | ch >>> 6), (byte) (0x80 | (ch & 0x3f)));
+        sink.putBytes((byte) (0xc0 | ch >>> 6), (byte) (0x80 | (ch & 0x3f)));
       } else if (ch < Character.MIN_SURROGATE || ch > Character.MAX_SURROGATE) {
         sink.putBytes(
-            buffer,
             (byte) (0xe0 | ch >>> 12),
             (byte) (0x80 | ((ch >>> 6) & 0x3f)),
             (byte) (0x80 | (ch & 0x3f)));
@@ -97,7 +94,6 @@ public final class StringEncoder implements Encoder<CharSequence> {
         }
         var cp = Character.toCodePoint(ch, ch2);
         sink.putBytes(
-            buffer,
             (byte) (0xf0 | cp >>> 18),
             (byte) (0x80 | ((cp >>> 12) & 0x3f)),
             (byte) (0x80 | ((cp >>> 6) & 0x3f)),

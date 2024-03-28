@@ -42,10 +42,13 @@ public abstract class MessageWriterReaderTest {
   public MessageWriterReaderTest(boolean isChannel) throws IOException {
     var in = new PipedInputStream(1 << 16);
     var out = new PipedOutputStream(in);
+    var writeBuffer = ByteBuffer.allocate(1 << 7);
     writer =
         MessageWriter.builder()
-            .sink(isChannel ? MessageSink.of(Channels.newChannel(out)) : MessageSink.of(out))
-            .buffer(ByteBuffer.allocate(1 << 7))
+            .sink(
+                isChannel
+                    ? MessageSink.of(Channels.newChannel(out), writeBuffer)
+                    : MessageSink.of(out, writeBuffer))
             .build();
     reader =
         MessageReader.builder()

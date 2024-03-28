@@ -5,7 +5,6 @@
 package org.minipack.core.internal;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -21,8 +20,7 @@ public final class IdentifierEncoder implements Encoder<String> {
   }
 
   @Override
-  public void encode(String value, ByteBuffer buffer, MessageSink sink, MessageWriter writer)
-      throws IOException {
+  public void encode(String value, MessageSink sink, MessageWriter writer) throws IOException {
     var bytes =
         cache.computeIfAbsent(
             value,
@@ -34,10 +32,10 @@ public final class IdentifierEncoder implements Encoder<String> {
               }
               return b;
             });
-    if (bytes.length > buffer.capacity()) {
-      throw Exceptions.identifierTooLargeOnWrite(bytes.length, buffer.capacity());
+    if (bytes.length > sink.buffer().capacity()) {
+      throw Exceptions.identifierTooLargeOnWrite(bytes.length, sink.buffer().capacity());
     }
     writer.writeStringHeader(bytes.length);
-    sink.putBytes(buffer, bytes);
+    sink.putBytes(bytes);
   }
 }

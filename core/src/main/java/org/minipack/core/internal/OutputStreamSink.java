@@ -11,9 +11,17 @@ import org.minipack.core.MessageSink;
 
 /** A message sink that writes to an {@link OutputStream}. */
 public final class OutputStreamSink extends MessageSink {
+  private static final int DEFAULT_BUFFER_SIZE = 8 * 1024;
+
   private final OutputStream out;
 
   public OutputStreamSink(OutputStream out) {
+    super(ByteBuffer.allocate(DEFAULT_BUFFER_SIZE));
+    this.out = out;
+  }
+
+  public OutputStreamSink(OutputStream out, ByteBuffer buffer) {
+    super(buffer);
     this.out = out;
   }
 

@@ -45,10 +45,13 @@ public abstract class MessageWriterTest {
     var in = new PipedInputStream(1 << 16);
     var out = new PipedOutputStream(in);
     unpacker = MessagePack.newDefaultUnpacker(in);
+    var buffer = ByteBuffer.allocate(1 << 8);
     writer =
         MessageWriter.builder()
-            .sink(isChannel ? MessageSink.of(Channels.newChannel(out)) : MessageSink.of(out))
-            .buffer(ByteBuffer.allocate(1 << 8))
+            .sink(
+                isChannel
+                    ? MessageSink.of(Channels.newChannel(out), buffer)
+                    : MessageSink.of(out, buffer))
             .build();
   }
 

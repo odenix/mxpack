@@ -10,18 +10,45 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
 import org.minipack.core.internal.ChannelSink;
+import org.minipack.core.internal.Exceptions;
 import org.minipack.core.internal.OutputStreamSink;
+import org.minipack.core.internal.ValueFormat;
 
 /** The underlying sink of a {@link MessageWriter}. */
 public abstract class MessageSink implements Closeable {
+  private static final int MIN_BUFFER_SIZE = 9;
+
+  private final ByteBuffer buffer;
+
+  protected MessageSink(ByteBuffer buffer) {
+    if (buffer.capacity() < MIN_BUFFER_SIZE) {
+      throw Exceptions.bufferTooSmall(buffer.capacity(), MIN_BUFFER_SIZE);
+    }
+    this.buffer = buffer;
+  }
+
+  public ByteBuffer buffer() {
+    return buffer;
+  }
+
   /** Returns a sink that writes to the given output stream. */
   static MessageSink of(OutputStream stream) {
     return new OutputStreamSink(stream);
   }
 
+  /** Returns a sink that writes to the given output stream. */
+  static MessageSink of(OutputStream stream, ByteBuffer buffer) {
+    return new OutputStreamSink(stream, buffer);
+  }
+
   /** Returns a sink that writes to the given blocking channel. */
   static MessageSink of(WritableByteChannel blockingChannel) {
     return new ChannelSink(blockingChannel);
+  }
+
+  /** Returns a sink that writes to the given blocking channel. */
+  static MessageSink of(WritableByteChannel blockingChannel, ByteBuffer buffer) {
+    return new ChannelSink(blockingChannel, buffer);
   }
 
   /**
@@ -33,13 +60,19 @@ public abstract class MessageSink implements Closeable {
   /** Flushes this sink. */
   public abstract void flush() throws IOException;
 
+  public void flushBuffer() throws IOException {
+    buffer.flip();
+    write(buffer);
+    buffer.clear();
+  }
+
   /**
    * Writes enough bytes from the given buffer to this sink for {@linkplain ByteBuffer#put putting}
    * at least {@code byteCount} bytes into the buffer.
    *
    * <p>The number of bytes written is between 0 and {@linkplain ByteBuffer#remaining() remaining}.
    */
-  public final void ensureRemaining(ByteBuffer buffer, int byteCount) throws IOException {
+  public final void ensureRemaining(int byteCount) throws IOException {
     assert byteCount <= buffer.capacity();
     var minBytes = byteCount - buffer.remaining();
     if (minBytes > 0) {
@@ -52,8 +85,8 @@ public abstract class MessageSink implements Closeable {
   /**
    * Puts a byte value into the given buffer, ensuring that the buffer has enough space remaining.
    */
-  public final void putByte(ByteBuffer buffer, byte value) throws IOException {
-    ensureRemaining(buffer, 1);
+  public final void putByte(byte value) throws IOException {
+    ensureRemaining(1);
     buffer.put(value);
   }
 
@@ -61,8 +94,8 @@ public abstract class MessageSink implements Closeable {
    * Puts two byte values into the given buffer, ensuring that the buffer has enough space
    * remaining.
    */
-  public final void putBytes(ByteBuffer buffer, byte value1, byte value2) throws IOException {
-    ensureRemaining(buffer, 2);
+  public final void putBytes(byte value1, byte value2) throws IOException {
+    ensureRemaining(2);
     buffer.put(value1);
     buffer.put(value2);
   }
@@ -71,9 +104,8 @@ public abstract class MessageSink implements Closeable {
    * Puts three byte values into the given buffer, ensuring that the buffer has enough space
    * remaining.
    */
-  public final void putBytes(ByteBuffer buffer, byte value1, byte value2, byte value3)
-      throws IOException {
-    ensureRemaining(buffer, 3);
+  public final void putBytes(byte value1, byte value2, byte value3) throws IOException {
+    ensureRemaining(3);
     buffer.put(value1);
     buffer.put(value2);
     buffer.put(value3);
@@ -83,42 +115,72 @@ public abstract class MessageSink implements Closeable {
    * Puts four byte values into the given buffer, ensuring that the buffer has enough space
    * remaining.
    */
-  public final void putBytes(ByteBuffer buffer, byte value1, byte value2, byte value3, byte value4)
+  public final void putBytes(byte value1, byte value2, byte value3, byte value4)
       throws IOException {
-    ensureRemaining(buffer, 4);
+    ensureRemaining(4);
     buffer.put(value1);
     buffer.put(value2);
     buffer.put(value3);
     buffer.put(value4);
   }
 
-  public final void putBytes(ByteBuffer buffer, byte[] values) throws IOException {
-    ensureRemaining(buffer, values.length);
+  public final void putBytes(byte[] values) throws IOException {
+    ensureRemaining(values.length);
     buffer.put(values);
   }
 
-  public final void putShort(ByteBuffer buffer, short value) throws IOException {
-    ensureRemaining(buffer, 2);
+  public final void putShort(short value) throws IOException {
+    ensureRemaining(2);
     buffer.putShort(value);
   }
 
-  public final void putInt(ByteBuffer buffer, int value) throws IOException {
-    ensureRemaining(buffer, 4);
+  public final void putInt(int value) throws IOException {
+    ensureRemaining(4);
     buffer.putInt(value);
   }
 
-  public final void putLong(ByteBuffer buffer, long value) throws IOException {
-    ensureRemaining(buffer, 8);
+  public final void putLong(long value) throws IOException {
+    ensureRemaining(8);
     buffer.putLong(value);
   }
 
-  public final void putFloat(ByteBuffer buffer, float value) throws IOException {
-    ensureRemaining(buffer, 4);
+  public final void putFloat(float value) throws IOException {
+    ensureRemaining(4);
     buffer.putFloat(value);
   }
 
-  public final void putDouble(ByteBuffer buffer, double value) throws IOException {
-    ensureRemaining(buffer, 8);
+  public final void putDouble(double value) throws IOException {
+    ensureRemaining(8);
+    buffer.putDouble(value);
+  }
+
+  public void putByteAndShort(byte value1, short value2) throws IOException {
+    ensureRemaining(3);
+    buffer.put(value1);
+    buffer.putShort(value2);
+  }
+
+  public void putByteAndInt(byte value1, int value2) throws IOException {
+    ensureRemaining(5);
+    buffer.put(value1);
+    buffer.putInt(value2);
+  }
+
+  public void putByteAndLong(byte value1, long value2) throws IOException {
+    ensureRemaining(9);
+    buffer.put(value1);
+    buffer.putLong(value2);
+  }
+
+  public void putByteAndFloat(float value) throws IOException {
+    ensureRemaining(5);
+    buffer.put(ValueFormat.FLOAT32);
+    buffer.putFloat(value);
+  }
+
+  public void putByteAndDouble(double value) throws IOException {
+    ensureRemaining(9);
+    buffer.put(ValueFormat.FLOAT64);
     buffer.putDouble(value);
   }
 }

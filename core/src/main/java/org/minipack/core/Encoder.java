@@ -5,7 +5,6 @@
 package org.minipack.core;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import org.minipack.core.internal.IdentifierEncoder;
 import org.minipack.core.internal.StringEncoder;
 
@@ -20,6 +19,5 @@ public interface Encoder<T> {
     return new IdentifierEncoder(maxCacheSize);
   }
 
-  void encode(T value, ByteBuffer buffer, MessageSink sink, MessageWriter writer)
-      throws IOException;
+  void encode(T value, MessageSink sink, MessageWriter writer) throws IOException;
 }
