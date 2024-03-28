@@ -157,7 +157,7 @@ public abstract class MessageSource implements Closeable {
     return getUShort();
   }
 
-  public int getLength32(ValueType type) throws IOException {
+  public int getLength32(MessageType type) throws IOException {
     var length = getInt();
     if (length < 0) {
       throw Exceptions.lengthOverflow(length & 0xffffffffL, type);

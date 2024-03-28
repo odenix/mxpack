@@ -21,7 +21,7 @@ import net.jqwik.api.ForAll;
 import net.jqwik.api.Property;
 import net.jqwik.api.constraints.CharRange;
 import net.jqwik.api.constraints.StringLength;
-import org.minipack.core.internal.ValueFormat;
+import org.minipack.core.internal.MessageFormat;
 import org.msgpack.core.MessagePack;
 import org.msgpack.core.MessagePacker;
 
@@ -59,16 +59,16 @@ public abstract class MessageReaderTest {
   @Example
   public void readNil() throws IOException {
     packer.packNil().flush();
-    assertThat(reader.nextFormat()).isEqualTo(ValueFormat.NIL);
-    assertThat(reader.nextType()).isEqualTo(ValueType.NIL);
+    assertThat(reader.nextFormat()).isEqualTo(MessageFormat.NIL);
+    assertThat(reader.nextType()).isEqualTo(MessageType.NIL);
     assertThatNoException().isThrownBy(reader::readNil);
   }
 
   @Property
   public void readBoolean(@ForAll boolean input) throws IOException {
     packer.packBoolean(input).flush();
-    assertThat(reader.nextFormat()).isEqualTo(input ? ValueFormat.TRUE : ValueFormat.FALSE);
-    assertThat(reader.nextType()).isEqualTo(ValueType.BOOLEAN);
+    assertThat(reader.nextFormat()).isEqualTo(input ? MessageFormat.TRUE : MessageFormat.FALSE);
+    assertThat(reader.nextType()).isEqualTo(MessageType.BOOLEAN);
     var output = reader.readBoolean();
     assertThat(output).isEqualTo(input);
   }
@@ -78,10 +78,10 @@ public abstract class MessageReaderTest {
     packer.packByte(input).flush();
     assertThat(reader.nextFormat())
         .satisfiesAnyOf(
-            format -> assertThat(ValueFormat.isFixInt(format)).isTrue(),
-            format -> assertThat(format).isEqualTo(ValueFormat.INT8),
-            format -> assertThat(format).isEqualTo(ValueFormat.UINT8));
-    assertThat(reader.nextType()).isEqualTo(ValueType.INTEGER);
+            format -> assertThat(MessageFormat.isFixInt(format)).isTrue(),
+            format -> assertThat(format).isEqualTo(MessageFormat.INT8),
+            format -> assertThat(format).isEqualTo(MessageFormat.UINT8));
+    assertThat(reader.nextType()).isEqualTo(MessageType.INTEGER);
     var output = reader.readByte();
     assertThat(output).isEqualTo(input);
   }
@@ -91,12 +91,12 @@ public abstract class MessageReaderTest {
     packer.packShort(input).flush();
     assertThat(reader.nextFormat())
         .satisfiesAnyOf(
-            format -> assertThat(ValueFormat.isFixInt(format)).isTrue(),
-            format -> assertThat(format).isEqualTo(ValueFormat.INT8),
-            format -> assertThat(format).isEqualTo(ValueFormat.UINT8),
-            format -> assertThat(format).isEqualTo(ValueFormat.INT16),
-            format -> assertThat(format).isEqualTo(ValueFormat.UINT16));
-    assertThat(reader.nextType()).isEqualTo(ValueType.INTEGER);
+            format -> assertThat(MessageFormat.isFixInt(format)).isTrue(),
+            format -> assertThat(format).isEqualTo(MessageFormat.INT8),
+            format -> assertThat(format).isEqualTo(MessageFormat.UINT8),
+            format -> assertThat(format).isEqualTo(MessageFormat.INT16),
+            format -> assertThat(format).isEqualTo(MessageFormat.UINT16));
+    assertThat(reader.nextType()).isEqualTo(MessageType.INTEGER);
     var output = reader.readShort();
     assertThat(output).isEqualTo(input);
   }
@@ -106,14 +106,14 @@ public abstract class MessageReaderTest {
     packer.packInt(input).flush();
     assertThat(reader.nextFormat())
         .satisfiesAnyOf(
-            format -> assertThat(ValueFormat.isFixInt(format)).isTrue(),
-            format -> assertThat(format).isEqualTo(ValueFormat.INT8),
-            format -> assertThat(format).isEqualTo(ValueFormat.UINT8),
-            format -> assertThat(format).isEqualTo(ValueFormat.INT16),
-            format -> assertThat(format).isEqualTo(ValueFormat.UINT16),
-            format -> assertThat(format).isEqualTo(ValueFormat.INT32),
-            format -> assertThat(format).isEqualTo(ValueFormat.UINT32));
-    assertThat(reader.nextType()).isEqualTo(ValueType.INTEGER);
+            format -> assertThat(MessageFormat.isFixInt(format)).isTrue(),
+            format -> assertThat(format).isEqualTo(MessageFormat.INT8),
+            format -> assertThat(format).isEqualTo(MessageFormat.UINT8),
+            format -> assertThat(format).isEqualTo(MessageFormat.INT16),
+            format -> assertThat(format).isEqualTo(MessageFormat.UINT16),
+            format -> assertThat(format).isEqualTo(MessageFormat.INT32),
+            format -> assertThat(format).isEqualTo(MessageFormat.UINT32));
+    assertThat(reader.nextType()).isEqualTo(MessageType.INTEGER);
     var output = reader.readInt();
     assertThat(output).isEqualTo(input);
   }
@@ -123,16 +123,16 @@ public abstract class MessageReaderTest {
     packer.packLong(input).flush();
     assertThat(reader.nextFormat())
         .satisfiesAnyOf(
-            format -> assertThat(ValueFormat.isFixInt(format)).isTrue(),
-            format -> assertThat(format).isEqualTo(ValueFormat.INT8),
-            format -> assertThat(format).isEqualTo(ValueFormat.UINT8),
-            format -> assertThat(format).isEqualTo(ValueFormat.INT16),
-            format -> assertThat(format).isEqualTo(ValueFormat.UINT16),
-            format -> assertThat(format).isEqualTo(ValueFormat.INT32),
-            format -> assertThat(format).isEqualTo(ValueFormat.UINT32),
-            format -> assertThat(format).isEqualTo(ValueFormat.INT64),
-            format -> assertThat(format).isEqualTo(ValueFormat.UINT64));
-    assertThat(reader.nextType()).isEqualTo(ValueType.INTEGER);
+            format -> assertThat(MessageFormat.isFixInt(format)).isTrue(),
+            format -> assertThat(format).isEqualTo(MessageFormat.INT8),
+            format -> assertThat(format).isEqualTo(MessageFormat.UINT8),
+            format -> assertThat(format).isEqualTo(MessageFormat.INT16),
+            format -> assertThat(format).isEqualTo(MessageFormat.UINT16),
+            format -> assertThat(format).isEqualTo(MessageFormat.INT32),
+            format -> assertThat(format).isEqualTo(MessageFormat.UINT32),
+            format -> assertThat(format).isEqualTo(MessageFormat.INT64),
+            format -> assertThat(format).isEqualTo(MessageFormat.UINT64));
+    assertThat(reader.nextType()).isEqualTo(MessageType.INTEGER);
     var output = reader.readLong();
     assertThat(output).isEqualTo(input);
   }
@@ -140,8 +140,8 @@ public abstract class MessageReaderTest {
   @Property
   public void readFloat(@ForAll float input) throws IOException {
     packer.packFloat(input).flush();
-    assertThat(reader.nextFormat()).isEqualTo(ValueFormat.FLOAT32);
-    assertThat(reader.nextType()).isEqualTo(ValueType.FLOAT);
+    assertThat(reader.nextFormat()).isEqualTo(MessageFormat.FLOAT32);
+    assertThat(reader.nextType()).isEqualTo(MessageType.FLOAT);
     var output = reader.readFloat();
     assertThat(output).isEqualTo(input);
   }
@@ -149,8 +149,8 @@ public abstract class MessageReaderTest {
   @Property
   public void readDouble(@ForAll double input) throws IOException {
     packer.packDouble(input).flush();
-    assertThat(reader.nextFormat()).isEqualTo(ValueFormat.FLOAT64);
-    assertThat(reader.nextType()).isEqualTo(ValueType.FLOAT);
+    assertThat(reader.nextFormat()).isEqualTo(MessageFormat.FLOAT64);
+    assertThat(reader.nextType()).isEqualTo(MessageType.FLOAT);
     var output = reader.readDouble();
     assertThat(output).isEqualTo(input);
   }
@@ -158,7 +158,7 @@ public abstract class MessageReaderTest {
   @Property
   public void readTimestamp(@ForAll Instant input) throws IOException {
     packer.packTimestamp(input).flush();
-    assertThat(reader.nextType()).isEqualTo(ValueType.EXTENSION);
+    assertThat(reader.nextType()).isEqualTo(MessageType.EXTENSION);
     var output = reader.readTimestamp();
     assertThat(output).isEqualTo(input);
   }
@@ -195,7 +195,7 @@ public abstract class MessageReaderTest {
   public void readRawString(@ForAll String input) throws IOException {
     packer.packString(input);
     packer.flush();
-    assertThat(reader.nextType()).isEqualTo(ValueType.STRING);
+    assertThat(reader.nextType()).isEqualTo(MessageType.STRING);
     var length = reader.readStringHeader();
     var buffer = ByteBuffer.allocate(length);
     reader.readPayload(buffer);
@@ -208,7 +208,7 @@ public abstract class MessageReaderTest {
     packer.packBinaryHeader(input.length);
     packer.writePayload(input);
     packer.flush();
-    assertThat(reader.nextType()).isEqualTo(ValueType.BINARY);
+    assertThat(reader.nextType()).isEqualTo(MessageType.BINARY);
     var length = reader.readBinaryHeader();
     assertThat(length).isEqualTo(input.length);
     var buffer = ByteBuffer.allocate(length);
@@ -222,7 +222,7 @@ public abstract class MessageReaderTest {
     packer.packExtensionTypeHeader(extensionType, input.length);
     packer.writePayload(input);
     packer.flush();
-    assertThat(reader.nextType()).isEqualTo(ValueType.EXTENSION);
+    assertThat(reader.nextType()).isEqualTo(MessageType.EXTENSION);
     var header = reader.readExtensionHeader();
     assertThat(header.type()).isEqualTo(extensionType);
     assertThat(header.length()).isEqualTo(input.length);
@@ -258,7 +258,7 @@ public abstract class MessageReaderTest {
         .packString(str)
         .flush();
 
-    assertThat(reader.nextType()).isEqualTo(ValueType.ARRAY);
+    assertThat(reader.nextType()).isEqualTo(MessageType.ARRAY);
     assertThat(reader.readArrayHeader()).isEqualTo(10);
     assertThatNoException().isThrownBy(reader::readNil);
     assertThat(reader.readBoolean()).isEqualTo(bool);
@@ -322,7 +322,7 @@ public abstract class MessageReaderTest {
         .packNil()
         .flush();
 
-    assertThat(reader.nextType()).isEqualTo(ValueType.MAP);
+    assertThat(reader.nextType()).isEqualTo(MessageType.MAP);
     assertThat(reader.readMapHeader()).isEqualTo(10);
     assertThatNoException().isThrownBy(reader::readNil);
     assertThat(reader.readBoolean()).isEqualTo(bool);
@@ -367,11 +367,11 @@ public abstract class MessageReaderTest {
     packer.flush();
     assertThat(reader.nextFormat())
         .satisfiesAnyOf(
-            format -> assertThat(ValueFormat.isFixStr(format)).isTrue(),
-            format -> assertThat(format).isEqualTo(ValueFormat.STR8),
-            format -> assertThat(format).isEqualTo(ValueFormat.STR16),
-            format -> assertThat(format).isEqualTo(ValueFormat.STR32));
-    assertThat(reader.nextType()).isEqualTo(ValueType.STRING);
+            format -> assertThat(MessageFormat.isFixStr(format)).isTrue(),
+            format -> assertThat(format).isEqualTo(MessageFormat.STR8),
+            format -> assertThat(format).isEqualTo(MessageFormat.STR16),
+            format -> assertThat(format).isEqualTo(MessageFormat.STR32));
+    assertThat(reader.nextType()).isEqualTo(MessageType.STRING);
     var output = reader.readString();
     assertThat(output).isEqualTo(input);
   }
@@ -381,11 +381,11 @@ public abstract class MessageReaderTest {
     packer.flush();
     assertThat(reader.nextFormat())
         .satisfiesAnyOf(
-            format -> assertThat(ValueFormat.isFixStr(format)).isTrue(),
-            format -> assertThat(format).isEqualTo(ValueFormat.STR8),
-            format -> assertThat(format).isEqualTo(ValueFormat.STR16),
-            format -> assertThat(format).isEqualTo(ValueFormat.STR32));
-    assertThat(reader.nextType()).isEqualTo(ValueType.STRING);
+            format -> assertThat(MessageFormat.isFixStr(format)).isTrue(),
+            format -> assertThat(format).isEqualTo(MessageFormat.STR8),
+            format -> assertThat(format).isEqualTo(MessageFormat.STR16),
+            format -> assertThat(format).isEqualTo(MessageFormat.STR32));
+    assertThat(reader.nextType()).isEqualTo(MessageType.STRING);
     var output = reader.readIdentifier();
     assertThat(output).isEqualTo(input);
   }

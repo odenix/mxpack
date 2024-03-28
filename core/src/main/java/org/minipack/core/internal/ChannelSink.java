@@ -30,7 +30,7 @@ public final class ChannelSink extends MessageSink {
     var remaining = buffer.remaining();
     var bytesWritten = blockingChannel.write(buffer);
     if (bytesWritten != remaining) {
-      throw Exceptions.nonBlockingWriteableChannel();
+      throw Exceptions.nonBlockingChannelDetected();
     }
     return bytesWritten;
   }

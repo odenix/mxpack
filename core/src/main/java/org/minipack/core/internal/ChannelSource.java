@@ -30,7 +30,7 @@ public final class ChannelSource extends MessageSource {
     var remaining = buffer.remaining();
     var bytesRead = blockingChannel.read(buffer);
     if (bytesRead == 0 && remaining > 0) {
-      throw Exceptions.nonBlockingReadableChannel();
+      throw Exceptions.nonBlockingChannelDetected();
     }
     return bytesRead;
   }

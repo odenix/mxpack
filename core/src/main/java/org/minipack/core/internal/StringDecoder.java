@@ -8,11 +8,11 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import org.jspecify.annotations.Nullable;
-import org.minipack.core.Decoder;
+import org.minipack.core.MessageDecoder;
 import org.minipack.core.MessageReader;
 import org.minipack.core.MessageSource;
 
-public final class StringDecoder implements Decoder<String> {
+public final class StringDecoder implements MessageDecoder<String> {
   private final int maxStringSize;
   private final GrowableBuffer growableBuffer;
 
@@ -25,7 +25,7 @@ public final class StringDecoder implements Decoder<String> {
   public String decode(MessageSource source, MessageReader reader) throws IOException {
     var length = reader.readStringHeader();
     if (length > maxStringSize) {
-      throw Exceptions.stringTooLargeOnRead(length, maxStringSize);
+      throw Exceptions.stringTooLarge(length, maxStringSize);
     }
     var buffer = source.buffer();
     if (buffer.hasArray() && length <= buffer.capacity()) {

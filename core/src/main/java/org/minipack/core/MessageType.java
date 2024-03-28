@@ -6,9 +6,9 @@ package org.minipack.core;
 
 /**
  * The <a href="https://github.com/msgpack/msgpack/blob/master/spec.md#type-system">type</a> of a
- * MessagePack value.
+ * MessagePack message.
  */
-public enum ValueType {
+public enum MessageType {
   NIL,
   BOOLEAN,
   INTEGER,

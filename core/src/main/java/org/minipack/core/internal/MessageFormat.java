@@ -4,14 +4,14 @@
  */
 package org.minipack.core.internal;
 
-import org.minipack.core.ValueType;
+import org.minipack.core.MessageType;
 
 /**
  * The <a href="https://github.com/msgpack/msgpack/blob/master/spec.md#formats">format</a> of a
  * MessagePack value.
  */
-public final class ValueFormat {
-  private ValueFormat() {}
+public final class MessageFormat {
+  private MessageFormat() {}
 
   public static final byte NIL = (byte) 0xc0;
   public static final byte NEVER_USED = (byte) 0xc1;
@@ -85,33 +85,33 @@ public final class ValueFormat {
     return format & ~FIXMAP_MASK;
   }
 
-  public static ValueType toType(byte format) {
+  public static MessageType toType(byte format) {
     return switch (format) {
-      case NIL -> ValueType.NIL;
-      case TRUE, FALSE -> ValueType.BOOLEAN;
-      case INT8, UINT8, INT16, UINT16, INT32, UINT32, INT64, UINT64 -> ValueType.INTEGER;
-      case FLOAT32, FLOAT64 -> ValueType.FLOAT;
-      case STR8, STR16, STR32 -> ValueType.STRING;
-      case ARRAY16, ARRAY32 -> ValueType.ARRAY;
-      case MAP16, MAP32 -> ValueType.MAP;
-      case BIN8, BIN16, BIN32 -> ValueType.BINARY;
-      case FIXEXT1, FIXEXT2, FIXEXT4, FIXEXT8, EXT8, EXT16, EXT32 -> ValueType.EXTENSION;
+      case NIL -> MessageType.NIL;
+      case TRUE, FALSE -> MessageType.BOOLEAN;
+      case INT8, UINT8, INT16, UINT16, INT32, UINT32, INT64, UINT64 -> MessageType.INTEGER;
+      case FLOAT32, FLOAT64 -> MessageType.FLOAT;
+      case STR8, STR16, STR32 -> MessageType.STRING;
+      case ARRAY16, ARRAY32 -> MessageType.ARRAY;
+      case MAP16, MAP32 -> MessageType.MAP;
+      case BIN8, BIN16, BIN32 -> MessageType.BINARY;
+      case FIXEXT1, FIXEXT2, FIXEXT4, FIXEXT8, EXT8, EXT16, EXT32 -> MessageType.EXTENSION;
       default ->
-          ValueFormat.isFixInt(format)
-              ? ValueType.INTEGER
-              : ValueFormat.isFixStr(format)
-                  ? ValueType.STRING
-                  : ValueFormat.isFixArray(format)
-                      ? ValueType.ARRAY
-                      : ValueFormat.isFixMap(format)
-                          ? ValueType.MAP
-                          : ValueFormat.isFixExt(format)
-                              ? ValueType.EXTENSION
+          MessageFormat.isFixInt(format)
+              ? MessageType.INTEGER
+              : MessageFormat.isFixStr(format)
+                  ? MessageType.STRING
+                  : MessageFormat.isFixArray(format)
+                      ? MessageType.ARRAY
+                      : MessageFormat.isFixMap(format)
+                          ? MessageType.MAP
+                          : MessageFormat.isFixExt(format)
+                              ? MessageType.EXTENSION
                               : invalidFormat(format);
     };
   }
 
-  private static ValueType invalidFormat(byte format) {
+  private static MessageType invalidFormat(byte format) {
     throw Exceptions.invalidValueFormat(format);
   }
 }

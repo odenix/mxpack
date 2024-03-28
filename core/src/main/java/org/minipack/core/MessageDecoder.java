@@ -9,17 +9,17 @@ import org.minipack.core.internal.IdentifierDecoder;
 import org.minipack.core.internal.StringDecoder;
 
 @FunctionalInterface
-public interface Decoder<T> {
-  static Decoder<String> stringDecoder(int maxStringSize) {
+public interface MessageDecoder<T> {
+  static MessageDecoder<String> stringDecoder(int maxStringSize) {
     return new StringDecoder(1024, maxStringSize);
   }
 
-  static Decoder<String> stringDecoder(int minBufferSize, int maxStringSize) {
+  static MessageDecoder<String> stringDecoder(int minBufferSize, int maxStringSize) {
     return new StringDecoder(minBufferSize, maxStringSize);
   }
 
   /** The returned decoder is thread-safe and can be shared between multiple message readers. */
-  static Decoder<String> identifierDecoder(int maxCacheSize) {
+  static MessageDecoder<String> identifierDecoder(int maxCacheSize) {
     return new IdentifierDecoder(maxCacheSize);
   }
 

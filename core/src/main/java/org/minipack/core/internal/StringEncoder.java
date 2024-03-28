@@ -5,11 +5,11 @@
 package org.minipack.core.internal;
 
 import java.io.IOException;
-import org.minipack.core.Encoder;
+import org.minipack.core.MessageEncoder;
 import org.minipack.core.MessageSink;
 import org.minipack.core.MessageWriter;
 
-public final class StringEncoder implements Encoder<CharSequence> {
+public final class StringEncoder implements MessageEncoder<CharSequence> {
   private final int maxStringSize;
 
   public StringEncoder(int maxStringSize) {
@@ -21,7 +21,7 @@ public final class StringEncoder implements Encoder<CharSequence> {
       throws IOException {
     var length = utf8Length(string);
     if (length > maxStringSize) {
-      throw Exceptions.stringTooLargeOnWrite(length, maxStringSize);
+      throw Exceptions.stringTooLarge(length, maxStringSize);
     }
     if (length < 0) {
       writer.writeStringHeader(-length);
@@ -90,7 +90,7 @@ public final class StringEncoder implements Encoder<CharSequence> {
       } else {
         char ch2;
         if (++i == length || !Character.isSurrogatePair(ch, ch2 = string.charAt(i))) {
-          throw Exceptions.invalidSurrogatePair(i);
+          throw Exceptions.malformedSurrogate(i);
         }
         var cp = Character.toCodePoint(ch, ch2);
         sink.putBytes(

@@ -8,11 +8,11 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import org.minipack.core.Decoder;
+import org.minipack.core.MessageDecoder;
 import org.minipack.core.MessageReader;
 import org.minipack.core.MessageSource;
 
-public final class IdentifierDecoder implements Decoder<String> {
+public final class IdentifierDecoder implements MessageDecoder<String> {
   private final ConcurrentMap<byte[], String> cache = new ConcurrentHashMap<>();
   private int cacheSize;
   private final int maxCacheSize;
@@ -25,7 +25,7 @@ public final class IdentifierDecoder implements Decoder<String> {
   public String decode(MessageSource source, MessageReader reader) throws IOException {
     var length = reader.readStringHeader();
     if (length > source.buffer().capacity()) {
-      throw Exceptions.identifierTooLargeOnRead(length, source.buffer().capacity());
+      throw Exceptions.identifierTooLarge(length, source.buffer().capacity());
     }
     var bytes = source.getBytes(length);
     return cache.computeIfAbsent(
@@ -33,7 +33,7 @@ public final class IdentifierDecoder implements Decoder<String> {
         (b) -> {
           cacheSize += b.length;
           if (cacheSize > maxCacheSize) {
-            throw Exceptions.identifierCacheSizeExceededOnRead(maxCacheSize);
+            throw Exceptions.identifierCacheSizeExceeded(maxCacheSize);
           }
           return new String(b, StandardCharsets.UTF_8);
         });
