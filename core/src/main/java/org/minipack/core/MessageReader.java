@@ -31,10 +31,8 @@ public final class MessageReader implements Closeable {
   private static final int MIN_BUFFER_SIZE = 9;
   private static final int DEFAULT_BUFFER_SIZE = 1024 * 8;
   private static final int MAX_STRING_SIZE = 1024 * 1024;
-  private static final int MAX_IDENTIFIER_STRING_SIZE = 1024;
-  private static final int MAX_IDENTIFIER_CACHE_SIZE = 1024 * 8;
+  private static final int MAX_IDENTIFIER_CACHE_SIZE = 1024 * 1024; // in bytes
   private static final byte TIMESTAMP_EXTENSION_TYPE = -1;
-  private static final long LOWER_34_BITS_MASK = 0x3ffffffffL;
 
   private final MessageSource source;
   private final ByteBuffer buffer;
@@ -47,7 +45,7 @@ public final class MessageReader implements Closeable {
     private @Nullable ByteBuffer buffer;
     private @Nullable Decoder<String> stringDecoder;
     private Decoder<String> identifierDecoder =
-        Decoder.identifierDecoder(MAX_IDENTIFIER_STRING_SIZE, MAX_IDENTIFIER_CACHE_SIZE);
+        Decoder.identifierDecoder(MAX_IDENTIFIER_CACHE_SIZE);
 
     /** Sets the underlying source to read from. */
     public Builder source(MessageSource source) {
@@ -115,7 +113,9 @@ public final class MessageReader implements Closeable {
     stringDecoder =
         builder.stringDecoder != null
             ? builder.stringDecoder
-            : Decoder.stringDecoder(buffer.capacity() * 2, MAX_STRING_SIZE);
+            : buffer.hasArray()
+                ? Decoder.stringDecoder(buffer.capacity() * 2, MAX_STRING_SIZE)
+                : Decoder.stringDecoder(MAX_STRING_SIZE);
     identifierDecoder = builder.identifierDecoder;
   }
 
@@ -305,11 +305,11 @@ public final class MessageReader implements Closeable {
       throw Exceptions.extensionTypeMismatch(TIMESTAMP_EXTENSION_TYPE, header.type());
     }
     return switch (header.length()) {
-      case 4 -> Instant.ofEpochSecond(source.getInt(buffer));
+      case 4 -> Instant.ofEpochSecond(source.getInt(buffer) & 0xffffffffL);
       case 8 -> {
         var value = source.getLong(buffer);
         var nanos = value >>> 34;
-        var seconds = value & LOWER_34_BITS_MASK;
+        var seconds = value & 0x3ffffffffL;
         yield Instant.ofEpochSecond(seconds, nanos);
       }
       case 12 -> {

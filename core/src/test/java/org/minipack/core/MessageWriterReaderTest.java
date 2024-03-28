@@ -4,13 +4,13 @@
  */
 package org.minipack.core;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNoException;
+import static org.assertj.core.api.Assertions.*;
 
 import java.io.IOException;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.nio.ByteBuffer;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import net.jqwik.api.Example;
@@ -140,6 +140,15 @@ public class MessageWriterReaderTest {
   }
 
   @Property
+  public void writeReadTimestamp(@ForAll Instant input) throws IOException {
+    writer.write(input);
+    writer.flush();
+    assertThat(reader.nextType()).isEqualTo(ValueType.EXTENSION);
+    var output = reader.readTimestamp();
+    assertThat(output).isEqualTo(input);
+  }
+
+  @Property
   public void writeReadAsciiString(@ForAll @CharRange(to = 127) String input) throws IOException {
     doWriteReadString(input);
   }
@@ -147,6 +156,11 @@ public class MessageWriterReaderTest {
   @Property
   public void writeReadString(@ForAll String input) throws IOException {
     doWriteReadString(input);
+  }
+
+  @Property
+  public void writeReadCharSequence(@ForAll String input) throws IOException {
+    doWriteReadString(new StringBuilder(input));
   }
 
   @Property
@@ -163,6 +177,12 @@ public class MessageWriterReaderTest {
   }
 
   @Property
+  public void writeReadIdentifier(@ForAll @StringLength(max = 1 << 5) String input)
+      throws IOException {
+    doWriteReadIdentifier(input);
+  }
+
+  @Property
   public void writeReadArray(
       @ForAll boolean bool,
       @ForAll byte b,
@@ -171,9 +191,10 @@ public class MessageWriterReaderTest {
       @ForAll long l,
       @ForAll float f,
       @ForAll double d,
+      @ForAll Instant t,
       @ForAll String str)
       throws IOException {
-    writer.writeArrayHeader(9);
+    writer.writeArrayHeader(10);
     writer.writeNil();
     writer.write(bool);
     writer.write(b);
@@ -182,11 +203,12 @@ public class MessageWriterReaderTest {
     writer.write(l);
     writer.write(f);
     writer.write(d);
+    writer.write(t);
     writer.write(str);
     writer.flush();
 
     assertThat(reader.nextType()).isEqualTo(ValueType.ARRAY);
-    assertThat(reader.readArrayHeader()).isEqualTo(9);
+    assertThat(reader.readArrayHeader()).isEqualTo(10);
     assertThatNoException().isThrownBy(reader::readNil);
     assertThat(reader.readBoolean()).isEqualTo(bool);
     assertThat(reader.readByte()).isEqualTo(b);
@@ -195,6 +217,7 @@ public class MessageWriterReaderTest {
     assertThat(reader.readLong()).isEqualTo(l);
     assertThat(reader.readFloat()).isEqualTo(f);
     assertThat(reader.readDouble()).isEqualTo(d);
+    assertThat(reader.readTimestamp()).isEqualTo(t);
     assertThat(reader.readString()).isEqualTo(str);
   }
 
@@ -221,9 +244,10 @@ public class MessageWriterReaderTest {
       @ForAll long l,
       @ForAll float f,
       @ForAll double d,
+      @ForAll Instant t,
       @ForAll String str)
       throws IOException {
-    writer.writeMapHeader(9);
+    writer.writeMapHeader(10);
     writer.writeNil();
     writer.write(bool);
     writer.write(bool);
@@ -239,13 +263,15 @@ public class MessageWriterReaderTest {
     writer.write(f);
     writer.write(d);
     writer.write(d);
+    writer.write(t);
+    writer.write(t);
     writer.write(str);
     writer.write(str);
     writer.writeNil();
     writer.flush();
 
     assertThat(reader.nextType()).isEqualTo(ValueType.MAP);
-    assertThat(reader.readMapHeader()).isEqualTo(9);
+    assertThat(reader.readMapHeader()).isEqualTo(10);
     assertThatNoException().isThrownBy(reader::readNil);
     assertThat(reader.readBoolean()).isEqualTo(bool);
     assertThat(reader.readBoolean()).isEqualTo(bool);
@@ -261,6 +287,8 @@ public class MessageWriterReaderTest {
     assertThat(reader.readFloat()).isEqualTo(f);
     assertThat(reader.readDouble()).isEqualTo(d);
     assertThat(reader.readDouble()).isEqualTo(d);
+    assertThat(reader.readTimestamp()).isEqualTo(t);
+    assertThat(reader.readTimestamp()).isEqualTo(t);
     assertThat(reader.readString()).isEqualTo(str);
     assertThat(reader.readString()).isEqualTo(str);
     assertThatNoException().isThrownBy(reader::readNil);
@@ -282,7 +310,7 @@ public class MessageWriterReaderTest {
     }
   }
 
-  private void doWriteReadString(String input) throws IOException {
+  private void doWriteReadString(CharSequence input) throws IOException {
     writer.write(input);
     writer.flush();
     assertThat(reader.nextFormat())
@@ -293,6 +321,14 @@ public class MessageWriterReaderTest {
             format -> assertThat(format).isEqualTo(ValueFormat.STR32));
     assertThat(reader.nextType()).isEqualTo(ValueType.STRING);
     var output = reader.readString();
+    assertThat(output).isEqualTo(input.toString());
+  }
+
+  private void doWriteReadIdentifier(String input) throws IOException {
+    writer.writeIdentifier(input);
+    writer.flush();
+    assertThat(reader.nextType()).isEqualTo(ValueType.STRING);
+    var output = reader.readIdentifier();
     assertThat(output).isEqualTo(input);
   }
 }

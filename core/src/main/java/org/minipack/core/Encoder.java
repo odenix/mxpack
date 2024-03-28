@@ -15,8 +15,8 @@ public interface Encoder<T> {
   }
 
   /** The returned encoder is thread-safe and can be shared between multiple message write. */
-  static Encoder<String> identifierEncoder(int maxStringSize, int maxCacheSize) {
-    return new IdentifierEncoder(maxStringSize, maxCacheSize);
+  static Encoder<String> identifierEncoder(int maxCacheSize) {
+    return new IdentifierEncoder(maxCacheSize);
   }
 
   void encode(T value, ByteBuffer buffer, MessageSink sink, MessageWriter writer)

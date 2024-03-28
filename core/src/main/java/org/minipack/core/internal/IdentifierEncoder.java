@@ -13,11 +13,10 @@ import org.minipack.core.*;
 
 public final class IdentifierEncoder implements Encoder<String> {
   private final ConcurrentMap<String, byte[]> cache = new ConcurrentHashMap<>();
-  private final int maxStringSize;
+  private int cacheSize;
   private final int maxCacheSize;
 
-  public IdentifierEncoder(int maxStringSize, int maxCacheSize) {
-    this.maxStringSize = maxStringSize;
+  public IdentifierEncoder(int maxCacheSize) {
     this.maxCacheSize = maxCacheSize;
   }
 
@@ -29,14 +28,15 @@ public final class IdentifierEncoder implements Encoder<String> {
             value,
             (str) -> {
               var b = str.getBytes(StandardCharsets.UTF_8);
-              if (b.length > maxStringSize) {
-                throw Exceptions.stringTooLargeOnWrite(b.length, maxStringSize);
-              }
-              if (cache.size() > maxCacheSize) {
-                throw Exceptions.identifierCacheSizeExceeded(maxCacheSize);
+              cacheSize += b.length;
+              if (cacheSize > maxCacheSize) {
+                throw Exceptions.identifierCacheSizeExceededOnWrite(maxCacheSize);
               }
               return b;
             });
+    if (bytes.length > buffer.capacity()) {
+      throw Exceptions.identifierTooLargeOnWrite(bytes.length, buffer.capacity());
+    }
     writer.writeStringHeader(bytes.length);
     sink.putBytes(buffer, bytes);
   }

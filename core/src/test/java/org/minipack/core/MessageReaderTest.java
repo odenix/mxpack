@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.nio.ByteBuffer;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import net.jqwik.api.Example;
@@ -134,6 +135,14 @@ public class MessageReaderTest {
   }
 
   @Property
+  public void readTimestamp(@ForAll Instant input) throws IOException {
+    packer.packTimestamp(input).flush();
+    assertThat(reader.nextType()).isEqualTo(ValueType.EXTENSION);
+    var output = reader.readTimestamp();
+    assertThat(output).isEqualTo(input);
+  }
+
+  @Property
   public void readAsciiString(@ForAll @CharRange(to = 127) String input) throws IOException {
     doReadString(input);
   }
@@ -157,6 +166,11 @@ public class MessageReaderTest {
   }
 
   @Property
+  public void readIdentifier(@ForAll @StringLength(max = 1 << 6) String input) throws IOException {
+    doReadIdentifier(input);
+  }
+
+  @Property
   public void readArray(
       @ForAll boolean bool,
       @ForAll byte b,
@@ -165,10 +179,11 @@ public class MessageReaderTest {
       @ForAll long l,
       @ForAll float f,
       @ForAll double d,
+      @ForAll Instant t,
       @ForAll String str)
       throws IOException {
     packer
-        .packArrayHeader(9)
+        .packArrayHeader(10)
         .packNil()
         .packBoolean(bool)
         .packByte(b)
@@ -177,11 +192,12 @@ public class MessageReaderTest {
         .packLong(l)
         .packFloat(f)
         .packDouble(d)
+        .packTimestamp(t)
         .packString(str)
         .flush();
 
     assertThat(reader.nextType()).isEqualTo(ValueType.ARRAY);
-    assertThat(reader.readArrayHeader()).isEqualTo(9);
+    assertThat(reader.readArrayHeader()).isEqualTo(10);
     assertThatNoException().isThrownBy(reader::readNil);
     assertThat(reader.readBoolean()).isEqualTo(bool);
     assertThat(reader.readByte()).isEqualTo(b);
@@ -190,19 +206,20 @@ public class MessageReaderTest {
     assertThat(reader.readLong()).isEqualTo(l);
     assertThat(reader.readFloat()).isEqualTo(f);
     assertThat(reader.readDouble()).isEqualTo(d);
+    assertThat(reader.readTimestamp()).isEqualTo(t);
     assertThat(reader.readString()).isEqualTo(str);
   }
 
   @Property
-  public void readStringArray(@ForAll List<String> strings) throws IOException {
-    packer.packArrayHeader(strings.size());
-    for (var str : strings) {
+  public void readStringArray(@ForAll List<String> input) throws IOException {
+    packer.packArrayHeader(input.size());
+    for (var str : input) {
       packer.packString(str);
     }
     packer.flush();
 
-    assertThat(reader.readArrayHeader()).isEqualTo(strings.size());
-    for (var str : strings) {
+    assertThat(reader.readArrayHeader()).isEqualTo(input.size());
+    for (var str : input) {
       assertThat(reader.readString()).isEqualTo(str);
     }
   }
@@ -216,10 +233,11 @@ public class MessageReaderTest {
       @ForAll long l,
       @ForAll float f,
       @ForAll double d,
+      @ForAll Instant t,
       @ForAll String str)
       throws IOException {
     packer
-        .packMapHeader(9)
+        .packMapHeader(10)
         .packNil()
         .packBoolean(bool)
         .packBoolean(bool)
@@ -235,13 +253,15 @@ public class MessageReaderTest {
         .packFloat(f)
         .packDouble(d)
         .packDouble(d)
+        .packTimestamp(t)
+        .packTimestamp(t)
         .packString(str)
         .packString(str)
         .packNil()
         .flush();
 
     assertThat(reader.nextType()).isEqualTo(ValueType.MAP);
-    assertThat(reader.readMapHeader()).isEqualTo(9);
+    assertThat(reader.readMapHeader()).isEqualTo(10);
     assertThatNoException().isThrownBy(reader::readNil);
     assertThat(reader.readBoolean()).isEqualTo(bool);
     assertThat(reader.readBoolean()).isEqualTo(bool);
@@ -257,22 +277,24 @@ public class MessageReaderTest {
     assertThat(reader.readFloat()).isEqualTo(f);
     assertThat(reader.readDouble()).isEqualTo(d);
     assertThat(reader.readDouble()).isEqualTo(d);
+    assertThat(reader.readTimestamp()).isEqualTo(t);
+    assertThat(reader.readTimestamp()).isEqualTo(t);
     assertThat(reader.readString()).isEqualTo(str);
     assertThat(reader.readString()).isEqualTo(str);
     assertThatNoException().isThrownBy(reader::readNil);
   }
 
   @Property
-  public void readStringMap(@ForAll Map<String, String> strings) throws IOException {
-    packer.packMapHeader(strings.size());
-    for (var entry : strings.entrySet()) {
+  public void readStringMap(@ForAll Map<String, String> input) throws IOException {
+    packer.packMapHeader(input.size());
+    for (var entry : input.entrySet()) {
       packer.packString(entry.getKey());
       packer.packString(entry.getValue());
     }
     packer.flush();
 
-    assertThat(reader.readMapHeader()).isEqualTo(strings.size());
-    for (var entry : strings.entrySet()) {
+    assertThat(reader.readMapHeader()).isEqualTo(input.size());
+    for (var entry : input.entrySet()) {
       assertThat(reader.readString()).isEqualTo(entry.getKey());
       assertThat(reader.readString()).isEqualTo(entry.getValue());
     }
@@ -289,6 +311,20 @@ public class MessageReaderTest {
             format -> assertThat(format).isEqualTo(ValueFormat.STR32));
     assertThat(reader.nextType()).isEqualTo(ValueType.STRING);
     var output = reader.readString();
+    assertThat(output).isEqualTo(input);
+  }
+
+  private void doReadIdentifier(String input) throws IOException {
+    packer.packString(input);
+    packer.flush();
+    assertThat(reader.nextFormat())
+        .satisfiesAnyOf(
+            format -> assertThat(ValueFormat.isFixStr(format)).isTrue(),
+            format -> assertThat(format).isEqualTo(ValueFormat.STR8),
+            format -> assertThat(format).isEqualTo(ValueFormat.STR16),
+            format -> assertThat(format).isEqualTo(ValueFormat.STR32));
+    assertThat(reader.nextType()).isEqualTo(ValueType.STRING);
+    var output = reader.readIdentifier();
     assertThat(output).isEqualTo(input);
   }
 }

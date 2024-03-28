@@ -10,13 +10,17 @@ import org.minipack.core.internal.IdentifierDecoder;
 import org.minipack.core.internal.StringDecoder;
 
 public interface Decoder<T> {
+  static Decoder<String> stringDecoder(int maxStringSize) {
+    return new StringDecoder(1024, maxStringSize);
+  }
+
   static Decoder<String> stringDecoder(int minBufferSize, int maxStringSize) {
     return new StringDecoder(minBufferSize, maxStringSize);
   }
 
   /** The returned decoder is thread-safe and can be shared between multiple message readers. */
-  static Decoder<String> identifierDecoder(int maxStringSize, int maxCacheSize) {
-    return new IdentifierDecoder(maxStringSize, maxCacheSize);
+  static Decoder<String> identifierDecoder(int maxCacheSize) {
+    return new IdentifierDecoder(maxCacheSize);
   }
 
   T decode(ByteBuffer buffer, MessageSource source, MessageReader reader) throws IOException;

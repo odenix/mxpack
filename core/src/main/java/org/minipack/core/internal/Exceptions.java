@@ -37,6 +37,24 @@ public final class Exceptions {
             + " bytes.");
   }
 
+  public static ReaderException identifierTooLargeOnRead(long actualSize, int maxSize) {
+    return new ReaderException(
+        "MessagePack identifier size "
+            + actualSize
+            + " exceeds the maximum allowed size of "
+            + maxSize
+            + " bytes.");
+  }
+
+  public static WriterException identifierTooLargeOnWrite(long actualSize, int maxSize) {
+    return new WriterException(
+        "MessagePack identifier size "
+            + actualSize
+            + " exceeds the maximum allowed size of "
+            + maxSize
+            + " bytes.");
+  }
+
   public static EOFException prematureEndOfInput(int minBytes, int bytesRead) {
     return new EOFException(
         "Expected at least "
@@ -126,8 +144,13 @@ public final class Exceptions {
         "Peer sent identifier reference with unknown numeric ID " + id + ".");
   }
 
-  public static ReaderException identifierCacheSizeExceeded(int maximumSize) {
+  public static ReaderException identifierCacheSizeExceededOnRead(int maximumSize) {
     return new ReaderException(
+        "Identifier cache size has exceeded maximum allowed size " + maximumSize + ".");
+  }
+
+  public static WriterException identifierCacheSizeExceededOnWrite(int maximumSize) {
+    return new WriterException(
         "Identifier cache size has exceeded maximum allowed size " + maximumSize + ".");
   }
 

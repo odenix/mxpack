@@ -31,8 +31,7 @@ public final class MessageWriter implements Closeable {
   private static final int MIN_BUFFER_SIZE = 9;
   private static final int DEFAULT_BUFFER_SIZE = 1024 * 8;
   private static final int MAX_STRING_SIZE = 1024 * 1024;
-  private static final int MAX_IDENTIFIER_STRING_SIZE = 1024;
-  private static final int MAX_IDENTIFIER_CACHE_SIZE = 1024 * 8;
+  private static final int MAX_IDENTIFIER_CACHE_SIZE = 1024 * 1024; // in bytes
   private static final byte TIMESTAMP_EXTENSION_TYPE = -1;
 
   private final MessageSink sink;
@@ -48,7 +47,7 @@ public final class MessageWriter implements Closeable {
     private @Nullable ByteBuffer buffer;
     private Encoder<CharSequence> stringEncoder = Encoder.stringEncoder(MAX_STRING_SIZE);
     private Encoder<String> identifierEncoder =
-        Encoder.identifierEncoder(MAX_IDENTIFIER_STRING_SIZE, MAX_IDENTIFIER_CACHE_SIZE);
+        Encoder.identifierEncoder(MAX_IDENTIFIER_CACHE_SIZE);
 
     /** Sets the message sink to write to. */
     public Builder sink(MessageSink sink) {

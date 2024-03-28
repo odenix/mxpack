@@ -9,6 +9,7 @@ import static org.assertj.core.api.Assertions.assertThatNoException;
 
 import java.io.*;
 import java.nio.ByteBuffer;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import net.jqwik.api.Example;
@@ -152,6 +153,15 @@ public class MessageWriterTest {
   }
 
   @Property
+  public void writeTimestamp(@ForAll Instant input) throws IOException {
+    writer.write(input);
+    writer.flush();
+    assertThat(unpacker.getNextFormat().getValueType()).isEqualTo(ValueType.EXTENSION);
+    var output = unpacker.unpackTimestamp();
+    assertThat(output).isEqualTo(input);
+  }
+
+  @Property
   public void writeAsciiString(@ForAll @CharRange(to = 127) String input) throws IOException {
     doWriteString(input);
   }
@@ -159,6 +169,11 @@ public class MessageWriterTest {
   @Property
   public void writeString(@ForAll String input) throws IOException {
     doWriteString(input);
+  }
+
+  @Property
+  public void writeCharSequence(@ForAll String input) throws IOException {
+    doWriteString(new StringBuilder(input));
   }
 
   @Property
@@ -175,6 +190,11 @@ public class MessageWriterTest {
   }
 
   @Property
+  public void writeIdentifier(@ForAll @StringLength(max = 1 << 6) String input) throws IOException {
+    doWriteIdentifier(input);
+  }
+
+  @Property
   public void readArray(
       @ForAll boolean bool,
       @ForAll byte b,
@@ -183,9 +203,10 @@ public class MessageWriterTest {
       @ForAll long l,
       @ForAll float f,
       @ForAll double d,
+      @ForAll Instant t,
       @ForAll String str)
       throws IOException {
-    writer.writeArrayHeader(9);
+    writer.writeArrayHeader(10);
     writer.writeNil();
     writer.write(bool);
     writer.write(b);
@@ -194,11 +215,12 @@ public class MessageWriterTest {
     writer.write(l);
     writer.write(f);
     writer.write(d);
+    writer.write(t);
     writer.write(str);
     writer.flush();
 
     assertThat(unpacker.getNextFormat().getValueType()).isEqualTo(ValueType.ARRAY);
-    assertThat(unpacker.unpackArrayHeader()).isEqualTo(9);
+    assertThat(unpacker.unpackArrayHeader()).isEqualTo(10);
     assertThatNoException().isThrownBy(unpacker::unpackNil);
     assertThat(unpacker.unpackBoolean()).isEqualTo(bool);
     assertThat(unpacker.unpackByte()).isEqualTo(b);
@@ -207,19 +229,20 @@ public class MessageWriterTest {
     assertThat(unpacker.unpackLong()).isEqualTo(l);
     assertThat(unpacker.unpackFloat()).isEqualTo(f);
     assertThat(unpacker.unpackDouble()).isEqualTo(d);
+    assertThat(unpacker.unpackTimestamp()).isEqualTo(t);
     assertThat(unpacker.unpackString()).isEqualTo(str);
   }
 
   @Property
-  public void writeStringArray(@ForAll List<String> strings) throws IOException {
-    writer.writeArrayHeader(strings.size());
-    for (var str : strings) {
+  public void writeStringArray(@ForAll List<String> input) throws IOException {
+    writer.writeArrayHeader(input.size());
+    for (var str : input) {
       writer.write(str);
     }
     writer.flush();
 
-    assertThat(unpacker.unpackArrayHeader()).isEqualTo(strings.size());
-    for (var str : strings) {
+    assertThat(unpacker.unpackArrayHeader()).isEqualTo(input.size());
+    for (var str : input) {
       assertThat(unpacker.unpackString()).isEqualTo(str);
     }
   }
@@ -233,9 +256,10 @@ public class MessageWriterTest {
       @ForAll long l,
       @ForAll float f,
       @ForAll double d,
+      @ForAll Instant t,
       @ForAll String str)
       throws IOException {
-    writer.writeMapHeader(9);
+    writer.writeMapHeader(10);
     writer.writeNil();
     writer.write(bool);
     writer.write(bool);
@@ -251,13 +275,15 @@ public class MessageWriterTest {
     writer.write(f);
     writer.write(d);
     writer.write(d);
+    writer.write(t);
+    writer.write(t);
     writer.write(str);
     writer.write(str);
     writer.writeNil();
     writer.flush();
 
     assertThat(unpacker.getNextFormat().getValueType()).isEqualTo(ValueType.MAP);
-    assertThat(unpacker.unpackMapHeader()).isEqualTo(9);
+    assertThat(unpacker.unpackMapHeader()).isEqualTo(10);
     assertThatNoException().isThrownBy(unpacker::unpackNil);
     assertThat(unpacker.unpackBoolean()).isEqualTo(bool);
     assertThat(unpacker.unpackBoolean()).isEqualTo(bool);
@@ -273,29 +299,39 @@ public class MessageWriterTest {
     assertThat(unpacker.unpackFloat()).isEqualTo(f);
     assertThat(unpacker.unpackDouble()).isEqualTo(d);
     assertThat(unpacker.unpackDouble()).isEqualTo(d);
+    assertThat(unpacker.unpackTimestamp()).isEqualTo(t);
+    assertThat(unpacker.unpackTimestamp()).isEqualTo(t);
     assertThat(unpacker.unpackString()).isEqualTo(str);
     assertThat(unpacker.unpackString()).isEqualTo(str);
     assertThatNoException().isThrownBy(unpacker::unpackNil);
   }
 
   @Property
-  public void writeStringMap(@ForAll Map<String, String> strings) throws IOException {
-    writer.writeMapHeader(strings.size());
-    for (var entry : strings.entrySet()) {
+  public void writeStringMap(@ForAll Map<String, String> input) throws IOException {
+    writer.writeMapHeader(input.size());
+    for (var entry : input.entrySet()) {
       writer.write(entry.getKey());
       writer.write(entry.getValue());
     }
     writer.flush();
 
-    assertThat(unpacker.unpackMapHeader()).isEqualTo(strings.size());
-    for (var entry : strings.entrySet()) {
+    assertThat(unpacker.unpackMapHeader()).isEqualTo(input.size());
+    for (var entry : input.entrySet()) {
       assertThat(unpacker.unpackString()).isEqualTo(entry.getKey());
       assertThat(unpacker.unpackString()).isEqualTo(entry.getValue());
     }
   }
 
-  private void doWriteString(String input) throws IOException {
+  private void doWriteString(CharSequence input) throws IOException {
     writer.write(input);
+    writer.flush();
+    assertThat(unpacker.getNextFormat().getValueType()).isEqualTo(ValueType.STRING);
+    var output = unpacker.unpackString();
+    assertThat(output).isEqualTo(input.toString());
+  }
+
+  private void doWriteIdentifier(String input) throws IOException {
+    writer.writeIdentifier(input);
     writer.flush();
     assertThat(unpacker.getNextFormat().getValueType()).isEqualTo(ValueType.STRING);
     var output = unpacker.unpackString();
