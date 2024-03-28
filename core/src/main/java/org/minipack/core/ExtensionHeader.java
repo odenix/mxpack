@@ -10,4 +10,10 @@ package org.minipack.core;
  * @param length the byte length of the extension value's payload
  * @param type the numeric identifier of the extension type
  */
-public record ExtensionHeader(int length, byte type) {}
+public record ExtensionHeader(int length, byte type) {
+  public static final byte TIMESTAMP_TYPE = -1;
+
+  public boolean isTimestamp() {
+    return type == TIMESTAMP_TYPE;
+  }
+}

@@ -27,11 +27,8 @@ import org.minipack.core.internal.ValueFormat;
  * WriterException} if some other error occurs.
  */
 public final class MessageWriter implements Closeable {
-  private static final int MIN_BUFFER_SIZE = 9;
-  private static final int DEFAULT_BUFFER_SIZE = 1024 * 8;
   private static final int MAX_STRING_SIZE = 1024 * 1024;
   private static final int MAX_IDENTIFIER_CACHE_SIZE = 1024 * 1024; // in bytes
-  private static final byte TIMESTAMP_EXTENSION_TYPE = -1;
 
   private final MessageSink sink;
   private final Encoder<CharSequence> stringEncoder;
@@ -215,13 +212,13 @@ public final class MessageWriter implements Closeable {
     var seconds = value.getEpochSecond();
     var nanos = value.getNano();
     if (nanos == 0 && seconds >= 0 && seconds < (1L << 32)) {
-      writeExtensionHeader(4, TIMESTAMP_EXTENSION_TYPE);
+      writeExtensionHeader(4, ExtensionHeader.TIMESTAMP_TYPE);
       sink.putInt((int) seconds);
     } else if (seconds >= 0 && seconds < (1L << 34)) {
-      writeExtensionHeader(8, TIMESTAMP_EXTENSION_TYPE);
+      writeExtensionHeader(8, ExtensionHeader.TIMESTAMP_TYPE);
       sink.putLong(((long) nanos) << 34 | seconds);
     } else {
-      writeExtensionHeader(12, TIMESTAMP_EXTENSION_TYPE);
+      writeExtensionHeader(12, ExtensionHeader.TIMESTAMP_TYPE);
       sink.putInt(nanos);
       sink.putLong(seconds);
     }

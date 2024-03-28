@@ -28,11 +28,8 @@ import org.minipack.core.internal.ValueFormat;
  * ReaderException} if some other error occurs.
  */
 public final class MessageReader implements Closeable {
-  private static final int MIN_BUFFER_SIZE = 9;
-  private static final int DEFAULT_BUFFER_SIZE = 1024 * 8;
   private static final int MAX_STRING_SIZE = 1024 * 1024;
   private static final int MAX_IDENTIFIER_CACHE_SIZE = 1024 * 1024; // in bytes
-  private static final byte TIMESTAMP_EXTENSION_TYPE = -1;
 
   private final MessageSource source;
   private final Decoder<String> stringDecoder;
@@ -276,8 +273,8 @@ public final class MessageReader implements Closeable {
   /** Reads a timestamp value. */
   public Instant readTimestamp() throws IOException {
     var header = readExtensionHeader();
-    if (header.type() != TIMESTAMP_EXTENSION_TYPE) {
-      throw Exceptions.extensionTypeMismatch(TIMESTAMP_EXTENSION_TYPE, header.type());
+    if (!header.isTimestamp()) {
+      throw Exceptions.timestampTypeMismatch(header.type());
     }
     return switch (header.length()) {
       case 4 -> Instant.ofEpochSecond(source.getInt() & 0xffffffffL);

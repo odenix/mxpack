@@ -86,9 +86,11 @@ public final class Exceptions {
             + ".");
   }
 
-  public static ReaderException extensionTypeMismatch(byte expectedType, byte actualType) {
+  public static ReaderException timestampTypeMismatch(byte actualType) {
     return new ReaderException(
-        "Type mismatch: Expected extension type " + expectedType + ", but got " + actualType + ".");
+        "Type mismatch: MessagePack extension value of type "
+            + actualType
+            + " cannot be read as timestamp.");
   }
 
   public static ReaderException integerOverflow(long value, RequestedType requestedType) {
