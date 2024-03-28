@@ -9,6 +9,7 @@ import java.nio.ByteBuffer;
 import org.minipack.core.internal.IdentifierEncoder;
 import org.minipack.core.internal.StringEncoder;
 
+@FunctionalInterface
 public interface Encoder<T> {
   static Encoder<CharSequence> stringEncoder(int maxStringSize) {
     return new StringEncoder(maxStringSize);

@@ -10,6 +10,7 @@ import static org.assertj.core.api.Assertions.assertThatNoException;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -209,6 +210,45 @@ public abstract class MessageWriterTest {
   @Property
   public void writeIdentifier(@ForAll @StringLength(max = 1 << 6) String input) throws IOException {
     doWriteIdentifier(input);
+  }
+
+  @Property
+  public void readRawString(@ForAll String input) throws IOException {
+    writer.write(input);
+    writer.flush();
+    assertThat(unpacker.getNextFormat().getValueType()).isEqualTo(ValueType.STRING);
+    var length = unpacker.unpackRawStringHeader();
+    var buffer = ByteBuffer.allocate(length);
+    unpacker.readPayload(buffer);
+    var output = new String(buffer.array(), StandardCharsets.UTF_8);
+    assertThat(output).isEqualTo(input);
+  }
+
+  @Property
+  public void readRawBinary(@ForAll byte[] input) throws IOException {
+    writer.writeBinaryHeader(input.length);
+    writer.writePayload(ByteBuffer.wrap(input));
+    writer.flush();
+    assertThat(unpacker.getNextFormat().getValueType()).isEqualTo(ValueType.BINARY);
+    var length = unpacker.unpackBinaryHeader();
+    var buffer = ByteBuffer.allocate(length);
+    unpacker.readPayload(buffer);
+    var output = buffer.array();
+    assertThat(output).isEqualTo(input);
+  }
+
+  @Property
+  public void readExtension(@ForAll byte[] input, @ForAll byte extensionType) throws IOException {
+    writer.writeExtensionHeader(input.length, extensionType);
+    writer.writePayload(ByteBuffer.wrap(input));
+    writer.flush();
+    assertThat(unpacker.getNextFormat().getValueType()).isEqualTo(ValueType.EXTENSION);
+    var header = unpacker.unpackExtensionTypeHeader();
+    assertThat(header.getType()).isEqualTo(extensionType);
+    var buffer = ByteBuffer.allocate(header.getLength());
+    unpacker.readPayload(buffer);
+    var output = buffer.array();
+    assertThat(output).isEqualTo(input);
   }
 
   @Property

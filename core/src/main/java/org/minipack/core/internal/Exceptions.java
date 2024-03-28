@@ -157,4 +157,13 @@ public final class Exceptions {
   public static ReaderException invalidTimestampLength(int length) {
     return new ReaderException("Encountered Timestamp value with invalid length " + length + ".");
   }
+
+  public static ReaderException payloadBufferTooSmall(int expectedSize, int actualSize) {
+    return new ReaderException(
+        "Expected a payload buffer with at least "
+            + expectedSize
+            + " remaining bytes, but got a buffer with "
+            + actualSize
+            + " remaining bytes.");
+  }
 }

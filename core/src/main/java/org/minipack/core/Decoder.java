@@ -9,6 +9,7 @@ import java.nio.ByteBuffer;
 import org.minipack.core.internal.IdentifierDecoder;
 import org.minipack.core.internal.StringDecoder;
 
+@FunctionalInterface
 public interface Decoder<T> {
   static Decoder<String> stringDecoder(int maxStringSize) {
     return new StringDecoder(1024, maxStringSize);

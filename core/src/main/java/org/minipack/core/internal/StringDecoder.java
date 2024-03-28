@@ -28,26 +28,16 @@ public final class StringDecoder implements Decoder<String> {
     if (length > maxStringSize) {
       throw Exceptions.stringTooLargeOnRead(length, maxStringSize);
     }
-    return decode(buffer, length, source);
-  }
-
-  private String decode(ByteBuffer buffer, int length, MessageSource source) throws IOException {
     if (buffer.hasArray() && length <= buffer.capacity()) {
       source.ensureRemaining(buffer, length);
       var result = decode(buffer, length);
       buffer.position(buffer.position() + length);
       return result;
     }
-    var stringBuffer = growableBuffer.get(length).position(0).limit(length);
-    var transferLength = Math.min(length, buffer.remaining());
-    stringBuffer.put(0, buffer, buffer.position(), transferLength);
-    if (transferLength < length) {
-      stringBuffer.position(transferLength);
-      source.readAtLeast(stringBuffer, stringBuffer.remaining());
-      stringBuffer.position(0);
-    }
-    buffer.position(buffer.position() + transferLength);
-    return decode(stringBuffer, length);
+    var largeBuffer = growableBuffer.get(length);
+    reader.readPayload(largeBuffer);
+    largeBuffer.position(0);
+    return decode(largeBuffer, length);
   }
 
   private static String decode(ByteBuffer buffer, int length) {
@@ -74,7 +64,7 @@ public final class StringDecoder implements Decoder<String> {
                 : Math.max(buffer.capacity() * 2, requestedCapacity);
         buffer = ByteBuffer.allocate(Math.min(maxCapacity, newCapacity));
       }
-      return buffer;
+      return buffer.position(0).limit(requestedCapacity);
     }
   }
 }

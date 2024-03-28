@@ -12,6 +12,7 @@ import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -29,13 +30,13 @@ public abstract class MessageReaderTest {
   private final MessagePacker packer;
   private final MessageReader reader;
 
-  public static class OutputStreamTest extends MessageWriterTest {
+  public static class OutputStreamTest extends MessageReaderTest {
     public OutputStreamTest() throws IOException {
       super(false);
     }
   }
 
-  public static class ChannelTest extends MessageWriterTest {
+  public static class ChannelTest extends MessageReaderTest {
     public ChannelTest() throws IOException {
       super(true);
     }
@@ -185,6 +186,47 @@ public abstract class MessageReaderTest {
   @Property
   public void readIdentifier(@ForAll @StringLength(max = 1 << 6) String input) throws IOException {
     doReadIdentifier(input);
+  }
+
+  @Property
+  public void readRawString(@ForAll String input) throws IOException {
+    packer.packString(input);
+    packer.flush();
+    assertThat(reader.nextType()).isEqualTo(ValueType.STRING);
+    var length = reader.readStringHeader();
+    var buffer = ByteBuffer.allocate(length);
+    reader.readPayload(buffer);
+    var output = new String(buffer.array(), StandardCharsets.UTF_8);
+    assertThat(output).isEqualTo(input);
+  }
+
+  @Property
+  public void readRawBinary(@ForAll byte[] input) throws IOException {
+    packer.packBinaryHeader(input.length);
+    packer.writePayload(input);
+    packer.flush();
+    assertThat(reader.nextType()).isEqualTo(ValueType.BINARY);
+    var length = reader.readBinaryHeader();
+    assertThat(length).isEqualTo(input.length);
+    var buffer = ByteBuffer.allocate(length);
+    reader.readPayload(buffer);
+    var output = buffer.array();
+    assertThat(input).isEqualTo(output);
+  }
+
+  @Property
+  public void readExtension(@ForAll byte[] input, @ForAll byte extensionType) throws IOException {
+    packer.packExtensionTypeHeader(extensionType, input.length);
+    packer.writePayload(input);
+    packer.flush();
+    assertThat(reader.nextType()).isEqualTo(ValueType.EXTENSION);
+    var header = reader.readExtensionHeader();
+    assertThat(header.type()).isEqualTo(extensionType);
+    assertThat(header.length()).isEqualTo(input.length);
+    var buffer = ByteBuffer.allocate(header.length());
+    reader.readPayload(buffer);
+    var output = buffer.array();
+    assertThat(input).isEqualTo(output);
   }
 
   @Property

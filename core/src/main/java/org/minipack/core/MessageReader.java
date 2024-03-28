@@ -10,7 +10,7 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
 import java.time.Instant;
-import java.util.function.BiConsumer;
+import java.util.function.IntFunction;
 import org.jspecify.annotations.Nullable;
 import org.minipack.core.internal.Exceptions;
 import org.minipack.core.internal.RequestedType;
@@ -325,7 +325,7 @@ public final class MessageReader implements Closeable {
    * Reads a string value.
    *
    * <p>To read a string as a sequence of bytes, use {@link #readStringHeader()} together with
-   * {@link #readPayload(BiConsumer)}.
+   * {@link #readPayload}.
    */
   public String readString() throws IOException {
     return stringDecoder.decode(buffer, source, this);
@@ -335,7 +335,7 @@ public final class MessageReader implements Closeable {
     return identifierDecoder.decode(buffer, source, this);
   }
 
-  public <T> T readValue(Decoder<T> decoder) throws IOException {
+  public <T> T read(Decoder<T> decoder) throws IOException {
     return decoder.decode(buffer, source, this);
   }
 
@@ -436,8 +436,28 @@ public final class MessageReader implements Closeable {
     };
   }
 
-  public void readPayload(BiConsumer<ByteBuffer, MessageSource> reader) {
-    reader.accept(buffer, source);
+  public void readPayload(ByteBuffer destination) throws IOException {
+    if (buffer.remaining() > 0) {
+      var transferLength = Math.min(buffer.remaining(), destination.remaining());
+      destination.put(destination.position(), buffer, buffer.position(), transferLength);
+      buffer.position(buffer.position() + transferLength);
+      destination.position(destination.position() + transferLength);
+    }
+    source.readAtLeast(destination, destination.remaining());
+  }
+
+  public ByteBuffer readPayload(int length, IntFunction<ByteBuffer> allocator) throws IOException {
+    if (buffer.capacity() >= length) {
+      source.ensureRemaining(buffer, length);
+      return buffer.slice(buffer.position(), length).asReadOnlyBuffer();
+    }
+    var destination = allocator.apply(length);
+    if (destination.remaining() < length) {
+      throw Exceptions.payloadBufferTooSmall(length, destination.remaining());
+    }
+    destination.limit(destination.position() + length);
+    readPayload(destination);
+    return destination;
   }
 
   /** Closes the underlying message {@linkplain MessageSource source}. */

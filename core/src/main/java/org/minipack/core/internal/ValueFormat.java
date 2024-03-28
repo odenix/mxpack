@@ -103,7 +103,11 @@ public final class ValueFormat {
                   ? ValueType.STRING
                   : ValueFormat.isFixArray(format)
                       ? ValueType.ARRAY
-                      : ValueFormat.isFixMap(format) ? ValueType.MAP : invalidFormat(format);
+                      : ValueFormat.isFixMap(format)
+                          ? ValueType.MAP
+                          : ValueFormat.isFixExt(format)
+                              ? ValueType.EXTENSION
+                              : invalidFormat(format);
     };
   }
 

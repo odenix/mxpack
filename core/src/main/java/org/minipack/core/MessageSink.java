@@ -111,4 +111,14 @@ public abstract class MessageSink implements Closeable {
     ensureRemaining(buffer, 8);
     buffer.putLong(value);
   }
+
+  public final void putFloat(ByteBuffer buffer, float value) throws IOException {
+    ensureRemaining(buffer, 4);
+    buffer.putFloat(value);
+  }
+
+  public final void putDouble(ByteBuffer buffer, double value) throws IOException {
+    ensureRemaining(buffer, 8);
+    buffer.putDouble(value);
+  }
 }

@@ -10,7 +10,6 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
 import java.time.Instant;
-import java.util.function.BiConsumer;
 import org.jspecify.annotations.Nullable;
 import org.minipack.core.internal.Exceptions;
 import org.minipack.core.internal.ValueFormat;
@@ -258,7 +257,7 @@ public final class MessageWriter implements Closeable {
     identifierEncoder.encode(identifier, buffer, sink, this);
   }
 
-  public <T> void writeValue(T value, Encoder<T> encoder) throws IOException {
+  public <T> void write(T value, Encoder<T> encoder) throws IOException {
     encoder.encode(value, buffer, sink, this);
   }
 
@@ -367,8 +366,9 @@ public final class MessageWriter implements Closeable {
     }
   }
 
-  public void writePayload(BiConsumer<ByteBuffer, MessageSink> writer) {
-    writer.accept(buffer, sink);
+  public void writePayload(ByteBuffer buffer) throws IOException {
+    writeBuffer();
+    sink.write(buffer);
   }
 
   /**

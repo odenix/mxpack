@@ -102,4 +102,14 @@ public abstract class MessageSource implements Closeable {
     ensureRemaining(buffer, 8);
     return buffer.getLong();
   }
+
+  public final float getFloat(ByteBuffer buffer) throws IOException {
+    ensureRemaining(buffer, 4);
+    return buffer.getFloat();
+  }
+
+  public final double getDouble(ByteBuffer buffer) throws IOException {
+    ensureRemaining(buffer, 8);
+    return buffer.getDouble();
+  }
 }

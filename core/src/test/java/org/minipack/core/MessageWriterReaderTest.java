@@ -11,6 +11,7 @@ import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -201,6 +202,45 @@ public abstract class MessageWriterReaderTest {
   public void writeReadIdentifier(@ForAll @StringLength(max = 1 << 5) String input)
       throws IOException {
     doWriteReadIdentifier(input);
+  }
+
+  @Property
+  public void readRawString(@ForAll String input) throws IOException {
+    writer.write(input);
+    writer.flush();
+    assertThat(reader.nextType()).isEqualTo(ValueType.STRING);
+    var length = reader.readStringHeader();
+    var buffer = ByteBuffer.allocate(length);
+    reader.readPayload(buffer);
+    var output = new String(buffer.array(), StandardCharsets.UTF_8);
+    assertThat(output).isEqualTo(input);
+  }
+
+  @Property
+  public void readRawBinary(@ForAll byte[] input) throws IOException {
+    writer.writeBinaryHeader(input.length);
+    writer.writePayload(ByteBuffer.wrap(input));
+    writer.flush();
+    assertThat(reader.nextType()).isEqualTo(ValueType.BINARY);
+    var length = reader.readBinaryHeader();
+    var buffer = ByteBuffer.allocate(length);
+    reader.readPayload(buffer);
+    var output = buffer.array();
+    assertThat(output).isEqualTo(input);
+  }
+
+  @Property
+  public void readExtension(@ForAll byte[] input, @ForAll byte extensionType) throws IOException {
+    writer.writeExtensionHeader(input.length, extensionType);
+    writer.writePayload(ByteBuffer.wrap(input));
+    writer.flush();
+    assertThat(reader.nextType()).isEqualTo(ValueType.EXTENSION);
+    var header = reader.readExtensionHeader();
+    assertThat(header.type()).isEqualTo(extensionType);
+    var buffer = ByteBuffer.allocate(header.length());
+    reader.readPayload(buffer);
+    var output = buffer.array();
+    assertThat(output).isEqualTo(input);
   }
 
   @Property
