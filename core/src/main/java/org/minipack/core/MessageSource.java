@@ -100,65 +100,65 @@ public abstract class MessageSource implements Closeable {
     return buffer.get(buffer.position());
   }
 
-  public final byte getByte() throws IOException {
+  public final byte readByte() throws IOException {
     ensureRemaining(1);
     return buffer.get();
   }
 
-  public final byte[] getBytes(int length) throws IOException {
+  public final byte[] readBytes(int length) throws IOException {
     ensureRemaining(length);
     var bytes = new byte[length];
     buffer.get(bytes);
     return bytes;
   }
 
-  public final short getShort() throws IOException {
+  public final short readShort() throws IOException {
     ensureRemaining(2);
     return buffer.getShort();
   }
 
-  public final int getInt() throws IOException {
+  public final int readInt() throws IOException {
     ensureRemaining(4);
     return buffer.getInt();
   }
 
-  public final long getLong() throws IOException {
+  public final long readLong() throws IOException {
     ensureRemaining(8);
     return buffer.getLong();
   }
 
-  public final float getFloat() throws IOException {
+  public final float readFloat() throws IOException {
     ensureRemaining(4);
     return buffer.getFloat();
   }
 
-  public final double getDouble() throws IOException {
+  public final double readDouble() throws IOException {
     ensureRemaining(8);
     return buffer.getDouble();
   }
 
-  public short getUByte() throws IOException {
-    return (short) (getByte() & 0xff);
+  public short readUByte() throws IOException {
+    return (short) (readByte() & 0xff);
   }
 
-  public int getUShort() throws IOException {
-    return getShort() & 0xffff;
+  public int readUShort() throws IOException {
+    return readShort() & 0xffff;
   }
 
-  public long getUInt() throws IOException {
-    return getInt() & 0xffffffffL;
+  public long readUInt() throws IOException {
+    return readInt() & 0xffffffffL;
   }
 
-  public short getLength8() throws IOException {
-    return getUByte();
+  public short readLength8() throws IOException {
+    return readUByte();
   }
 
-  public int getLength16() throws IOException {
-    return getUShort();
+  public int readLength16() throws IOException {
+    return readUShort();
   }
 
-  public int getLength32(MessageType type) throws IOException {
-    var length = getInt();
+  public int readLength32(MessageType type) throws IOException {
+    var length = readInt();
     if (length < 0) {
       throw Exceptions.lengthOverflow(length & 0xffffffffL, type);
     }

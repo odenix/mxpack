@@ -79,11 +79,11 @@ public final class StringEncoder implements MessageEncoder<CharSequence> {
     for (var i = 0; i < length; i++) {
       var ch = string.charAt(i);
       if (ch < 0x80) {
-        sink.putByte((byte) ch);
+        sink.writeByte((byte) ch);
       } else if (ch < 0x800) {
-        sink.putBytes((byte) (0xc0 | ch >>> 6), (byte) (0x80 | (ch & 0x3f)));
+        sink.writeBytes((byte) (0xc0 | ch >>> 6), (byte) (0x80 | (ch & 0x3f)));
       } else if (ch < Character.MIN_SURROGATE || ch > Character.MAX_SURROGATE) {
-        sink.putBytes(
+        sink.writeBytes(
             (byte) (0xe0 | ch >>> 12),
             (byte) (0x80 | ((ch >>> 6) & 0x3f)),
             (byte) (0x80 | (ch & 0x3f)));
@@ -93,7 +93,7 @@ public final class StringEncoder implements MessageEncoder<CharSequence> {
           throw Exceptions.malformedSurrogate(i);
         }
         var cp = Character.toCodePoint(ch, ch2);
-        sink.putBytes(
+        sink.writeBytes(
             (byte) (0xf0 | cp >>> 18),
             (byte) (0x80 | ((cp >>> 12) & 0x3f)),
             (byte) (0x80 | ((cp >>> 6) & 0x3f)),

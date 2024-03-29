@@ -36,6 +36,6 @@ public final class IdentifierEncoder implements MessageEncoder<String> {
       throw Exceptions.identifierTooLarge(bytes.length, sink.buffer().capacity());
     }
     writer.writeStringHeader(bytes.length);
-    sink.putBytes(bytes);
+    sink.writeBytes(bytes);
   }
 }

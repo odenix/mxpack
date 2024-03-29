@@ -84,7 +84,7 @@ public abstract class MessageSink implements Closeable {
   /**
    * Puts a byte value into the given buffer, ensuring that the buffer has enough space remaining.
    */
-  public final void putByte(byte value) throws IOException {
+  public final void writeByte(byte value) throws IOException {
     ensureRemaining(1);
     buffer.put(value);
   }
@@ -93,7 +93,7 @@ public abstract class MessageSink implements Closeable {
    * Puts two byte values into the given buffer, ensuring that the buffer has enough space
    * remaining.
    */
-  public final void putBytes(byte value1, byte value2) throws IOException {
+  public final void writeBytes(byte value1, byte value2) throws IOException {
     ensureRemaining(2);
     buffer.put(value1);
     buffer.put(value2);
@@ -103,7 +103,7 @@ public abstract class MessageSink implements Closeable {
    * Puts three byte values into the given buffer, ensuring that the buffer has enough space
    * remaining.
    */
-  public final void putBytes(byte value1, byte value2, byte value3) throws IOException {
+  public final void writeBytes(byte value1, byte value2, byte value3) throws IOException {
     ensureRemaining(3);
     buffer.put(value1);
     buffer.put(value2);
@@ -114,7 +114,7 @@ public abstract class MessageSink implements Closeable {
    * Puts four byte values into the given buffer, ensuring that the buffer has enough space
    * remaining.
    */
-  public final void putBytes(byte value1, byte value2, byte value3, byte value4)
+  public final void writeBytes(byte value1, byte value2, byte value3, byte value4)
       throws IOException {
     ensureRemaining(4);
     buffer.put(value1);
@@ -123,61 +123,61 @@ public abstract class MessageSink implements Closeable {
     buffer.put(value4);
   }
 
-  public final void putBytes(byte[] values) throws IOException {
+  public final void writeBytes(byte[] values) throws IOException {
     ensureRemaining(values.length);
     buffer.put(values);
   }
 
-  public final void putShort(short value) throws IOException {
+  public final void writeShort(short value) throws IOException {
     ensureRemaining(2);
     buffer.putShort(value);
   }
 
-  public final void putInt(int value) throws IOException {
+  public final void writeInt(int value) throws IOException {
     ensureRemaining(4);
     buffer.putInt(value);
   }
 
-  public final void putLong(long value) throws IOException {
+  public final void writeLong(long value) throws IOException {
     ensureRemaining(8);
     buffer.putLong(value);
   }
 
-  public final void putFloat(float value) throws IOException {
+  public final void writeFloat(float value) throws IOException {
     ensureRemaining(4);
     buffer.putFloat(value);
   }
 
-  public final void putDouble(double value) throws IOException {
+  public final void writeDouble(double value) throws IOException {
     ensureRemaining(8);
     buffer.putDouble(value);
   }
 
-  public void putByteAndShort(byte value1, short value2) throws IOException {
+  public void writeByteAndShort(byte value1, short value2) throws IOException {
     ensureRemaining(3);
     buffer.put(value1);
     buffer.putShort(value2);
   }
 
-  public void putByteAndInt(byte value1, int value2) throws IOException {
+  public void writeByteAndInt(byte value1, int value2) throws IOException {
     ensureRemaining(5);
     buffer.put(value1);
     buffer.putInt(value2);
   }
 
-  public void putByteAndLong(byte value1, long value2) throws IOException {
+  public void writeByteAndLong(byte value1, long value2) throws IOException {
     ensureRemaining(9);
     buffer.put(value1);
     buffer.putLong(value2);
   }
 
-  public void putByteAndFloat(byte value1, float value2) throws IOException {
+  public void writeByteAndFloat(byte value1, float value2) throws IOException {
     ensureRemaining(5);
     buffer.put(value1);
     buffer.putFloat(value2);
   }
 
-  public void putByteAndDouble(byte value1, double value2) throws IOException {
+  public void writeByteAndDouble(byte value1, double value2) throws IOException {
     ensureRemaining(9);
     buffer.put(value1);
     buffer.putDouble(value2);

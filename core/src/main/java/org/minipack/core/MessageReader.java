@@ -97,7 +97,7 @@ public final class MessageReader implements Closeable {
 
   /** Reads a nil (null) value. */
   public void readNil() throws IOException {
-    var format = source.getByte();
+    var format = source.readByte();
     if (format != MessageFormat.NIL) {
       throw Exceptions.typeMismatch(format, RequestedType.NIL);
     }
@@ -105,7 +105,7 @@ public final class MessageReader implements Closeable {
 
   /** Reads a boolean value. */
   public boolean readBoolean() throws IOException {
-    var format = source.getByte();
+    var format = source.readByte();
     return switch (format) {
       case MessageFormat.TRUE -> true;
       case MessageFormat.FALSE -> false;
@@ -115,41 +115,41 @@ public final class MessageReader implements Closeable {
 
   /** Reads an integer value that fits into a Java byte. */
   public byte readByte() throws IOException {
-    var format = source.getByte();
+    var format = source.readByte();
     return switch (format) {
-      case MessageFormat.INT8 -> source.getByte();
+      case MessageFormat.INT8 -> source.readByte();
       case MessageFormat.INT16 -> {
-        var value = source.getShort();
+        var value = source.readShort();
         if (value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE) yield (byte) value;
         throw Exceptions.integerOverflow(value, RequestedType.BYTE);
       }
       case MessageFormat.INT32 -> {
-        var value = source.getInt();
+        var value = source.readInt();
         if (value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE) yield (byte) value;
         throw Exceptions.integerOverflow(value, RequestedType.BYTE);
       }
       case MessageFormat.INT64 -> {
-        var value = source.getLong();
+        var value = source.readLong();
         if (value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE) yield (byte) value;
         throw Exceptions.integerOverflow(value, RequestedType.BYTE);
       }
       case MessageFormat.UINT8 -> {
-        var value = source.getByte();
+        var value = source.readByte();
         if (value >= 0) yield value;
         throw Exceptions.integerOverflow(value, RequestedType.BYTE);
       }
       case MessageFormat.UINT16 -> {
-        var value = source.getShort();
+        var value = source.readShort();
         if (value >= 0 && value <= Byte.MAX_VALUE) yield (byte) value;
         throw Exceptions.integerOverflow(value, RequestedType.BYTE);
       }
       case MessageFormat.UINT32 -> {
-        var value = source.getInt();
+        var value = source.readInt();
         if (value >= 0 && value <= Byte.MAX_VALUE) yield (byte) value;
         throw Exceptions.integerOverflow(value, RequestedType.BYTE);
       }
       case MessageFormat.UINT64 -> {
-        var value = source.getLong();
+        var value = source.readLong();
         if (value >= 0 && value <= Byte.MAX_VALUE) yield (byte) value;
         throw Exceptions.integerOverflow(value, RequestedType.BYTE);
       }
@@ -162,33 +162,33 @@ public final class MessageReader implements Closeable {
 
   /** Reads an integer value that fits into a Java short. */
   public short readShort() throws IOException {
-    var format = source.getByte();
+    var format = source.readByte();
     return switch (format) {
-      case MessageFormat.INT8 -> source.getByte();
-      case MessageFormat.INT16 -> source.getShort();
+      case MessageFormat.INT8 -> source.readByte();
+      case MessageFormat.INT16 -> source.readShort();
       case MessageFormat.INT32 -> {
-        var value = source.getInt();
+        var value = source.readInt();
         if (value >= Short.MIN_VALUE && value <= Short.MAX_VALUE) yield (short) value;
         throw Exceptions.integerOverflow(value, RequestedType.SHORT);
       }
       case MessageFormat.INT64 -> {
-        var value = source.getLong();
+        var value = source.readLong();
         if (value >= Short.MIN_VALUE && value <= Short.MAX_VALUE) yield (short) value;
         throw Exceptions.integerOverflow(value, RequestedType.SHORT);
       }
-      case MessageFormat.UINT8 -> source.getUByte();
+      case MessageFormat.UINT8 -> source.readUByte();
       case MessageFormat.UINT16 -> {
-        var value = source.getShort();
+        var value = source.readShort();
         if (value >= 0) yield value;
         throw Exceptions.integerOverflow(value, RequestedType.SHORT);
       }
       case MessageFormat.UINT32 -> {
-        var value = source.getInt();
+        var value = source.readInt();
         if (value >= 0 && value <= Short.MAX_VALUE) yield (short) value;
         throw Exceptions.integerOverflow(value, RequestedType.SHORT);
       }
       case MessageFormat.UINT64 -> {
-        var value = source.getLong();
+        var value = source.readLong();
         if (value >= 0 && value <= Short.MAX_VALUE) yield (short) value;
         throw Exceptions.integerOverflow(value, RequestedType.SHORT);
       }
@@ -201,25 +201,25 @@ public final class MessageReader implements Closeable {
 
   /** Reads an integer value that fits into a Java int. */
   public int readInt() throws IOException {
-    var format = source.getByte();
+    var format = source.readByte();
     return switch (format) {
-      case MessageFormat.INT8 -> source.getByte();
-      case MessageFormat.INT16 -> source.getShort();
-      case MessageFormat.INT32 -> source.getInt();
+      case MessageFormat.INT8 -> source.readByte();
+      case MessageFormat.INT16 -> source.readShort();
+      case MessageFormat.INT32 -> source.readInt();
       case MessageFormat.INT64 -> {
-        var value = source.getLong();
+        var value = source.readLong();
         if (value >= Integer.MIN_VALUE && value <= Integer.MAX_VALUE) yield (int) value;
         throw Exceptions.integerOverflow(value, RequestedType.INT);
       }
-      case MessageFormat.UINT8 -> source.getUByte();
-      case MessageFormat.UINT16 -> source.getUShort();
+      case MessageFormat.UINT8 -> source.readUByte();
+      case MessageFormat.UINT16 -> source.readUShort();
       case MessageFormat.UINT32 -> {
-        var value = source.getInt();
+        var value = source.readInt();
         if (value >= 0) yield value;
         throw Exceptions.integerOverflow(value, RequestedType.INT);
       }
       case MessageFormat.UINT64 -> {
-        var value = source.getLong();
+        var value = source.readLong();
         if (value >= 0 && value <= Integer.MAX_VALUE) yield (int) value;
         throw Exceptions.integerOverflow(value, RequestedType.INT);
       }
@@ -232,17 +232,17 @@ public final class MessageReader implements Closeable {
 
   /** Reads an integer value that fits into a Java long. */
   public long readLong() throws IOException {
-    var format = source.getByte();
+    var format = source.readByte();
     return switch (format) {
-      case MessageFormat.INT8 -> source.getByte();
-      case MessageFormat.INT16 -> source.getShort();
-      case MessageFormat.INT32 -> source.getInt();
-      case MessageFormat.INT64 -> source.getLong();
-      case MessageFormat.UINT8 -> source.getUByte();
-      case MessageFormat.UINT16 -> source.getUShort();
-      case MessageFormat.UINT32 -> source.getUInt();
+      case MessageFormat.INT8 -> source.readByte();
+      case MessageFormat.INT16 -> source.readShort();
+      case MessageFormat.INT32 -> source.readInt();
+      case MessageFormat.INT64 -> source.readLong();
+      case MessageFormat.UINT8 -> source.readUByte();
+      case MessageFormat.UINT16 -> source.readUShort();
+      case MessageFormat.UINT32 -> source.readUInt();
       case MessageFormat.UINT64 -> {
-        var value = source.getLong();
+        var value = source.readLong();
         if (value >= 0) yield value;
         throw Exceptions.integerOverflow(value, RequestedType.LONG);
       }
@@ -255,15 +255,15 @@ public final class MessageReader implements Closeable {
 
   /** Reads a floating point value that fits into a Java float. */
   public float readFloat() throws IOException {
-    var format = source.getByte();
-    if (format == MessageFormat.FLOAT32) return source.getFloat();
+    var format = source.readByte();
+    if (format == MessageFormat.FLOAT32) return source.readFloat();
     throw Exceptions.typeMismatch(format, RequestedType.FLOAT);
   }
 
   /** Reads a floating point value that fits into a Java double. */
   public double readDouble() throws IOException {
-    var format = source.getByte();
-    if (format == MessageFormat.FLOAT64) return source.getDouble();
+    var format = source.readByte();
+    if (format == MessageFormat.FLOAT64) return source.readDouble();
     throw Exceptions.typeMismatch(format, RequestedType.DOUBLE);
   }
 
@@ -274,16 +274,16 @@ public final class MessageReader implements Closeable {
       throw Exceptions.timestampTypeMismatch(header.type());
     }
     return switch (header.length()) {
-      case 4 -> Instant.ofEpochSecond(source.getInt() & 0xffffffffL);
+      case 4 -> Instant.ofEpochSecond(source.readInt() & 0xffffffffL);
       case 8 -> {
-        var value = source.getLong();
+        var value = source.readLong();
         var nanos = value >>> 34;
         var seconds = value & 0x3ffffffffL;
         yield Instant.ofEpochSecond(seconds, nanos);
       }
       case 12 -> {
-        var nanos = source.getInt();
-        var seconds = source.getLong();
+        var nanos = source.readInt();
+        var seconds = source.readLong();
         yield Instant.ofEpochSecond(seconds, nanos);
       }
       default -> throw Exceptions.invalidTimestampLength(header.length());
@@ -315,10 +315,10 @@ public final class MessageReader implements Closeable {
    * elements, where {@code n} is the number of array elements returned by this method.
    */
   public int readArrayHeader() throws IOException {
-    var format = source.getByte();
+    var format = source.readByte();
     return switch (format) {
-      case MessageFormat.ARRAY16 -> source.getLength16();
-      case MessageFormat.ARRAY32 -> source.getLength32(MessageType.ARRAY);
+      case MessageFormat.ARRAY16 -> source.readLength16();
+      case MessageFormat.ARRAY32 -> source.readLength32(MessageType.ARRAY);
       default -> {
         if (MessageFormat.isFixArray(format)) {
           yield MessageFormat.getFixArrayLength(format);
@@ -335,10 +335,10 @@ public final class MessageReader implements Closeable {
    * map's keys and values, where {@code n} is the number of map entries returned by this method.
    */
   public int readMapHeader() throws IOException {
-    var format = source.getByte();
+    var format = source.readByte();
     return switch (format) {
-      case MessageFormat.MAP16 -> source.getLength16();
-      case MessageFormat.MAP32 -> source.getLength32(MessageType.MAP);
+      case MessageFormat.MAP16 -> source.readLength16();
+      case MessageFormat.MAP32 -> source.readLength32(MessageType.MAP);
       default -> {
         if (MessageFormat.isFixMap(format)) {
           yield MessageFormat.getFixMapLength(format);
@@ -354,11 +354,11 @@ public final class MessageReader implements Closeable {
    * <p>A call to this method <i>must</i> be followed by a call to {@link #readPayload}.
    */
   public int readBinaryHeader() throws IOException {
-    var format = source.getByte();
+    var format = source.readByte();
     return switch (format) {
-      case MessageFormat.BIN8 -> source.getLength8();
-      case MessageFormat.BIN16 -> source.getLength16();
-      case MessageFormat.BIN32 -> source.getLength32(MessageType.BINARY);
+      case MessageFormat.BIN8 -> source.readLength8();
+      case MessageFormat.BIN16 -> source.readLength16();
+      case MessageFormat.BIN32 -> source.readLength32(MessageType.BINARY);
       default -> throw Exceptions.typeMismatch(format, RequestedType.BINARY);
     };
   }
@@ -371,11 +371,11 @@ public final class MessageReader implements Closeable {
    * <p>This method is a low-level alternative to {@link #readString()}.
    */
   public int readStringHeader() throws IOException {
-    var format = source.getByte();
+    var format = source.readByte();
     return switch (format) {
-      case MessageFormat.STR8 -> source.getLength8();
-      case MessageFormat.STR16 -> source.getLength16();
-      case MessageFormat.STR32 -> source.getLength32(MessageType.STRING);
+      case MessageFormat.STR8 -> source.readLength8();
+      case MessageFormat.STR16 -> source.readLength16();
+      case MessageFormat.STR32 -> source.readLength32(MessageType.STRING);
       default -> {
         if (MessageFormat.isFixStr(format)) {
           yield MessageFormat.getFixStrLength(format);
@@ -391,17 +391,17 @@ public final class MessageReader implements Closeable {
    * <p>A call to this method <i>must</i> be followed by a call to {@link #readPayload}.
    */
   public ExtensionHeader readExtensionHeader() throws IOException {
-    var format = source.getByte();
+    var format = source.readByte();
     return switch (format) {
-      case MessageFormat.FIXEXT1 -> new ExtensionHeader(1, source.getByte());
-      case MessageFormat.FIXEXT2 -> new ExtensionHeader(2, source.getByte());
-      case MessageFormat.FIXEXT4 -> new ExtensionHeader(4, source.getByte());
-      case MessageFormat.FIXEXT8 -> new ExtensionHeader(8, source.getByte());
-      case MessageFormat.FIXEXT16 -> new ExtensionHeader(16, source.getByte());
-      case MessageFormat.EXT8 -> new ExtensionHeader(source.getLength8(), source.getByte());
-      case MessageFormat.EXT16 -> new ExtensionHeader(source.getLength16(), source.getByte());
+      case MessageFormat.FIXEXT1 -> new ExtensionHeader(1, source.readByte());
+      case MessageFormat.FIXEXT2 -> new ExtensionHeader(2, source.readByte());
+      case MessageFormat.FIXEXT4 -> new ExtensionHeader(4, source.readByte());
+      case MessageFormat.FIXEXT8 -> new ExtensionHeader(8, source.readByte());
+      case MessageFormat.FIXEXT16 -> new ExtensionHeader(16, source.readByte());
+      case MessageFormat.EXT8 -> new ExtensionHeader(source.readLength8(), source.readByte());
+      case MessageFormat.EXT16 -> new ExtensionHeader(source.readLength16(), source.readByte());
       case MessageFormat.EXT32 ->
-          new ExtensionHeader(source.getLength32(MessageType.EXTENSION), source.getByte());
+          new ExtensionHeader(source.readLength32(MessageType.EXTENSION), source.readByte());
       default -> throw Exceptions.typeMismatch(format, RequestedType.EXTENSION);
     };
   }

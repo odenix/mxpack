@@ -27,7 +27,7 @@ public final class IdentifierDecoder implements MessageDecoder<String> {
     if (length > source.buffer().capacity()) {
       throw Exceptions.identifierTooLarge(length, source.buffer().capacity());
     }
-    var bytes = source.getBytes(length);
+    var bytes = source.readBytes(length);
     return cache.computeIfAbsent(
         bytes,
         (b) -> {
