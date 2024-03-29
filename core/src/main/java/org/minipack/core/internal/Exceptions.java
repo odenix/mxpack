@@ -84,7 +84,7 @@ public final class Exceptions {
 
   public static IllegalArgumentException malformedSurrogate(int position) {
     return new IllegalArgumentException(
-        "String value has malformed or unpaired surrogate at position " + position + ".");
+        "String value has a malformed or unpaired surrogate at position " + position + ".");
   }
 
   public static IllegalArgumentException negativeLength(int length) {
@@ -116,13 +116,6 @@ public final class Exceptions {
             + " (ByteBuffer.hasArray()).");
   }
 
-  // murky
-  public static IllegalStateException identifierCacheSizeExceeded(int maximumSize) {
-    return new IllegalStateException(
-        "Identifier cache has exceeded maximum allowed size " + maximumSize + ".");
-  }
-
-  // murky
   public static IllegalStateException nonBlockingChannelDetected() {
     return new IllegalStateException(
         "Detected a *non-blocking* Channel, which is not supported by this message source/sink.");

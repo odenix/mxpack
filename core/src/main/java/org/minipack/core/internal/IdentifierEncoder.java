@@ -6,13 +6,13 @@ package org.minipack.core.internal;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.HashMap;
+import java.util.Map;
 import org.minipack.core.*;
 
 public final class IdentifierEncoder implements MessageEncoder<String> {
-  private final ConcurrentMap<String, byte[]> cache = new ConcurrentHashMap<>();
-  private int cacheSize;
+  private final Map<String, byte[]> cache = new HashMap<>();
+  private int cacheSize = 0;
   private final int maxCacheSize;
 
   public IdentifierEncoder(int maxCacheSize) {
@@ -24,16 +24,18 @@ public final class IdentifierEncoder implements MessageEncoder<String> {
     var bytes =
         cache.computeIfAbsent(
             value,
-            (str) -> {
-              var b = str.getBytes(StandardCharsets.UTF_8);
-              cacheSize += b.length;
-              if (cacheSize > maxCacheSize) {
-                throw Exceptions.identifierCacheSizeExceeded(maxCacheSize);
+            (val) -> {
+              var b = val.getBytes(StandardCharsets.UTF_8);
+              if (b.length > sink.buffer().capacity()) {
+                throw Exceptions.identifierTooLarge(b.length, sink.buffer().capacity());
               }
+              cacheSize += b.length;
               return b;
             });
-    if (bytes.length > sink.buffer().capacity()) {
-      throw Exceptions.identifierTooLarge(bytes.length, sink.buffer().capacity());
+    if (cacheSize > maxCacheSize) {
+      // not optimizing for this case, just don't want to fail hard
+      cache.clear();
+      cacheSize = 0;
     }
     writer.writeStringHeader(bytes.length);
     sink.writeBytes(bytes);

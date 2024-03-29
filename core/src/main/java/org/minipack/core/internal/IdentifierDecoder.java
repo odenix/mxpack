@@ -5,16 +5,18 @@
 package org.minipack.core.internal;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.HashMap;
+import java.util.Map;
 import org.minipack.core.MessageDecoder;
 import org.minipack.core.MessageReader;
 import org.minipack.core.MessageSource;
 
 public final class IdentifierDecoder implements MessageDecoder<String> {
-  private final ConcurrentMap<byte[], String> cache = new ConcurrentHashMap<>();
-  private int cacheSize;
+  // caching also deduplicates strings
+  private final Map<ByteBuffer, String> cache = new HashMap<>();
+  private int cacheSize = 0;
   private final int maxCacheSize;
 
   public IdentifierDecoder(int maxCacheSize) {
@@ -24,18 +26,31 @@ public final class IdentifierDecoder implements MessageDecoder<String> {
   @Override
   public String decode(MessageSource source, MessageReader reader) throws IOException {
     var length = reader.readStringHeader();
-    if (length > source.buffer().capacity()) {
-      throw Exceptions.identifierTooLarge(length, source.buffer().capacity());
+    var buffer = source.buffer();
+    if (length > buffer.capacity()) {
+      throw Exceptions.identifierTooLarge(length, buffer.capacity());
     }
-    var bytes = source.readBytes(length);
-    return cache.computeIfAbsent(
-        bytes,
-        (b) -> {
-          cacheSize += b.length;
-          if (cacheSize > maxCacheSize) {
-            throw Exceptions.identifierCacheSizeExceeded(maxCacheSize);
-          }
-          return new String(b, StandardCharsets.UTF_8);
-        });
+    source.ensureRemaining(length);
+    // temporarily change limit for cache lookup
+    var savedLimit = buffer.limit();
+    buffer.limit(buffer.position() + length);
+    // can't use computeIfAbsent because buffer needs to be copied before being cached
+    var string = cache.get(buffer);
+    buffer.limit(savedLimit);
+    if (string == null) {
+      var bytes = new byte[length];
+      buffer.get(bytes);
+      string = new String(bytes, StandardCharsets.UTF_8);
+      if (cacheSize > maxCacheSize) {
+        // not optimizing for this case, just don't want to fail hard
+        cache.clear();
+        cacheSize = 0;
+      }
+      cache.put(ByteBuffer.wrap(bytes), string);
+      cacheSize += length;
+    } else {
+      buffer.position(buffer.position() + length);
+    }
+    return string;
   }
 }
