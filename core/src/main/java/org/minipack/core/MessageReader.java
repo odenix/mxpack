@@ -9,8 +9,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.util.function.IntFunction;
 import org.jspecify.annotations.Nullable;
 import org.minipack.core.internal.Exceptions;
 import org.minipack.core.internal.MessageFormat;
@@ -25,7 +25,6 @@ import org.minipack.core.internal.RequestedType;
  * #nextType()}. To close this reader, call {@link #close()}.
  */
 public final class MessageReader implements Closeable {
-  private static final int MAX_STRING_SIZE = 1024 * 1024;
   private static final int MAX_IDENTIFIER_CACHE_SIZE = 1024 * 1024; // in bytes
 
   private final MessageSource source;
@@ -36,8 +35,9 @@ public final class MessageReader implements Closeable {
   public static final class Builder {
     private @Nullable MessageSource source;
     private @Nullable MessageDecoder<String> stringDecoder;
-    private MessageDecoder<String> identifierDecoder =
-        MessageDecoder.identifierDecoder(MAX_IDENTIFIER_CACHE_SIZE);
+    private @Nullable MessageDecoder<String> identifierDecoder;
+
+    private Builder() {}
 
     /** Sets the underlying source to read from. */
     public Builder source(MessageSource source) {
@@ -45,14 +45,21 @@ public final class MessageReader implements Closeable {
       return this;
     }
 
-    /** Equivalent to {@code source(MessageSource.of(stream))}. */
-    public Builder source(InputStream stream) {
-      return source(MessageSource.of(stream));
+    /** Equivalent to {@code source(MessageSource.of(stream, allocator))}. */
+    public Builder source(InputStream stream, BufferAllocator allocator) {
+      source = MessageSource.of(stream, allocator);
+      return this;
     }
 
-    /** Equivalent to {@code source(MessageSource.of(channel))}. */
-    public Builder source(ReadableByteChannel channel) {
-      return source(MessageSource.of(channel));
+    /** Equivalent to {@code source(MessageSource.of(channel, allocator))}. */
+    public Builder source(ReadableByteChannel channel, BufferAllocator allocator) {
+      source = MessageSource.of(channel, allocator);
+      return this;
+    }
+
+    public Builder source(ByteBuffer buffer, BufferAllocator allocator) {
+      source = MessageSource.of(buffer, allocator);
+      return this;
     }
 
     public Builder stringDecoder(MessageDecoder<String> decoder) {
@@ -84,10 +91,11 @@ public final class MessageReader implements Closeable {
     stringDecoder =
         builder.stringDecoder != null
             ? builder.stringDecoder
-            : source.buffer().hasArray()
-                ? MessageDecoder.stringDecoder(source.buffer().capacity() * 2, MAX_STRING_SIZE)
-                : MessageDecoder.stringDecoder(MAX_STRING_SIZE);
-    identifierDecoder = builder.identifierDecoder;
+            : MessageDecoder.stringDecoder(StandardCharsets.UTF_8.newDecoder());
+    identifierDecoder =
+        builder.identifierDecoder != null
+            ? builder.identifierDecoder
+            : MessageDecoder.identifierDecoder(MAX_IDENTIFIER_CACHE_SIZE);
   }
 
   /** Returns the type of the next value to be read. */
@@ -415,21 +423,6 @@ public final class MessageReader implements Closeable {
       destination.position(destination.position() + transferLength);
     }
     source.readAtLeast(destination, destination.remaining());
-  }
-
-  public ByteBuffer readPayload(int length, IntFunction<ByteBuffer> allocator) throws IOException {
-    var buffer = source.buffer();
-    if (buffer.capacity() >= length) {
-      source.ensureRemaining(length);
-      return buffer.slice(buffer.position(), length).asReadOnlyBuffer();
-    }
-    var destination = allocator.apply(length);
-    if (destination.remaining() < length) {
-      throw Exceptions.payloadBufferTooSmall(length, destination.remaining());
-    }
-    destination.limit(destination.position() + length);
-    readPayload(destination);
-    return destination;
   }
 
   /** Closes the underlying message {@linkplain MessageSource source}. */

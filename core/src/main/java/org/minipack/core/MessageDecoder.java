@@ -5,17 +5,14 @@
 package org.minipack.core;
 
 import java.io.IOException;
+import java.nio.charset.CharsetDecoder;
+import org.minipack.core.internal.CharsetStringDecoder;
 import org.minipack.core.internal.IdentifierDecoder;
-import org.minipack.core.internal.StringDecoder;
 
 @FunctionalInterface
 public interface MessageDecoder<T> {
-  static MessageDecoder<String> stringDecoder(int maxStringSize) {
-    return new StringDecoder(1024, maxStringSize);
-  }
-
-  static MessageDecoder<String> stringDecoder(int minBufferSize, int maxStringSize) {
-    return new StringDecoder(minBufferSize, maxStringSize);
+  static MessageDecoder<String> stringDecoder(CharsetDecoder charsetDecoder) {
+    return new CharsetStringDecoder(charsetDecoder);
   }
 
   /** The returned decoder is thread-safe and can be shared between multiple message readers. */

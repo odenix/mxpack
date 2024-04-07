@@ -13,35 +13,31 @@ import org.minipack.core.internal.*;
 
 /** The underlying source of a {@link MessageReader}. */
 public abstract class MessageSource implements Closeable {
-  private static final int MIN_BUFFER_SIZE = 9;
+  private static final int MIN_BUFFER_SIZE = 9; // MessageFormat + long/double
 
+  public static MessageSource of(InputStream stream, BufferAllocator allocator) {
+    return new InputStreamSource(stream, allocator);
+  }
+
+  public static MessageSource of(ReadableByteChannel blockingChannel, BufferAllocator allocator) {
+    return new ChannelSource(blockingChannel, allocator);
+  }
+
+  public static MessageSource of(ByteBuffer buffer, BufferAllocator allocator) {
+    return new ByteBufferSource(buffer, allocator);
+  }
+
+  private final BufferAllocator allocator;
   private final ByteBuffer buffer;
 
-  /** Returns a source that reads from the given input stream. */
-  static MessageSource of(InputStream stream) {
-    return new InputStreamSource(stream);
+  public MessageSource(BufferAllocator allocator) {
+    this.allocator = allocator;
+    this.buffer = allocator.byteBuffer(MIN_BUFFER_SIZE);
   }
 
-  /** Returns a source that reads from the given input stream. */
-  static MessageSource of(InputStream stream, ByteBuffer buffer) {
-    return new InputStreamSource(stream, buffer);
-  }
-
-  /** Returns a source that reads from the given blocking channel. */
-  static MessageSource of(ReadableByteChannel blockingChannel) {
-    return new ChannelSource(blockingChannel);
-  }
-
-  /** Returns a source that reads from the given blocking channel. */
-  static MessageSource of(ReadableByteChannel blockingChannel, ByteBuffer buffer) {
-    return new ChannelSource(blockingChannel, buffer);
-  }
-
-  public MessageSource(ByteBuffer buffer) {
-    if (buffer.capacity() < MIN_BUFFER_SIZE) {
-      throw Exceptions.bufferTooSmall(buffer.capacity(), MIN_BUFFER_SIZE);
-    }
-    this.buffer = buffer.position(0).limit(0);
+  public MessageSource(BufferAllocator allocator, ByteBuffer buffer) {
+    this.allocator = allocator;
+    this.buffer = buffer;
   }
 
   /**
@@ -58,6 +54,10 @@ public abstract class MessageSource implements Closeable {
 
   public ByteBuffer buffer() {
     return buffer;
+  }
+
+  public BufferAllocator allocator() {
+    return allocator;
   }
 
   /**
@@ -87,12 +87,11 @@ public abstract class MessageSource implements Closeable {
    * <p>The number of bytes read is between 0 and {@link ByteBuffer#remaining()}.
    */
   public final void ensureRemaining(int length) throws IOException {
-    int minBytes = length - buffer.remaining();
-    if (minBytes > 0) {
-      buffer.compact();
-      readAtLeast(buffer, minBytes);
-      buffer.flip();
-    }
+    var minBytesToRead = length - buffer.remaining();
+    if (minBytesToRead <= 0) return;
+    buffer.compact();
+    readAtLeast(buffer, minBytesToRead);
+    buffer.flip();
   }
 
   public final byte nextByte() throws IOException {
@@ -159,9 +158,7 @@ public abstract class MessageSource implements Closeable {
 
   public int readLength32(MessageType type) throws IOException {
     var length = readInt();
-    if (length < 0) {
-      throw Exceptions.lengthOverflow(length & 0xffffffffL, type);
-    }
-    return length;
+    if (length >= 0) return length;
+    throw Exceptions.lengthOverflow(length & 0xffffffffL, type);
   }
 }

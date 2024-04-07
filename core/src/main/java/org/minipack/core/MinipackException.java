@@ -56,4 +56,14 @@ public abstract class MinipackException extends RuntimeException {
       super(message, cause);
     }
   }
+
+  public static final class SizeLimitExceededException extends MinipackException {
+    public SizeLimitExceededException(String message) {
+      super(message);
+    }
+
+    public SizeLimitExceededException(String message, Throwable cause) {
+      super(message, cause);
+    }
+  }
 }

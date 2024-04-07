@@ -7,42 +7,38 @@ package org.minipack.core.internal;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import org.minipack.core.BufferAllocator;
 import org.minipack.core.MessageSink;
 
 /** A message sink that writes to an {@link OutputStream}. */
 public final class OutputStreamSink extends MessageSink {
-  private static final int DEFAULT_BUFFER_SIZE = 8 * 1024;
+  private final OutputStream stream;
 
-  private final OutputStream out;
-
-  public OutputStreamSink(OutputStream out) {
-    super(ByteBuffer.allocate(DEFAULT_BUFFER_SIZE));
-    this.out = out;
-  }
-
-  public OutputStreamSink(OutputStream out, ByteBuffer buffer) {
-    super(buffer);
-    this.out = out;
+  public OutputStreamSink(OutputStream stream, BufferAllocator allocator) {
+    super(allocator);
+    this.stream = stream;
   }
 
   @Override
-  public int write(ByteBuffer buffer) throws IOException {
+  protected void doWrite(ByteBuffer buffer) throws IOException {
     if (!buffer.hasArray()) {
       throw Exceptions.arrayBackedBufferRequired();
     }
-    var bytesToWrite = buffer.remaining();
-    out.write(buffer.array(), buffer.arrayOffset() + buffer.position(), bytesToWrite);
-    buffer.position(buffer.position() + bytesToWrite);
-    return bytesToWrite;
+    stream.write(buffer.array(), buffer.arrayOffset() + buffer.position(), buffer.remaining());
   }
 
   @Override
-  public void flush() throws IOException {
-    out.flush();
+  protected void doWrite(ByteBuffer[] buffers) throws IOException {
+    for (var buffer : buffers) doWrite(buffer);
   }
 
   @Override
-  public void close() throws IOException {
-    out.close();
+  protected void doFlush() throws IOException {
+    stream.flush();
+  }
+
+  @Override
+  protected void doClose() throws IOException {
+    stream.close();
   }
 }

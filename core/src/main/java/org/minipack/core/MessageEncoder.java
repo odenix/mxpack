@@ -5,13 +5,14 @@
 package org.minipack.core;
 
 import java.io.IOException;
+import java.nio.charset.CharsetEncoder;
+import org.minipack.core.internal.CharsetStringEncoder;
 import org.minipack.core.internal.IdentifierEncoder;
-import org.minipack.core.internal.StringEncoder;
 
 @FunctionalInterface
 public interface MessageEncoder<T> {
-  static MessageEncoder<CharSequence> stringEncoder(int maxStringSize) {
-    return new StringEncoder(maxStringSize);
+  static MessageEncoder<CharSequence> stringDecoder(CharsetEncoder charsetEncoder) {
+    return new CharsetStringEncoder(charsetEncoder);
   }
 
   /** The returned encoder is thread-safe and can be shared between multiple message write. */

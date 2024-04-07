@@ -4,11 +4,13 @@
  */
 package org.minipack.core;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.time.Instant;
 import org.jspecify.annotations.Nullable;
 import org.minipack.core.internal.Exceptions;
@@ -24,7 +26,6 @@ import org.minipack.core.internal.MessageFormat;
  * #close()}.
  */
 public final class MessageWriter implements Closeable {
-  private static final int MAX_STRING_SIZE = 1024 * 1024;
   private static final int MAX_IDENTIFIER_CACHE_SIZE = 1024 * 1024; // in bytes
 
   private final MessageSink sink;
@@ -36,10 +37,8 @@ public final class MessageWriter implements Closeable {
     private Builder() {}
 
     private @Nullable MessageSink sink;
-    private MessageEncoder<CharSequence> stringEncoder =
-        MessageEncoder.stringEncoder(MAX_STRING_SIZE);
-    private MessageEncoder<String> identifierEncoder =
-        MessageEncoder.identifierEncoder(MAX_IDENTIFIER_CACHE_SIZE);
+    private @Nullable MessageEncoder<CharSequence> stringEncoder;
+    private @Nullable MessageEncoder<String> identifierEncoder;
 
     /** Sets the message sink to write to. */
     public Builder sink(MessageSink sink) {
@@ -47,22 +46,14 @@ public final class MessageWriter implements Closeable {
       return this;
     }
 
-    /**
-     * Equivalent to {@code sink(MessageSink.of(stream))}.
-     *
-     * @see MessageSink#of(OutputStream)
-     */
-    public Builder sink(OutputStream stream) {
-      return sink(MessageSink.of(stream));
+    public Builder sink(OutputStream stream, BufferAllocator allocator) {
+      this.sink = MessageSink.of(stream, allocator);
+      return this;
     }
 
-    /**
-     * Equivalent to {@code sink(MessageSink.of(channel))}.
-     *
-     * @see MessageSink#of(WritableByteChannel)
-     */
-    public Builder sink(WritableByteChannel channel) {
-      return sink(MessageSink.of(channel));
+    public Builder sink(WritableByteChannel channel, BufferAllocator allocator) {
+      this.sink = MessageSink.of(channel, allocator);
+      return this;
     }
 
     public Builder stringEncoder(MessageEncoder<CharSequence> encoder) {
@@ -91,8 +82,14 @@ public final class MessageWriter implements Closeable {
       throw Exceptions.sinkRequired();
     }
     sink = builder.sink;
-    stringEncoder = builder.stringEncoder;
-    identifierEncoder = builder.identifierEncoder;
+    stringEncoder =
+        builder.stringEncoder != null
+            ? builder.stringEncoder
+            : MessageEncoder.stringDecoder(StandardCharsets.UTF_8.newEncoder());
+    identifierEncoder =
+        builder.identifierEncoder != null
+            ? builder.identifierEncoder
+            : MessageEncoder.identifierEncoder(MAX_IDENTIFIER_CACHE_SIZE);
   }
 
   /** Writes a nil (null) value. */
@@ -335,17 +332,32 @@ public final class MessageWriter implements Closeable {
     }
   }
 
-  public void writePayload(ByteBuffer buffer) throws IOException {
-    sink.flushBuffer();
-    sink.write(buffer);
+  public void writePayload(ByteBuffer source) throws IOException {
+    sink.write(source);
+  }
+
+  public void writePayloads(ByteBuffer... sources) throws IOException {
+    sink.write(sources);
+  }
+
+  public long writePayload(ReadableByteChannel source, long maxBytes) throws IOException {
+    return sink.transferFrom(source, maxBytes);
+  }
+
+  public long writePayload(InputStream source, long maxBytes) throws IOException {
+    return sink.transferFrom(Channels.newChannel(source), maxBytes);
+  }
+
+  public long writePayload(Path file) throws IOException {
+    try (var stream = new FileInputStream(file.toFile())) {
+      return sink.transferFrom(stream.getChannel(), Long.MAX_VALUE);
+    }
   }
 
   /**
-   * Writes any data remaining in this writer's buffer and flushes the underlying message
-   * {@linkplain MessageSink sink}.
+   * {@linkplain MessageSink#flush() Flushes} the underlying message {@linkplain MessageSink sink}.
    */
   public void flush() throws IOException {
-    sink.flushBuffer();
     sink.flush();
   }
 

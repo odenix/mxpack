@@ -10,11 +10,16 @@ plugins {
 
 java {
   toolchain {
-    languageVersion = JavaLanguageVersion.of(17)
+    languageVersion = JavaLanguageVersion.of(21)
+    vendor = JvmVendorSpec.ORACLE
   }
   consistentResolution {
     useCompileClasspathVersions()
   }
+}
+
+tasks.withType<JavaCompile>().configureEach {
+  options.release = 17
 }
 
 tasks.compileTestJava {
@@ -29,6 +34,11 @@ tasks.test {
   }
 }
 
+jmh {
+  //jvmArgs.add("-Dstdout.encoding=UTF-8")
+  includes.add("StringTo.*")
+}
+
 spotless {
   java {
     googleJavaFormat().reflowLongStrings()
@@ -38,12 +48,14 @@ spotless {
 
 dependencies {
   api(libs.jSpecify)
+  dokkatooPluginHtml(libs.dokkaJava)
+  jmh(libs.jqwik)
+  jmh(libs.messagePack)
   testImplementation(libs.junitApi)
   testImplementation(libs.assertJ)
   testImplementation(libs.jqwik)
   testImplementation(libs.messagePack)
   testRuntimeOnly(libs.junitLauncher)
-  dokkatooPluginHtml(libs.dokkaJava)
 }
 
 configurations.matching {
@@ -58,11 +70,11 @@ configurations.matching {
 dokkatoo {
   moduleName.set("minipack")
   pluginsConfiguration.html {
-    footerMessage.set("Copyright 2024 The minipack project authors")
+    footerMessage = "Copyright 2024 The minipack project authors"
   }
   dokkatooSourceSets {
     register("main") {
-      jdkVersion.set(17) // link to JDK 17 docs
+      jdkVersion = 17 // link to JDK 17 docs
       documentedVisibilities(VisibilityModifier.PUBLIC, VisibilityModifier.PROTECTED)
       sourceRoots = fileTree("src/main/java/org/minipack") {
         include("core/*.java")

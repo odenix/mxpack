@@ -8,12 +8,14 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
-import org.minipack.core.*;
+import org.minipack.core.MessageEncoder;
+import org.minipack.core.MessageSink;
+import org.minipack.core.MessageWriter;
 
 public final class IdentifierEncoder implements MessageEncoder<String> {
   private final Map<String, byte[]> cache = new HashMap<>();
-  private int cacheSize = 0;
   private final int maxCacheSize;
+  private int cacheSize = 0;
 
   public IdentifierEncoder(int maxCacheSize) {
     this.maxCacheSize = maxCacheSize;
@@ -24,8 +26,9 @@ public final class IdentifierEncoder implements MessageEncoder<String> {
     var bytes =
         cache.computeIfAbsent(
             value,
-            (val) -> {
-              var b = val.getBytes(StandardCharsets.UTF_8);
+            (str) -> {
+              // TODO: use CharsetEncoder for correctness
+              var b = str.getBytes(StandardCharsets.UTF_8);
               if (b.length > sink.buffer().capacity()) {
                 throw Exceptions.identifierTooLarge(b.length, sink.buffer().capacity());
               }

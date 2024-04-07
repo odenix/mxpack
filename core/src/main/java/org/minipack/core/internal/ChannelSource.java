@@ -7,21 +7,15 @@ package org.minipack.core.internal;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
+import org.minipack.core.BufferAllocator;
 import org.minipack.core.MessageSource;
 
 /** A message source that reads from a blocking {@link ReadableByteChannel}. */
 public final class ChannelSource extends MessageSource {
-  private static final int DEFAULT_BUFFER_SIZE = 1024 * 8;
-
   private final ReadableByteChannel blockingChannel;
 
-  public ChannelSource(ReadableByteChannel blockingChannel) {
-    super(ByteBuffer.allocate(DEFAULT_BUFFER_SIZE));
-    this.blockingChannel = blockingChannel;
-  }
-
-  public ChannelSource(ReadableByteChannel blockingChannel, ByteBuffer buffer) {
-    super(buffer);
+  public ChannelSource(ReadableByteChannel blockingChannel, BufferAllocator allocator) {
+    super(allocator);
     this.blockingChannel = blockingChannel;
   }
 

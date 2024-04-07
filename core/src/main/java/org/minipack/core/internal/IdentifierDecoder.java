@@ -16,8 +16,8 @@ import org.minipack.core.MessageSource;
 public final class IdentifierDecoder implements MessageDecoder<String> {
   // caching also deduplicates strings
   private final Map<ByteBuffer, String> cache = new HashMap<>();
-  private int cacheSize = 0;
   private final int maxCacheSize;
+  private int cacheSize = 0;
 
   public IdentifierDecoder(int maxCacheSize) {
     this.maxCacheSize = maxCacheSize;
@@ -40,6 +40,7 @@ public final class IdentifierDecoder implements MessageDecoder<String> {
     if (string == null) {
       var bytes = new byte[length];
       buffer.get(bytes);
+      // TODO: use CharsetDecoder for correctness
       string = new String(bytes, StandardCharsets.UTF_8);
       if (cacheSize > maxCacheSize) {
         // not optimizing for this case, just don't want to fail hard

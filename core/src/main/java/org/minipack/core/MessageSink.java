@@ -8,61 +8,96 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
-import org.minipack.core.internal.ChannelSink;
-import org.minipack.core.internal.Exceptions;
-import org.minipack.core.internal.OutputStreamSink;
+import org.minipack.core.internal.*;
 
 /** The underlying sink of a {@link MessageWriter}. */
 public abstract class MessageSink implements Closeable {
-  private static final int MIN_BUFFER_SIZE = 9;
+  private static final int MIN_BUFFER_SIZE = 9; // MessageFormat + long/double
 
+  public static MessageSink of(OutputStream stream, BufferAllocator allocator) {
+    return new OutputStreamSink(stream, allocator);
+  }
+
+  public static MessageSink of(WritableByteChannel channel, BufferAllocator allocator) {
+    return new ChannelSink(channel, allocator);
+  }
+
+  protected final BufferAllocator allocator;
   private final ByteBuffer buffer;
 
-  protected MessageSink(ByteBuffer buffer) {
-    if (buffer.capacity() < MIN_BUFFER_SIZE) {
-      throw Exceptions.bufferTooSmall(buffer.capacity(), MIN_BUFFER_SIZE);
-    }
-    this.buffer = buffer.position(0).limit(buffer.capacity());
+  protected MessageSink(BufferAllocator allocator) {
+    this.allocator = allocator;
+    buffer = allocator.byteBuffer(MIN_BUFFER_SIZE);
   }
 
   public ByteBuffer buffer() {
     return buffer;
   }
 
-  /** Returns a sink that writes to the given output stream. */
-  static MessageSink of(OutputStream stream) {
-    return new OutputStreamSink(stream);
+  public BufferAllocator allocator() {
+    return allocator;
   }
 
-  /** Returns a sink that writes to the given output stream. */
-  static MessageSink of(OutputStream stream, ByteBuffer buffer) {
-    return new OutputStreamSink(stream, buffer);
+  protected abstract void doWrite(ByteBuffer buffer) throws IOException;
+
+  protected abstract void doWrite(ByteBuffer... buffers) throws IOException;
+
+  protected abstract void doFlush() throws IOException;
+
+  protected abstract void doClose() throws IOException;
+
+  public final void write(ByteBuffer buffer) throws IOException {
+    if (buffer == this.buffer) {
+      throw new IllegalArgumentException("TODO");
+    }
+    this.buffer.flip();
+    doWrite(this.buffer, buffer);
+    this.buffer.clear();
   }
 
-  /** Returns a sink that writes to the given blocking channel. */
-  static MessageSink of(WritableByteChannel blockingChannel) {
-    return new ChannelSink(blockingChannel);
-  }
-
-  /** Returns a sink that writes to the given blocking channel. */
-  static MessageSink of(WritableByteChannel blockingChannel, ByteBuffer buffer) {
-    return new ChannelSink(blockingChannel, buffer);
-  }
-
-  /**
-   * Writes the given buffer's bytes from index 0 to the buffer's current position to this sink,
-   * then clears the buffer. Returns the number of bytes written.
-   */
-  public abstract int write(ByteBuffer buffer) throws IOException;
-
-  /** Flushes this sink. */
-  public abstract void flush() throws IOException;
-
-  public void flushBuffer() throws IOException {
+  public final void write(ByteBuffer... buffers) throws IOException {
+    var allBuffers = new ByteBuffer[buffers.length + 1];
+    allBuffers[0] = buffer;
+    for (int i = 0; i < buffers.length; i++) {
+      var buf = buffers[i];
+      if (buf == buffer) {
+        throw new IllegalArgumentException("TODO");
+      }
+      allBuffers[i + 1] = buf;
+    }
     buffer.flip();
-    write(buffer);
+    doWrite(allBuffers);
     buffer.clear();
+  }
+
+  public long transferFrom(ReadableByteChannel channel, final long maxBytesToTransfer)
+      throws IOException {
+    var bytesToTransfer = maxBytesToTransfer;
+    while (bytesToTransfer > 0) {
+      buffer.limit((int) Math.min(bytesToTransfer, buffer.remaining()));
+      var bytesRead = channel.read(buffer);
+      if (bytesRead == -1) return maxBytesToTransfer - bytesToTransfer;
+      if (bytesRead == 0) throw Exceptions.nonBlockingChannelDetected();
+      bytesToTransfer -= bytesRead;
+      flushBuffer();
+    }
+    return maxBytesToTransfer;
+  }
+
+  public final void flush() throws IOException {
+    flushBuffer();
+    doFlush();
+  }
+
+  @Override
+  public final void close() throws IOException {
+    try {
+      doClose();
+    } finally {
+      allocator.release(buffer);
+    }
   }
 
   /**
@@ -72,8 +107,12 @@ public abstract class MessageSink implements Closeable {
    * <p>The number of bytes written is between 0 and {@linkplain ByteBuffer#remaining() remaining}.
    */
   public final void ensureRemaining(int byteCount) throws IOException {
-    assert byteCount <= buffer.capacity();
-    if (byteCount > buffer.remaining()) flushBuffer();
+    if (byteCount > buffer.remaining()) {
+      if (byteCount > buffer.capacity()) {
+        throw new IllegalArgumentException("TODO");
+      }
+      flushBuffer();
+    }
   }
 
   /**
@@ -176,5 +215,11 @@ public abstract class MessageSink implements Closeable {
     ensureRemaining(9);
     buffer.put(value1);
     buffer.putDouble(value2);
+  }
+
+  public final void flushBuffer() throws IOException {
+    buffer.flip();
+    doWrite(buffer);
+    buffer.clear();
   }
 }

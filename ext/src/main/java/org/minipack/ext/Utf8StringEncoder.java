@@ -68,9 +68,7 @@ public final class StringEncoder implements MessageEncoder<CharSequence> {
         buffer.put((byte) string.charAt(i));
       }
       if (i == length) break;
-      buffer.flip();
-      sink.write(buffer);
-      buffer.clear();
+      sink.flushBuffer();
     }
   }
 
