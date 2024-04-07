@@ -4,7 +4,6 @@
  */
 package org.minipack.core.internal;
 
-import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import org.minipack.core.BufferAllocator;
@@ -61,6 +60,12 @@ public final class UnpooledBufferAllocator implements BufferAllocator {
   }
 
   @Override
+  public char[] charArray(long minLength) {
+    var capacity = checkCharCapacity(minLength);
+    return new char[capacity];
+  }
+
+  @Override
   public ByteBuffer ensureRemaining(ByteBuffer buffer, int remaining) {
     if (buffer.remaining() >= remaining) return buffer;
     var minCapacity = checkCapacity(buffer.position() + (long) remaining);
@@ -71,7 +76,13 @@ public final class UnpooledBufferAllocator implements BufferAllocator {
   }
 
   @Override
-  public void release(Buffer buffer) {} // nothing to do
+  public void release(ByteBuffer buffer) {} // nothing to do
+
+  @Override
+  public void release(CharBuffer buffer) {} // nothing to do
+
+  @Override
+  public void release(char[] buffer) {} // nothing to do
 
   @Override
   public void close() {} // nothing to do

@@ -6,6 +6,7 @@ package org.minipack.core.internal;
 
 import java.io.IOException;
 import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CoderResult;
 import org.minipack.core.*;
 
 public final class CharsetStringDecoder implements MessageDecoder<String> {
@@ -19,34 +20,41 @@ public final class CharsetStringDecoder implements MessageDecoder<String> {
   public String decode(MessageSource source, MessageReader reader) throws IOException {
     var byteLength = reader.readStringHeader();
     if (byteLength == 0) return "";
-    var allocator = source.allocator();
-    var byteBuffer = source.buffer();
-    var charBuffer = allocator.charBuffer(byteLength * (long) charsetDecoder.maxCharsPerByte());
-    charsetDecoder.reset();
     var bytesLeft = byteLength;
+    var byteBuffer = source.buffer();
+    var charBuffer =
+        source.allocator().charBuffer(byteLength * (long) charsetDecoder.maxCharsPerByte());
+    charsetDecoder.reset();
     while (true) {
-      var chunkSize = Math.min(bytesLeft, byteBuffer.remaining());
-      var isLastChunk = chunkSize == bytesLeft;
-      byteBuffer.limit(byteBuffer.position() + chunkSize);
-      var result = charsetDecoder.decode(byteBuffer, charBuffer, isLastChunk);
-      if (result.isUnderflow()) {
-        if (isLastChunk) break;
-        var bytesRead = source.readAny(byteBuffer, 1);
-        if (bytesRead == -1) {
-          throw Exceptions.prematureEndOfInput(byteLength, byteLength - bytesLeft);
+      var remaining = byteBuffer.remaining();
+      CoderResult result;
+      if (bytesLeft <= remaining) {
+        var savedLimit = byteBuffer.limit();
+        byteBuffer.limit(byteBuffer.position() + bytesLeft);
+        result = charsetDecoder.decode(byteBuffer, charBuffer, true);
+        byteBuffer.limit(savedLimit);
+        if (result.isUnderflow()) break;
+      } else {
+        result = charsetDecoder.decode(byteBuffer, charBuffer, false);
+        bytesLeft -= (remaining - byteBuffer.remaining());
+        if (result.isUnderflow()) {
+          var bytesRead = source.readAny(byteBuffer.compact(), 1);
+          if (bytesRead == -1) {
+            throw Exceptions.prematureEndOfInput(byteLength, byteLength - bytesLeft);
+          }
+          byteBuffer.flip();
+          continue;
         }
-        bytesLeft -= bytesRead;
-        continue;
       }
       if (result.isError()) {
-        throw Exceptions.codingError(result, byteLength - bytesLeft);
+        throw Exceptions.codingError(result, charBuffer.position());
       }
       assert result.isOverflow();
       throw Exceptions.unreachableCode();
     }
     charsetDecoder.flush(charBuffer);
-    var result = charBuffer.toString();
-    allocator.release(charBuffer);
-    return result;
+    var string = charBuffer.flip().toString();
+    source.allocator().release(charBuffer);
+    return string;
   }
 }

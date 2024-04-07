@@ -10,11 +10,8 @@ import java.nio.charset.CharsetEncoder;
 import org.minipack.core.*;
 
 public final class CharsetStringEncoder implements MessageEncoder<CharSequence> {
-  private static final int MAX_FIXSTR_LENGTH = (1 << 5) - 1;
-  private static final int MAX_STR8_LENGTH = (1 << 8) - 1;
-  private static final int MAX_STR16_LENGTH = (1 << 16) - 1;
   private static final int MAX_HEADER_SIZE = 5;
-  private static final int MAX_ENCODER_SUFFIX_SIZE = 8; // JDK 21 encoders flush at most 3 bytes
+  private static final int MAX_ENCODER_SUFFIX_SIZE = 8; // 3 for JDK 21 encoders
 
   private final CharsetEncoder charsetEncoder;
 
@@ -30,62 +27,82 @@ public final class CharsetStringEncoder implements MessageEncoder<CharSequence> 
       writer.writeStringHeader(0);
       return;
     }
-    var maxByteLength = charLength * (long) charsetEncoder.maxBytesPerChar();
     var sinkBuffer = sink.buffer();
+    var allocator = sink.allocator();
+    var maxByteLength = charLength * (long) charsetEncoder.maxBytesPerChar();
+    var headerLength =
+        maxByteLength < 1 << 5 ? 1 : maxByteLength < 1 << 8 ? 2 : maxByteLength < 1 << 16 ? 3 : 5;
     // fill sink buffer before switching to extra buffer
     var byteBuffer =
-        sinkBuffer.remaining() >= MAX_HEADER_SIZE
-            ? sink.buffer()
-            : sink.allocator().byteBuffer(MAX_HEADER_SIZE + maxByteLength);
+        sinkBuffer.remaining() >= headerLength
+            ? sinkBuffer
+            : allocator.byteBuffer(headerLength + maxByteLength);
     var headerBuffer = byteBuffer;
     var headerPosition = headerBuffer.position();
-    var headerLength =
-        maxByteLength <= MAX_FIXSTR_LENGTH
-            ? 1
-            : maxByteLength <= MAX_STR8_LENGTH ? 2 : maxByteLength <= MAX_STR16_LENGTH ? 3 : 5;
     byteBuffer.position(headerPosition + headerLength);
-    var charBuffer =
-        charSeq instanceof String str
-            // copy string to char array because CharsetEncoder.encode() is up to
-            // 10x faster if both charBuffer and byteBuffer have accessible array
-            ? CharBuffer.wrap(str.toCharArray())
-            : charSeq instanceof CharBuffer buf ? buf : CharBuffer.wrap(charSeq);
+    char[] charArray = null;
+    CharBuffer charBuffer;
+    if (byteBuffer.hasArray() && charSeq instanceof String string) {
+      // Copy string to char array because CharsetEncoder.encode() is up to
+      // 10x faster if both charBuffer and byteBuffer have accessible array.
+      // https://cl4es.github.io/2021/10/17/Faster-Charset-Encoding.html
+      charArray = allocator.charArray(charLength);
+      string.getChars(0, charLength, charArray, 0);
+      charBuffer = CharBuffer.wrap(charArray, 0, charLength);
+    } else if (charSeq instanceof CharBuffer buffer) {
+      charBuffer = buffer;
+    } else {
+      charBuffer = CharBuffer.wrap(charSeq);
+    }
     charsetEncoder.reset();
     var result = charsetEncoder.encode(charBuffer, byteBuffer, true);
     if (result.isOverflow()) {
+      assert byteBuffer == sinkBuffer;
       byteBuffer =
-          sink.allocator().byteBuffer(maxByteLength - byteBuffer.position() + headerPosition);
+          allocator.byteBuffer(
+              headerLength + maxByteLength - byteBuffer.position() + headerPosition);
       result = charsetEncoder.encode(charBuffer, byteBuffer, true);
+      assert !result.isOverflow();
     }
     if (result.isError()) {
       throw Exceptions.codingError(result, charBuffer.position());
     }
-    assert !result.isOverflow();
     result = charsetEncoder.flush(byteBuffer);
     if (result.isOverflow()) {
-      byteBuffer = sink.allocator().byteBuffer(MAX_ENCODER_SUFFIX_SIZE);
+      assert byteBuffer == sinkBuffer;
+      byteBuffer = allocator.byteBuffer(MAX_ENCODER_SUFFIX_SIZE);
       result = charsetEncoder.flush(byteBuffer);
       assert !result.isOverflow();
     }
-    var byteLength = byteBuffer == sinkBuffer
-        ? byteBuffer.position() - headerPosition
-        : byteBuffer.position() + sinkBuffer.position() - headerPosition;
+    var byteLength = headerBuffer.position() - (headerPosition + headerLength);
+    if (byteBuffer != headerBuffer) byteLength += byteBuffer.position();
+    assert byteLength <= maxByteLength;
     switch (headerLength) {
-      case 1 -> headerBuffer.put(headerPosition, (byte) (MessageFormat.FIXSTR_PREFIX | byteLength));
-      case 2 ->
-          headerBuffer.putShort(headerPosition, (short) (MessageFormat.STR8 << 8 | byteLength));
-      case 3 ->
-          headerBuffer
-              .put(headerPosition, MessageFormat.STR16)
-              .putShort(headerPosition + 1, (short) byteLength);
+      case 1 -> {
+        assert byteLength < 1 << 5;
+        headerBuffer.put(headerPosition, (byte) (MessageFormat.FIXSTR_PREFIX | byteLength));
+      }
+      case 2 -> {
+        assert byteLength < 1 << 8;
+        headerBuffer.putShort(headerPosition, (short) (MessageFormat.STR8 << 8 | byteLength));
+      }
+      case 3 -> {
+        assert byteLength < 1 << 16;
+        headerBuffer
+            .put(headerPosition, MessageFormat.STR16)
+            .putShort(headerPosition + 1, (short) byteLength);
+      }
       default ->
           headerBuffer
               .put(headerPosition, MessageFormat.STR32)
               .putInt(headerPosition + 1, byteLength);
     }
     if (byteBuffer != sinkBuffer) { // extra buffer was allocated
-      sink.write(byteBuffer);
-      sink.allocator().release(byteBuffer);
+      sink.write(byteBuffer.flip());
+      allocator.release(byteBuffer);
+    }
+    if (charArray != null) {
+      allocator.release(charArray);
     }
   }
 }

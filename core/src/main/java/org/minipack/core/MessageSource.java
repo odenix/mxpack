@@ -32,12 +32,12 @@ public abstract class MessageSource implements Closeable {
 
   public MessageSource(BufferAllocator allocator) {
     this.allocator = allocator;
-    this.buffer = allocator.byteBuffer(MIN_BUFFER_SIZE);
+    this.buffer = allocator.byteBuffer(MIN_BUFFER_SIZE).limit(0);
   }
 
   public MessageSource(BufferAllocator allocator, ByteBuffer buffer) {
     this.allocator = allocator;
-    this.buffer = buffer;
+    this.buffer = buffer.position(0).limit(0);
   }
 
   /**

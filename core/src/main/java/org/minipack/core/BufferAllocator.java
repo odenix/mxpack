@@ -5,7 +5,6 @@
 package org.minipack.core;
 
 import java.io.Closeable;
-import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import org.minipack.core.internal.UnpooledBufferAllocator;
@@ -29,9 +28,15 @@ public interface BufferAllocator extends Closeable {
 
   CharBuffer charBuffer(long minCapacity);
 
+  char[] charArray(long minLength);
+
   ByteBuffer ensureRemaining(ByteBuffer buffer, int remaining);
 
-  void release(Buffer buffer);
+  void release(ByteBuffer buffer);
+
+  void release(CharBuffer buffer);
+
+  void release(char[] buffer);
 
   void close();
 }
