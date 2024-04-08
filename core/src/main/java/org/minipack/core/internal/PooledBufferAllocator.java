@@ -16,15 +16,11 @@ public final class PooledBufferAllocator extends AbstractBufferAllocator {
   @SuppressWarnings("unchecked")
   private final Queue<CharBuffer>[] charBufferBuckets = new Queue[32];
 
-  @SuppressWarnings("unchecked")
-  private final Queue<char[]>[] charArrayBuckets = new Queue[32];
-
   public PooledBufferAllocator(AbstractBufferAllocator.Builder builder) {
     super(builder);
     for (int i = 0; i < 32; i++) {
       byteBufferBuckets[i] = new ConcurrentLinkedQueue<>();
       charBufferBuckets[i] = new ConcurrentLinkedQueue<>();
-      charArrayBuckets[i] = new ConcurrentLinkedQueue<>();
     }
   }
 
@@ -36,7 +32,7 @@ public final class PooledBufferAllocator extends AbstractBufferAllocator {
     var bucket = byteBufferBuckets[index];
     var buffer = bucket.poll();
     return buffer != null
-        ? buffer
+        ? buffer.clear()
         : preferDirect ? ByteBuffer.allocateDirect(1 << index) : ByteBuffer.allocate(1 << index);
   }
 
@@ -46,16 +42,7 @@ public final class PooledBufferAllocator extends AbstractBufferAllocator {
     var index = 32 - Integer.numberOfLeadingZeros(capacity - 1);
     var bucket = charBufferBuckets[index];
     var buffer = bucket.poll();
-    return buffer != null ? buffer : CharBuffer.allocate(1 << index);
-  }
-
-  @Override
-  public char[] charArray(long minLength) {
-    var capacity = checkCharCapacity(minLength);
-    var index = 32 - Integer.numberOfLeadingZeros(capacity - 1);
-    var bucket = charArrayBuckets[index];
-    var buffer = bucket.poll();
-    return buffer != null ? buffer : new char[1 << index];
+    return buffer != null ? buffer.clear() : CharBuffer.allocate(1 << index);
   }
 
   @Override
@@ -73,19 +60,11 @@ public final class PooledBufferAllocator extends AbstractBufferAllocator {
   }
 
   @Override
-  public void release(char[] buffer) {
-    var index = 32 - Integer.numberOfLeadingZeros(buffer.length - 1);
-    var bucket = charArrayBuckets[index];
-    bucket.add(buffer);
-  }
-
-  @Override
   @SuppressWarnings("DataFlowIssue")
   public void close() {
     for (int i = 0; i < 32; i++) {
       byteBufferBuckets[i] = null;
       charBufferBuckets[i] = null;
-      charArrayBuckets[i] = null;
     }
   }
 }

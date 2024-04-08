@@ -25,19 +25,10 @@ public final class UnpooledBufferAllocator extends AbstractBufferAllocator {
   }
 
   @Override
-  public char[] charArray(long minLength) {
-    var capacity = checkCharCapacity(minLength);
-    return new char[capacity];
-  }
-
-  @Override
   public void release(ByteBuffer buffer) {} // nothing to do
 
   @Override
   public void release(CharBuffer buffer) {} // nothing to do
-
-  @Override
-  public void release(char[] buffer) {} // nothing to do
 
   @Override
   public void close() {} // nothing to do
