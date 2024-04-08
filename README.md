@@ -1,12 +1,12 @@
 [![Build Status](https://img.shields.io/github/actions/workflow/status/translatenix/minipack/run-dev-build)](https://github.com/translatenix/minipack/actions/workflows/run-dev-build.yml)
 [![GitHub license](https://img.shields.io/github/license/translatenix/minipack)](https://github.com/translatenix/minipack/blob/main/LICENSE.txt)
-# minipack
+# MiniPack
 
 A modern, small, and efficient implementation of the [MessagePack](https://msgpack.org/) serialization format for Java 17 and higher.
 
 minipack uses semantic versioning.
 
-## Reasons to choose minipack
+## Reasons to choose MiniPack
 
 * Clean API with [JSpecify](https://github.com/jspecify/jspecify) nullness annotations.
 * No use of Java reflection or unsafe APIs.
@@ -16,7 +16,7 @@ minipack uses semantic versioning.
 * Compatible with [GraalVM Native Image](https://www.graalvm.org/latest/reference-manual/native-image/).
 * Designed with efficiency in mind.
 
-## Reasons not to choose minipack
+## Reasons not to choose MiniPack
 
 * minipack hasn't reached 1.0.0.
 * minipack is a low-level MessagePack library and doesn't support 

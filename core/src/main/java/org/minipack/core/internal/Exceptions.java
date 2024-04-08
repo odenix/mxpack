@@ -7,15 +7,15 @@ package org.minipack.core.internal;
 import java.io.EOFException;
 import java.nio.charset.CoderResult;
 import org.minipack.core.MessageType;
-import org.minipack.core.MinipackException;
+import org.minipack.core.MiniPackException;
 
 /** Factory methods for exceptions thrown by the minipack library. */
 public final class Exceptions {
   private Exceptions() {}
 
-  public static MinipackException.MessageSizeException stringTooLarge(
+  public static MiniPackException.MessageSizeException stringTooLarge(
       long actualSize, int maxSize) {
-    return new MinipackException.MessageSizeException(
+    return new MiniPackException.MessageSizeException(
         "MessagePack string size "
             + actualSize
             + " exceeds the maximum allowed size of "
@@ -23,9 +23,9 @@ public final class Exceptions {
             + " bytes.");
   }
 
-  public static MinipackException.MessageSizeException identifierTooLarge(
+  public static MiniPackException.MessageSizeException identifierTooLarge(
       long actualSize, int maxSize) {
-    return new MinipackException.MessageSizeException(
+    return new MiniPackException.MessageSizeException(
         "MessagePack identifier size "
             + actualSize
             + " exceeds the maximum allowed size of "
@@ -33,9 +33,9 @@ public final class Exceptions {
             + " bytes.");
   }
 
-  public static MinipackException.MessageSizeException lengthOverflow(
+  public static MiniPackException.MessageSizeException lengthOverflow(
       long length, MessageType messageType) {
-    return new MinipackException.MessageSizeException(
+    return new MiniPackException.MessageSizeException(
         "MessagePack value of type "
             + messageType
             + " has a length of "
@@ -43,9 +43,9 @@ public final class Exceptions {
             + ", exceeding the maximum supported length 2^31-1 (Integer.MAX_VALUE).");
   }
 
-  public static MinipackException.TypeMismatchException typeMismatch(
+  public static MiniPackException.TypeMismatchException typeMismatch(
       byte format, RequestedType requestedType) {
-    return new MinipackException.TypeMismatchException(
+    return new MiniPackException.TypeMismatchException(
         "MessagePack value of type "
             + MessageFormat.toType(format)
             + " cannot be read as type "
@@ -53,24 +53,24 @@ public final class Exceptions {
             + ".");
   }
 
-  public static MinipackException.TypeMismatchException timestampTypeMismatch(byte actualType) {
-    return new MinipackException.TypeMismatchException(
+  public static MiniPackException.TypeMismatchException timestampTypeMismatch(byte actualType) {
+    return new MiniPackException.TypeMismatchException(
         "MessagePack extension value of type " + actualType + " cannot be read as timestamp.");
   }
 
-  public static MinipackException.TypeMismatchException integerOverflow(
+  public static MiniPackException.TypeMismatchException integerOverflow(
       long value, RequestedType requestedType) {
-    return new MinipackException.TypeMismatchException(
+    return new MiniPackException.TypeMismatchException(
         "MessagePack integer value " + value + " does not fit into type " + requestedType + ".");
   }
 
-  public static MinipackException.InvalidMessageException invalidValueFormat(byte format) {
-    return new MinipackException.InvalidMessageException(
+  public static MiniPackException.InvalidMessageException invalidValueFormat(byte format) {
+    return new MiniPackException.InvalidMessageException(
         "Invalid MessagePack value format: " + format);
   }
 
-  public static MinipackException.InvalidMessageException invalidTimestampLength(int length) {
-    return new MinipackException.InvalidMessageException(
+  public static MiniPackException.InvalidMessageException invalidTimestampLength(int length) {
+    return new MiniPackException.InvalidMessageException(
         "Timestamp extension value has invalid length " + length + ".");
   }
 
@@ -157,8 +157,8 @@ public final class Exceptions {
     throw new AssertionError("unreachable code");
   }
 
-  public static MinipackException bufferSizeLimitExceeded(long requestedSize, int maxSize) {
-    throw new MinipackException.SizeLimitExceededException(
+  public static MiniPackException bufferSizeLimitExceeded(long requestedSize, int maxSize) {
+    throw new MiniPackException.SizeLimitExceededException(
         "Requested a buffer of size "
             + requestedSize
             + ", but the maximum allowed size is "

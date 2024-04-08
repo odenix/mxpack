@@ -16,17 +16,17 @@ package org.minipack.core;
  *   <li>{@link IllegalStateException}
  * </ul>
  */
-public abstract class MinipackException extends RuntimeException {
-  public MinipackException(String message) {
+public abstract class MiniPackException extends RuntimeException {
+  public MiniPackException(String message) {
     super(message);
   }
 
-  public MinipackException(String message, Throwable cause) {
+  public MiniPackException(String message, Throwable cause) {
     super(message, cause);
   }
 
   /** Indicates that a message is too small or large by some metric. */
-  public static final class MessageSizeException extends MinipackException {
+  public static final class MessageSizeException extends MiniPackException {
     public MessageSizeException(String message) {
       super(message);
     }
@@ -37,7 +37,7 @@ public abstract class MinipackException extends RuntimeException {
   }
 
   /** Indicates that a message doesn't match the requested type. */
-  public static final class TypeMismatchException extends MinipackException {
+  public static final class TypeMismatchException extends MiniPackException {
     public TypeMismatchException(String message) {
       super(message);
     }
@@ -47,7 +47,7 @@ public abstract class MinipackException extends RuntimeException {
     }
   }
 
-  public static final class InvalidMessageException extends MinipackException {
+  public static final class InvalidMessageException extends MiniPackException {
     public InvalidMessageException(String message) {
       super(message);
     }
@@ -57,7 +57,7 @@ public abstract class MinipackException extends RuntimeException {
     }
   }
 
-  public static final class SizeLimitExceededException extends MinipackException {
+  public static final class SizeLimitExceededException extends MiniPackException {
     public SizeLimitExceededException(String message) {
       super(message);
     }
