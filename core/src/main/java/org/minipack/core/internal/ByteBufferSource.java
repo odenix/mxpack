@@ -14,10 +14,10 @@ public final class ByteBufferSource extends MessageSource {
   }
 
   @Override
-  public int readAny(ByteBuffer buffer, int minBytesHint) {
+  protected int doRead(ByteBuffer buffer, int minBytesHint) {
     return -1;
   }
 
   @Override
-  public void close() {} // nothing to do
+  protected void doClose() {} // nothing to do
 }

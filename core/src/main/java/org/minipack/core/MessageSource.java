@@ -40,6 +40,18 @@ public abstract class MessageSource implements Closeable {
     this.buffer = buffer.position(0).limit(0);
   }
 
+  protected abstract int doRead(ByteBuffer buffer, int minBytesHint) throws IOException;
+
+  protected abstract void doClose() throws IOException;
+
+  public ByteBuffer buffer() {
+    return buffer;
+  }
+
+  public BufferAllocator allocator() {
+    return allocator;
+  }
+
   /**
    * Reads between 1 and {@linkplain ByteBuffer#remaining() remaining} bytes from this source into
    * the given buffer, returning the actual number of bytes read.
@@ -50,14 +62,8 @@ public abstract class MessageSource implements Closeable {
    * read. However, unlike {@link #readAtLeast}, this method does not guarantee that more than 1
    * byte will be read.
    */
-  public abstract int readAny(ByteBuffer buffer, int minBytesHint) throws IOException;
-
-  public ByteBuffer buffer() {
-    return buffer;
-  }
-
-  public BufferAllocator allocator() {
-    return allocator;
+  public final int read(ByteBuffer buffer) throws IOException {
+    return doRead(buffer, 1);
   }
 
   /**
@@ -71,7 +77,7 @@ public abstract class MessageSource implements Closeable {
     assert minBytes <= buffer.remaining();
     var totalBytesRead = 0;
     while (totalBytesRead < minBytes) {
-      var bytesRead = readAny(buffer, minBytes);
+      var bytesRead = doRead(buffer, minBytes);
       if (bytesRead == -1) {
         throw Exceptions.prematureEndOfInput(minBytes, totalBytesRead);
       }
@@ -136,29 +142,38 @@ public abstract class MessageSource implements Closeable {
     return buffer.getDouble();
   }
 
-  public short readUByte() throws IOException {
+  public final short readUByte() throws IOException {
     return (short) (readByte() & 0xff);
   }
 
-  public int readUShort() throws IOException {
+  public final int readUShort() throws IOException {
     return readShort() & 0xffff;
   }
 
-  public long readUInt() throws IOException {
+  public final long readUInt() throws IOException {
     return readInt() & 0xffffffffL;
   }
 
-  public short readLength8() throws IOException {
+  public final short readLength8() throws IOException {
     return readUByte();
   }
 
-  public int readLength16() throws IOException {
+  public final int readLength16() throws IOException {
     return readUShort();
   }
 
-  public int readLength32(MessageType type) throws IOException {
+  public final int readLength32(MessageType type) throws IOException {
     var length = readInt();
     if (length >= 0) return length;
     throw Exceptions.lengthOverflow(length & 0xffffffffL, type);
+  }
+
+  @Override
+  public final void close() throws IOException {
+    try {
+      doClose();
+    } finally {
+      allocator.release(buffer);
+    }
   }
 }

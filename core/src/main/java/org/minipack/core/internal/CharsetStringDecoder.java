@@ -24,37 +24,39 @@ public final class CharsetStringDecoder implements MessageDecoder<String> {
     var byteBuffer = source.buffer();
     var charBuffer =
         source.allocator().charBuffer(byteLength * (long) charsetDecoder.maxCharsPerByte());
-    charsetDecoder.reset();
-    while (true) {
-      var remaining = byteBuffer.remaining();
-      CoderResult result;
-      if (bytesLeft <= remaining) {
-        var savedLimit = byteBuffer.limit();
-        byteBuffer.limit(byteBuffer.position() + bytesLeft);
-        result = charsetDecoder.decode(byteBuffer, charBuffer, true);
-        byteBuffer.limit(savedLimit);
-        if (result.isUnderflow()) break;
-      } else {
-        result = charsetDecoder.decode(byteBuffer, charBuffer, false);
-        bytesLeft -= (remaining - byteBuffer.remaining());
-        if (result.isUnderflow()) {
-          var bytesRead = source.readAny(byteBuffer.compact(), 1);
-          if (bytesRead == -1) {
-            throw Exceptions.prematureEndOfInput(byteLength, byteLength - bytesLeft);
+    try {
+      charsetDecoder.reset();
+      while (true) {
+        var remaining = byteBuffer.remaining();
+        CoderResult result;
+        if (bytesLeft <= remaining) {
+          var savedLimit = byteBuffer.limit();
+          byteBuffer.limit(byteBuffer.position() + bytesLeft);
+          result = charsetDecoder.decode(byteBuffer, charBuffer, true);
+          byteBuffer.limit(savedLimit);
+          if (result.isUnderflow()) break;
+        } else {
+          result = charsetDecoder.decode(byteBuffer, charBuffer, false);
+          bytesLeft -= (remaining - byteBuffer.remaining());
+          if (result.isUnderflow()) {
+            var bytesRead = source.read(byteBuffer.compact());
+            if (bytesRead == -1) {
+              throw Exceptions.prematureEndOfInput(byteLength, byteLength - bytesLeft);
+            }
+            byteBuffer.flip();
+            continue;
           }
-          byteBuffer.flip();
-          continue;
         }
+        if (result.isError()) {
+          throw Exceptions.codingError(result, charBuffer.position());
+        }
+        assert result.isOverflow();
+        throw Exceptions.unreachableCode();
       }
-      if (result.isError()) {
-        throw Exceptions.codingError(result, charBuffer.position());
-      }
-      assert result.isOverflow();
-      throw Exceptions.unreachableCode();
+      charsetDecoder.flush(charBuffer);
+      return charBuffer.flip().toString();
+    } finally {
+      source.allocator().release(charBuffer);
     }
-    charsetDecoder.flush(charBuffer);
-    var string = charBuffer.flip().toString();
-    source.allocator().release(charBuffer);
-    return string;
   }
 }

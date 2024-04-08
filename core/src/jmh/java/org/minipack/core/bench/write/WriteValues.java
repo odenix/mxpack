@@ -8,7 +8,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import org.minipack.core.BufferAllocator;
 import org.minipack.core.MessageWriter;
-import org.minipack.core.bench.BufferOnlySink;
+import org.minipack.core.bench.NullSink;
 import org.msgpack.core.MessagePack;
 import org.msgpack.core.MessagePacker;
 import org.msgpack.core.buffer.ArrayBufferOutput;
@@ -32,7 +32,7 @@ public abstract class WriteValues {
   public void setUp() {
     allocator = BufferAllocator.unpooled().build();
     buffer = allocator.byteBuffer(8 * 1024);
-    writer = MessageWriter.builder().sink(new BufferOnlySink(buffer, allocator)).build();
+    writer = MessageWriter.builder().sink(new NullSink(buffer, allocator)).build();
     bufferOutput = new ArrayBufferOutput(8 * 1024);
     packer = MessagePack.newDefaultPacker(bufferOutput);
   }

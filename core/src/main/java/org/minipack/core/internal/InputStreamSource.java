@@ -20,7 +20,7 @@ public final class InputStreamSource extends MessageSource {
   }
 
   @Override
-  public int readAny(ByteBuffer buffer, int minBytesHint) throws IOException {
+  protected int doRead(ByteBuffer buffer, int minBytesHint) throws IOException {
     if (!buffer.hasArray()) {
       throw Exceptions.arrayBackedBufferRequired();
     }
@@ -37,7 +37,7 @@ public final class InputStreamSource extends MessageSource {
   }
 
   @Override
-  public void close() throws IOException {
+  protected void doClose() throws IOException {
     stream.close();
   }
 }

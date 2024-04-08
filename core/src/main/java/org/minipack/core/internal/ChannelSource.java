@@ -20,7 +20,7 @@ public final class ChannelSource extends MessageSource {
   }
 
   @Override
-  public int readAny(ByteBuffer buffer, int minBytesHint) throws IOException {
+  protected int doRead(ByteBuffer buffer, int minBytesHint) throws IOException {
     var remaining = buffer.remaining();
     var bytesRead = blockingChannel.read(buffer);
     if (bytesRead == 0 && remaining > 0) {
@@ -30,7 +30,7 @@ public final class ChannelSource extends MessageSource {
   }
 
   @Override
-  public void close() throws IOException {
+  protected void doClose() throws IOException {
     blockingChannel.close();
   }
 }

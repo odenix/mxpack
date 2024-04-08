@@ -8,8 +8,8 @@ import java.nio.ByteBuffer;
 import org.minipack.core.BufferAllocator;
 import org.minipack.core.MessageSink;
 
-public class BufferOnlySink extends MessageSink {
-  public BufferOnlySink(ByteBuffer buffer, BufferAllocator allocator) {
+public final class NullSink extends MessageSink {
+  public NullSink(ByteBuffer buffer, BufferAllocator allocator) {
     super(allocator);
   }
 
