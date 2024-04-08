@@ -47,8 +47,8 @@ public final class CharsetStringEncoder implements MessageEncoder<CharSequence> 
         // Copy string to char array because CharsetEncoder.encode() is up to
         // 10x faster if both charBuffer and byteBuffer have accessible array.
         // https://cl4es.github.io/2021/10/17/Faster-Charset-Encoding.html
-        allocatedCharBuffer = allocator.charBuffer(charLength).limit(charLength);
-        charBuffer = allocatedCharBuffer;
+        charBuffer = allocator.charBuffer(charLength).limit(charLength);
+        allocatedCharBuffer = charBuffer;
         string.getChars(0, charLength, charBuffer.array(), 0);
       } else if (charSeq instanceof CharBuffer buffer) {
         charBuffer = buffer;

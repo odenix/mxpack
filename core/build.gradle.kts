@@ -35,8 +35,10 @@ tasks.test {
 }
 
 jmh {
-  //jvmArgs.add("-Dstdout.encoding=UTF-8")
-  includes.add("WriteString")
+  includes.add("ReadString")
+  fork = 1
+  warmupIterations = 3
+  iterations = 5
 }
 
 spotless {

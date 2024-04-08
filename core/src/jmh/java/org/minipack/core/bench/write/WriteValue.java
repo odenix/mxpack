@@ -15,7 +15,6 @@ import org.msgpack.core.buffer.ArrayBufferOutput;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
-@Fork(1)
 @State(Scope.Thread)
 public abstract class WriteValue {
   BufferAllocator allocator;
@@ -30,7 +29,7 @@ public abstract class WriteValue {
 
   @Setup
   public void setUp() {
-    allocator = BufferAllocator.unpooled().build();
+    allocator = BufferAllocator.pooled().build();
     buffer = allocator.byteBuffer(8 * 1024);
     writer = MessageWriter.builder().sink(new NullSink(buffer, allocator)).build();
     bufferOutput = new ArrayBufferOutput(8 * 1024);

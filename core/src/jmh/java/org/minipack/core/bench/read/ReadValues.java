@@ -17,7 +17,6 @@ import org.msgpack.core.buffer.MessageBuffer;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
-@Fork(1)
 @State(Scope.Thread)
 public abstract class ReadValues {
   BufferAllocator allocator;
@@ -36,7 +35,7 @@ public abstract class ReadValues {
 
   @Setup
   public void setUp() throws IOException {
-    allocator = BufferAllocator.unpooled().build();
+    allocator = BufferAllocator.pooled().build();
     buffer = ByteBuffer.allocate(8 * 1024);
     var writer = MessageWriter.builder().sink(new NullSink(buffer, allocator)).build();
     writeValues(writer);

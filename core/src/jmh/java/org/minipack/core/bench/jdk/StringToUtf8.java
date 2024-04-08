@@ -11,7 +11,6 @@ import java.nio.charset.StandardCharsets;
 import net.jqwik.api.Arbitraries;
 import org.openjdk.jmh.annotations.*;
 
-@Fork(1)
 @State(Scope.Thread)
 public class StringToUtf8 {
   @Param({"256"})
