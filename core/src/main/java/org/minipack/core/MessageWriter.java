@@ -348,8 +348,8 @@ public final class MessageWriter implements Closeable {
     return sink.transferFrom(Channels.newChannel(source), maxBytes);
   }
 
-  public long writePayload(Path file) throws IOException {
-    try (var stream = new FileInputStream(file.toFile())) {
+  public long writePayload(Path source) throws IOException {
+    try (var stream = new FileInputStream(source.toFile())) {
       return sink.transferFrom(stream.getChannel(), Long.MAX_VALUE);
     }
   }

@@ -36,7 +36,7 @@ tasks.test {
 
 jmh {
   //jvmArgs.add("-Dstdout.encoding=UTF-8")
-  includes.add("StringTo.*")
+  includes.add("WriteString")
 }
 
 spotless {

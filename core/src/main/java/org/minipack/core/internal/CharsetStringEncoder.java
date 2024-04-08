@@ -78,20 +78,15 @@ public final class CharsetStringEncoder implements MessageEncoder<CharSequence> 
     if (byteBuffer != headerBuffer) byteLength += byteBuffer.position();
     assert byteLength <= maxByteLength;
     switch (headerLength) {
-      case 1 -> {
-        assert byteLength < 1 << 5;
-        headerBuffer.put(headerPosition, (byte) (MessageFormat.FIXSTR_PREFIX | byteLength));
-      }
-      case 2 -> {
-        assert byteLength < 1 << 8;
-        headerBuffer.putShort(headerPosition, (short) (MessageFormat.STR8 << 8 | byteLength));
-      }
-      case 3 -> {
-        assert byteLength < 1 << 16;
-        headerBuffer
-            .put(headerPosition, MessageFormat.STR16)
-            .putShort(headerPosition + 1, (short) byteLength);
-      }
+      case 1 -> headerBuffer.put(headerPosition, (byte) (MessageFormat.FIXSTR_PREFIX | byteLength));
+      case 2 ->
+          headerBuffer
+              .put(headerPosition, MessageFormat.STR8)
+              .put(headerPosition + 1, (byte) byteLength);
+      case 3 ->
+          headerBuffer
+              .put(headerPosition, MessageFormat.STR16)
+              .putShort(headerPosition + 1, (short) byteLength);
       default ->
           headerBuffer
               .put(headerPosition, MessageFormat.STR32)

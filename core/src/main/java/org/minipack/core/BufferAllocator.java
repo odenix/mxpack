@@ -7,7 +7,7 @@ package org.minipack.core;
 import java.io.Closeable;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
-import org.minipack.core.internal.UnpooledBufferAllocator;
+import org.minipack.core.internal.AbstractBufferAllocator;
 
 public interface BufferAllocator extends Closeable {
   interface Builder {
@@ -20,8 +20,12 @@ public interface BufferAllocator extends Closeable {
     BufferAllocator build();
   }
 
+  static Builder pooled() {
+    return new AbstractBufferAllocator.Builder(true);
+  }
+
   static Builder unpooled() {
-    return new UnpooledBufferAllocator.Builder();
+    return new AbstractBufferAllocator.Builder(false);
   }
 
   ByteBuffer byteBuffer(long minCapacity);
