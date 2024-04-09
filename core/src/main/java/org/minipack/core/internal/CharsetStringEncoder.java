@@ -72,8 +72,7 @@ public final class CharsetStringEncoder implements MessageEncoder<CharSequence> 
       var byteLength = sinkBuffer.position() - (headerPosition + headerLength);
       if (byteBuffer != sinkBuffer) byteLength += byteBuffer.position();
       switch (headerLength) {
-        case 1 ->
-            sinkBuffer.put(headerPosition, (byte) (MessageFormat.FIXSTR_PREFIX | byteLength));
+        case 1 -> sinkBuffer.put(headerPosition, (byte) (MessageFormat.FIXSTR_PREFIX | byteLength));
         case 2 ->
             sinkBuffer
                 .put(headerPosition, MessageFormat.STR8)
