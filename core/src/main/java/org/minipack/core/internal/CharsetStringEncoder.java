@@ -32,24 +32,20 @@ public final class CharsetStringEncoder implements MessageEncoder<CharSequence> 
     var maxByteLength = charLength * (long) charsetEncoder.maxBytesPerChar();
     var headerLength =
         maxByteLength < 1 << 5 ? 1 : maxByteLength < 1 << 8 ? 2 : maxByteLength < 1 << 16 ? 3 : 5;
-    // fill sink buffer before switching to extra buffer
-    var byteBuffer =
-        sinkBuffer.remaining() >= headerLength
-            ? sinkBuffer
-            : allocator.byteBuffer(headerLength + maxByteLength);
+    var byteBuffer = sinkBuffer; // fill sink buffer before switching to extra buffer
+    sink.ensureRemaining(headerLength);
+    var headerPosition = byteBuffer.position();
+    byteBuffer.position(headerPosition + headerLength); // skip and fill in later
+    CharBuffer charBuffer;
     CharBuffer allocatedCharBuffer = null;
     try {
-      var headerBuffer = byteBuffer;
-      var headerPosition = headerBuffer.position();
-      byteBuffer.position(headerPosition + headerLength);
-      CharBuffer charBuffer;
       if (byteBuffer.hasArray() && charSeq instanceof String string) {
         // Copy string to char array because CharsetEncoder.encode() is up to
         // 10x faster if both charBuffer and byteBuffer have accessible array.
         // https://cl4es.github.io/2021/10/17/Faster-Charset-Encoding.html
         charBuffer = allocator.charBuffer(charLength).limit(charLength);
-        allocatedCharBuffer = charBuffer;
         string.getChars(0, charLength, charBuffer.array(), 0);
+        allocatedCharBuffer = charBuffer;
       } else if (charSeq instanceof CharBuffer buffer) {
         charBuffer = buffer;
       } else {
@@ -58,7 +54,6 @@ public final class CharsetStringEncoder implements MessageEncoder<CharSequence> 
       charsetEncoder.reset();
       var result = charsetEncoder.encode(charBuffer, byteBuffer, true);
       if (result.isOverflow()) {
-        assert byteBuffer == sinkBuffer;
         byteBuffer =
             allocator.byteBuffer(
                 headerLength + maxByteLength - byteBuffer.position() + headerPosition);
@@ -70,27 +65,25 @@ public final class CharsetStringEncoder implements MessageEncoder<CharSequence> 
       }
       result = charsetEncoder.flush(byteBuffer);
       if (result.isOverflow()) {
-        assert byteBuffer == sinkBuffer;
         byteBuffer = allocator.byteBuffer(MAX_ENCODER_SUFFIX_SIZE);
         result = charsetEncoder.flush(byteBuffer);
         assert !result.isOverflow();
       }
-      var byteLength = headerBuffer.position() - (headerPosition + headerLength);
-      if (byteBuffer != headerBuffer) byteLength += byteBuffer.position();
-      assert byteLength <= maxByteLength;
+      var byteLength = sinkBuffer.position() - (headerPosition + headerLength);
+      if (byteBuffer != sinkBuffer) byteLength += byteBuffer.position();
       switch (headerLength) {
         case 1 ->
-            headerBuffer.put(headerPosition, (byte) (MessageFormat.FIXSTR_PREFIX | byteLength));
+            sinkBuffer.put(headerPosition, (byte) (MessageFormat.FIXSTR_PREFIX | byteLength));
         case 2 ->
-            headerBuffer
+            sinkBuffer
                 .put(headerPosition, MessageFormat.STR8)
                 .put(headerPosition + 1, (byte) byteLength);
         case 3 ->
-            headerBuffer
+            sinkBuffer
                 .put(headerPosition, MessageFormat.STR16)
                 .putShort(headerPosition + 1, (short) byteLength);
         default ->
-            headerBuffer
+            sinkBuffer
                 .put(headerPosition, MessageFormat.STR32)
                 .putInt(headerPosition + 1, byteLength);
       }

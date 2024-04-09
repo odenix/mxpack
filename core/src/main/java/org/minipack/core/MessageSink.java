@@ -42,6 +42,8 @@ public abstract class MessageSink implements Closeable {
 
   protected abstract void doWrite(ByteBuffer buffer) throws IOException;
 
+  // TODO: consider changing doWrite protocol to enable sinks to copy
+  //  extra buffers to sink buffer instead of writing them immediately
   protected abstract void doWrite(ByteBuffer... buffers) throws IOException;
 
   protected abstract void doFlush() throws IOException;
