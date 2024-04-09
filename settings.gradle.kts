@@ -4,7 +4,6 @@ rootProject.name = "minipack"
 
 include("bench")
 include("core")
-include("extension")
 
 dependencyResolutionManagement {
   repositories {
