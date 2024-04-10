@@ -5,6 +5,7 @@
 package org.minipack.core.internal;
 
 import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
 import org.minipack.core.BufferAllocator;
 
 public abstract class AbstractBufferAllocator implements BufferAllocator {
@@ -40,6 +41,23 @@ public abstract class AbstractBufferAllocator implements BufferAllocator {
     public BufferAllocator build() {
       return isPooled ? new PooledBufferAllocator(this) : new UnpooledBufferAllocator(this);
     }
+  }
+
+  @Override
+  public final ByteBuffer newByteBuffer(long capacity) {
+    var cap = checkCapacity(capacity);
+    return preferDirect ? ByteBuffer.allocateDirect(cap) : ByteBuffer.allocate(cap);
+  }
+
+  @Override
+  public final CharBuffer newCharBuffer(long capacity) {
+    var cap = checkCharCapacity(capacity);
+    return CharBuffer.allocate(cap);
+  }
+
+  @Override
+  public final CharBuffer charBuffer(double minCapacity) {
+    return charBuffer((long) Math.ceil(minCapacity));
   }
 
   @Override

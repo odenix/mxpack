@@ -36,28 +36,12 @@ public final class PooledBufferAllocator extends AbstractBufferAllocator {
   }
 
   @Override
-  public ByteBuffer newByteBuffer(long capacity) {
-    var cap = checkCapacity(capacity);
-    return preferDirect ? ByteBuffer.allocateDirect(cap) : ByteBuffer.allocate(cap);
-  }
-
-  @Override
   public CharBuffer charBuffer(long minCapacity) {
     var capacity = checkCharCapacity(minCapacity);
     var index = 32 - Integer.numberOfLeadingZeros(capacity - 1);
     var bucket = charBufferBuckets[index];
     var buffer = bucket.poll();
     return buffer != null ? buffer.clear() : CharBuffer.allocate(1 << index);
-  }
-
-  @Override
-  public CharBuffer newCharBuffer(long capacity) {
-    return CharBuffer.allocate(checkCharCapacity(capacity));
-  }
-
-  @Override
-  public CharBuffer charBuffer(double minCapacity) {
-    return charBuffer((long) Math.ceil(minCapacity));
   }
 
   @Override
