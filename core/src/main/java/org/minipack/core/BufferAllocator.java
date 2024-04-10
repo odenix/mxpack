@@ -36,7 +36,7 @@ public interface BufferAllocator extends Closeable {
 
   CharBuffer charBuffer(double minCapacity);
 
-  ByteBuffer ensureRemaining(ByteBuffer buffer, int remaining);
+  ByteBuffer ensureRemaining(ByteBuffer buffer, long remaining);
 
   void release(ByteBuffer buffer);
 

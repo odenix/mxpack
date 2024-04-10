@@ -6,7 +6,6 @@ package org.minipack.core.internal;
 
 import java.io.IOException;
 import java.nio.charset.CharsetDecoder;
-import java.nio.charset.CoderResult;
 import org.minipack.core.*;
 
 public final class CharsetStringDecoder implements MessageDecoder<String> {
@@ -20,38 +19,27 @@ public final class CharsetStringDecoder implements MessageDecoder<String> {
   public String decode(MessageSource source, MessageReader reader) throws IOException {
     var byteLength = reader.readStringHeader();
     if (byteLength == 0) return "";
-    var bytesLeft = byteLength;
     var byteBuffer = source.buffer();
     var charBuffer = source.allocator().charBuffer(byteLength * charsetDecoder.maxCharsPerByte());
     try {
       charsetDecoder.reset();
-      while (true) {
-        var remaining = byteBuffer.remaining();
-        CoderResult result;
-        if (bytesLeft <= remaining) {
-          var savedLimit = byteBuffer.limit();
-          byteBuffer.limit(byteBuffer.position() + bytesLeft);
-          result = charsetDecoder.decode(byteBuffer, charBuffer, true);
-          byteBuffer.limit(savedLimit);
-          if (result.isUnderflow()) break;
-        } else {
-          result = charsetDecoder.decode(byteBuffer, charBuffer, false);
-          bytesLeft -= (remaining - byteBuffer.remaining());
-          if (result.isUnderflow()) {
-            var bytesRead = source.read(byteBuffer.compact());
-            if (bytesRead == -1) {
-              throw Exceptions.prematureEndOfInput(byteLength, byteLength - bytesLeft);
-            }
-            byteBuffer.flip();
-            continue;
-          }
+      var bytesLeft = byteLength;
+      int remaining;
+      while (bytesLeft > (remaining = byteBuffer.remaining())) {
+        var result = charsetDecoder.decode(byteBuffer, charBuffer, false);
+        if (result.isError()) throw Exceptions.codingError(result, 0);
+        bytesLeft -= (remaining - byteBuffer.remaining());
+        var bytesRead = source.read(byteBuffer.compact());
+        if (bytesRead == -1) {
+          throw Exceptions.prematureEndOfInput(byteLength, byteLength - bytesLeft);
         }
-        if (result.isError()) {
-          throw Exceptions.codingError(result, charBuffer.position());
-        }
-        assert result.isOverflow();
-        throw Exceptions.unreachableCode();
+        byteBuffer.flip();
       }
+      var savedLimit = byteBuffer.limit();
+      byteBuffer.limit(byteBuffer.position() + bytesLeft);
+      var result = charsetDecoder.decode(byteBuffer, charBuffer, true);
+      if (result.isError()) throw Exceptions.codingError(result, 0);
+      byteBuffer.limit(savedLimit);
       charsetDecoder.flush(charBuffer);
       return charBuffer.flip().toString();
     } finally {

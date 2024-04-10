@@ -61,9 +61,9 @@ public abstract class AbstractBufferAllocator implements BufferAllocator {
   }
 
   @Override
-  public final ByteBuffer ensureRemaining(ByteBuffer buffer, int remaining) {
+  public final ByteBuffer ensureRemaining(ByteBuffer buffer, long remaining) {
     if (buffer.remaining() >= remaining) return buffer;
-    var minCapacity = checkCapacity(buffer.position() + (long) remaining);
+    var minCapacity = checkCapacity(buffer.position() + remaining);
     var growthCapacity = Math.min(maxCapacity, buffer.capacity() * 2);
     var newBuffer = byteBuffer(Math.max(minCapacity, growthCapacity));
     newBuffer.put(buffer.flip());

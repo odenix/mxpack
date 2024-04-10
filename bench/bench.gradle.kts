@@ -21,7 +21,7 @@ spotless {
 }
 
 jmh {
-  includes.add("WriteTimestamp.run")
+  includes.add("WriteLong.run")
   fork = 1
   warmupIterations = 3
   iterations = 5
