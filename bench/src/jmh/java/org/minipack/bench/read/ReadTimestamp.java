@@ -11,7 +11,7 @@ import org.openjdk.jmh.infra.Blackhole;
 
 public class ReadTimestamp extends ReadValues {
   @Override
-  void writeValues(MessageWriter writer) throws IOException {
+  void write256Values(MessageWriter writer) throws IOException {
     var values = DateTimes.instants().list().ofSize(256).sample();
     for (var v : values) writer.write(v);
   }

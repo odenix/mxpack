@@ -5,14 +5,15 @@
 package org.minipack.bench.write;
 
 import java.io.IOException;
-import net.jqwik.api.Arbitraries;
+import java.time.Instant;
+import net.jqwik.time.api.DateTimes;
 
-public class WriteByte extends WriteValues {
-  byte[] values;
+public class WriteTimestamp extends WriteValues {
+  Instant[] values;
 
   @Override
   void generate256Values() {
-    values = Arbitraries.bytes().array(byte[].class).ofSize(256).sample();
+    values = DateTimes.instants().array(Instant[].class).ofSize(256).sample();
   }
 
   @Override
@@ -22,6 +23,6 @@ public class WriteByte extends WriteValues {
 
   @Override
   void writeValueMp(int index) throws IOException {
-    packer.packInt(values[index]);
+    packer.packTimestamp(values[index]);
   }
 }

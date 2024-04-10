@@ -11,7 +11,7 @@ import org.openjdk.jmh.infra.Blackhole;
 
 public class ReadBoolean extends ReadValues {
   @Override
-  void writeValues(MessageWriter writer) throws IOException {
+  void write256Values(MessageWriter writer) throws IOException {
     var random = new Random();
     for (int i = 0; i < 256; i++) {
       writer.write(random.nextBoolean());

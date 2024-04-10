@@ -8,7 +8,12 @@ import java.io.IOException;
 import net.jqwik.api.Arbitraries;
 
 public class WriteInt extends WriteValues {
-  int[] values = Arbitraries.integers().array(int[].class).ofSize(256).sample();
+  int[] values;
+
+  @Override
+  void generate256Values() {
+    values = Arbitraries.integers().array(int[].class).ofSize(256).sample();
+  }
 
   @Override
   void writeValue(int index) throws IOException {

@@ -11,7 +11,7 @@ import org.openjdk.jmh.infra.Blackhole;
 
 public class ReadShort extends ReadValues {
   @Override
-  void writeValues(MessageWriter writer) throws IOException {
+  void write256Values(MessageWriter writer) throws IOException {
     var values = Arbitraries.shorts().list().ofSize(256).sample();
     for (var v : values) writer.write(v);
   }

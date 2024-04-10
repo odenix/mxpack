@@ -6,53 +6,46 @@ package org.minipack.bench.jdk;
 
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
-import java.nio.charset.CharsetEncoder;
+import java.nio.charset.CharsetDecoder;
 import java.nio.charset.StandardCharsets;
 import net.jqwik.api.Arbitraries;
 import org.openjdk.jmh.annotations.*;
 
 @State(Scope.Thread)
-public class StringToUtf8 {
-  @Param({"256"})
+public class Utf8ToString {
+  @Param({"20"})
   int length;
 
   @Param({"true", "false"})
   boolean isAscii;
 
-  String value;
+  byte[] value;
 
-  CharsetEncoder encoder = StandardCharsets.UTF_8.newEncoder();
+  CharsetDecoder decoder = StandardCharsets.UTF_8.newDecoder();
   CharBuffer charBuffer;
   ByteBuffer byteBuffer;
 
   @Setup
   public void setUp() {
-    value =
+    var string =
         isAscii
             ? Arbitraries.strings().ofLength(length).ascii().sample()
             : Arbitraries.strings().ofLength(length).sample();
+    value = string.getBytes(StandardCharsets.UTF_8);
     charBuffer = CharBuffer.allocate(length);
-    byteBuffer = ByteBuffer.allocate(length * 3);
+    byteBuffer = ByteBuffer.wrap(value);
   }
 
   @Benchmark
-  public byte[] String_getBytes() {
-    return value.getBytes(StandardCharsets.UTF_8);
+  public String new_String() {
+    return new String(value, StandardCharsets.UTF_8);
   }
 
   @Benchmark
-  public ByteBuffer CharsetEncoder_encode() {
+  public String CharsetDecoder_decode() {
     charBuffer.position(0);
     byteBuffer.position(0);
-    value.getChars(0, value.length(), charBuffer.array(), 0);
-    encoder.encode(charBuffer, byteBuffer, true);
-    return byteBuffer;
-  }
-
-  // @Benchmark
-  public ByteBuffer CharsetEncoder_encode_2() {
-    byteBuffer.position(0);
-    encoder.encode(CharBuffer.wrap(value), byteBuffer, true);
-    return byteBuffer;
+    decoder.decode(byteBuffer, charBuffer, true);
+    return new String(charBuffer.array());
   }
 }

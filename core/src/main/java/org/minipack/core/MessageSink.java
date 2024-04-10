@@ -73,13 +73,9 @@ public abstract class MessageSink implements Closeable {
     if (buffer == this.buffer) {
       throw new IllegalArgumentException("TODO");
     }
-    if (buffer.remaining() <= this.buffer.remaining()) {
-      this.buffer.put(buffer); // optimize for fewer flushes
-    } else {
-      this.buffer.flip();
-      doWrite(this.buffer, buffer);
-      this.buffer.clear();
-    }
+    this.buffer.flip();
+    doWrite(this.buffer, buffer);
+    this.buffer.clear();
   }
 
   public final void write(ByteBuffer... buffers) throws IOException {

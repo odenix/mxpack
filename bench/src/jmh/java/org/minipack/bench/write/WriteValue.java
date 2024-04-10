@@ -6,7 +6,6 @@ package org.minipack.bench.write;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-
 import org.minipack.bench.BenchmarkSink;
 import org.minipack.core.BufferAllocator;
 import org.minipack.core.MessageWriter;
@@ -24,6 +23,8 @@ public abstract class WriteValue {
   ArrayBufferOutput bufferOutput;
   MessagePacker packer;
 
+  abstract void generateValue();
+
   @CompilerControl(CompilerControl.Mode.INLINE)
   abstract void writeValue() throws IOException;
 
@@ -33,10 +34,11 @@ public abstract class WriteValue {
   @Setup
   public void setUp() {
     allocator = BufferAllocator.pooled().build();
-    buffer = allocator.newByteBuffer(8 * 1024);
+    buffer = allocator.newByteBuffer(1024 * 16);
     writer = MessageWriter.builder().sink(new BenchmarkSink(buffer, allocator)).build();
-    bufferOutput = new ArrayBufferOutput(8 * 1024);
+    bufferOutput = new ArrayBufferOutput(1024 * 16);
     packer = MessagePack.newDefaultPacker(bufferOutput);
+    generateValue();
   }
 
   @Benchmark

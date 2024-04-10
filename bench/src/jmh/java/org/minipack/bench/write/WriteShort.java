@@ -7,28 +7,21 @@ package org.minipack.bench.write;
 import java.io.IOException;
 import net.jqwik.api.Arbitraries;
 
-public class WriteIdentifierAscii extends WriteValues {
-  String[] values;
+public class WriteShort extends WriteValues {
+  short[] values;
 
   @Override
   void generate256Values() {
-    values =
-        Arbitraries.strings()
-            .ofMinLength(2)
-            .ofMaxLength(20)
-            .ascii()
-            .array(String[].class)
-            .ofSize(256)
-            .sample();
+    values = Arbitraries.shorts().array(short[].class).ofSize(256).sample();
   }
 
   @Override
   void writeValue(int index) throws IOException {
-    writer.writeIdentifier(values[index]);
+    writer.write(values[index]);
   }
 
   @Override
   void writeValueMp(int index) throws IOException {
-    packer.packString(values[index]);
+    packer.packShort(values[index]);
   }
 }

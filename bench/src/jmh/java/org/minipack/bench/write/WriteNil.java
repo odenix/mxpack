@@ -5,23 +5,18 @@
 package org.minipack.bench.write;
 
 import java.io.IOException;
-import net.jqwik.api.Arbitraries;
 
-public class WriteByte extends WriteValues {
-  byte[] values;
-
+public class WriteNil extends WriteValues {
   @Override
-  void generate256Values() {
-    values = Arbitraries.bytes().array(byte[].class).ofSize(256).sample();
-  }
+  void generate256Values() {}
 
   @Override
   void writeValue(int index) throws IOException {
-    writer.write(values[index]);
+    writer.writeNil();
   }
 
   @Override
   void writeValueMp(int index) throws IOException {
-    packer.packInt(values[index]);
+    packer.packNil();
   }
 }

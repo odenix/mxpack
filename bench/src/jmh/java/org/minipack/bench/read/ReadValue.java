@@ -6,7 +6,6 @@ package org.minipack.bench.read;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-
 import org.minipack.bench.BenchmarkSink;
 import org.minipack.core.BufferAllocator;
 import org.minipack.core.MessageReader;
@@ -23,7 +22,6 @@ public abstract class ReadValue {
   BufferAllocator allocator;
   ByteBuffer buffer;
   MessageReader reader;
-
   MessageBuffer messageBuffer;
   ArrayBufferInput bufferInput;
   MessageUnpacker unpacker;
@@ -39,7 +37,7 @@ public abstract class ReadValue {
   @Setup
   public void setUp() throws IOException {
     allocator = BufferAllocator.pooled().build();
-    buffer = allocator.byteBuffer(1024 * 8);
+    buffer = allocator.byteBuffer(1024 * 16);
     var writer = MessageWriter.builder().sink(new BenchmarkSink(buffer, allocator)).build();
     writeValue(writer);
     buffer.flip();
@@ -51,7 +49,7 @@ public abstract class ReadValue {
 
   @Benchmark
   public void run(Blackhole hole) throws IOException {
-    buffer.clear();
+    buffer.position(0);
     readValue(hole);
   }
 

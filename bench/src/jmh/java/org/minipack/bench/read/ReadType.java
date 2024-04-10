@@ -12,7 +12,7 @@ import org.openjdk.jmh.infra.Blackhole;
 
 public class ReadType extends ReadValues {
   @Override
-  void writeValues(MessageWriter writer) throws IOException {
+  void write256Values(MessageWriter writer) throws IOException {
     var values =
         Arbitraries.bytes()
             .filter(b -> b != MessageFormat.NEVER_USED)

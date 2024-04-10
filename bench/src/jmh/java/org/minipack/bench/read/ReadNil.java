@@ -10,7 +10,7 @@ import org.openjdk.jmh.infra.Blackhole;
 
 public class ReadNil extends ReadValues {
   @Override
-  void writeValues(MessageWriter writer) throws IOException {
+  void write256Values(MessageWriter writer) throws IOException {
     for (int i = 0; i < 256; i++) {
       writer.writeNil();
     }

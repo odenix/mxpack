@@ -7,12 +7,16 @@ package org.minipack.bench.read;
 import java.io.IOException;
 import net.jqwik.api.Arbitraries;
 import org.minipack.core.MessageWriter;
+import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.infra.Blackhole;
 
 public class ReadString extends ReadValue {
+  @Param({"10", "100", "1000"})
+  int length;
+
   @Override
   void writeValue(MessageWriter writer) throws IOException {
-    var value = Arbitraries.strings().ofLength(256).sample();
+    var value = Arbitraries.strings().ofLength(length).sample();
     writer.write(value);
   }
 

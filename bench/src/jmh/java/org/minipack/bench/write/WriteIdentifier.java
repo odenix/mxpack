@@ -4,12 +4,22 @@
  */
 package org.minipack.bench.write;
 
+import java.io.IOException;
 import net.jqwik.api.Arbitraries;
 
-import java.io.IOException;
-
 public class WriteIdentifier extends WriteValues {
-  String[] values = Arbitraries.strings().ofMinLength(2).ofMaxLength(20).array(String[].class).ofSize(256).sample();
+  String[] values;
+
+  @Override
+  void generate256Values() {
+    values =
+        Arbitraries.strings()
+            .ofMinLength(2)
+            .ofMaxLength(20)
+            .array(String[].class)
+            .ofSize(256)
+            .sample();
+  }
 
   @Override
   void writeValue(int index) throws IOException {

@@ -6,9 +6,18 @@ package org.minipack.bench.write;
 
 import java.io.IOException;
 import net.jqwik.api.Arbitraries;
+import org.openjdk.jmh.annotations.Param;
 
 public class WriteString extends WriteValue {
-  String value = Arbitraries.strings().ofLength(256).sample();
+  @Param({"10", "100", "1000"})
+  int length;
+
+  String value;
+
+  @Override
+  void generateValue() {
+    value = Arbitraries.strings().ofLength(length).sample();
+  }
 
   @Override
   void writeValue() throws IOException {

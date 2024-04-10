@@ -5,14 +5,18 @@
 package org.minipack.bench.write;
 
 import java.io.IOException;
-import net.jqwik.api.Arbitraries;
+import java.util.Random;
 
-public class WriteByte extends WriteValues {
-  byte[] values;
+public class WriteBoolean extends WriteValues {
+  boolean[] values;
 
   @Override
   void generate256Values() {
-    values = Arbitraries.bytes().array(byte[].class).ofSize(256).sample();
+    var random = new Random();
+    values = new boolean[256];
+    for (int i = 0; i < 256; i++) {
+      values[i] = random.nextBoolean();
+    }
   }
 
   @Override
@@ -22,6 +26,6 @@ public class WriteByte extends WriteValues {
 
   @Override
   void writeValueMp(int index) throws IOException {
-    packer.packInt(values[index]);
+    packer.packBoolean(values[index]);
   }
 }
