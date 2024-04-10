@@ -11,7 +11,7 @@ dependencies {
 }
 
 jmh {
-  includes.add("WriteIdentifier.run")
+  includes.add("ReadType")
   fork = 1
   warmupIterations = 3
   iterations = 5

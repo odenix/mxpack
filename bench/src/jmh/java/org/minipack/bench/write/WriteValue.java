@@ -24,8 +24,10 @@ public abstract class WriteValue {
   ArrayBufferOutput bufferOutput;
   MessagePacker packer;
 
+  @CompilerControl(CompilerControl.Mode.INLINE)
   abstract void writeValue() throws IOException;
 
+  @CompilerControl(CompilerControl.Mode.INLINE)
   abstract void writeValueMp() throws IOException;
 
   @Setup

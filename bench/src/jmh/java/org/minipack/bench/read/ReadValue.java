@@ -30,8 +30,10 @@ public abstract class ReadValue {
 
   abstract void writeValue(MessageWriter writer) throws IOException;
 
+  @CompilerControl(CompilerControl.Mode.INLINE)
   abstract void readValue(Blackhole hole) throws IOException;
 
+  @CompilerControl(CompilerControl.Mode.INLINE)
   abstract void readValueMp(Blackhole hole) throws IOException;
 
   @Setup
@@ -40,6 +42,7 @@ public abstract class ReadValue {
     buffer = allocator.byteBuffer(1024 * 8);
     var writer = MessageWriter.builder().sink(new BenchmarkSink(buffer, allocator)).build();
     writeValue(writer);
+    buffer.flip();
     reader = MessageReader.builder().source(buffer, allocator).build();
     messageBuffer = MessageBuffer.wrap(buffer.array());
     bufferInput = new ArrayBufferInput(messageBuffer);
