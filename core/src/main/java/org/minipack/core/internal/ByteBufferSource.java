@@ -19,5 +19,10 @@ public final class ByteBufferSource extends MessageSource {
   }
 
   @Override
+  protected void doSkip(int length) {
+    throw Exceptions.unreachableCode();
+  }
+
+  @Override
   protected void doClose() {} // nothing to do
 }

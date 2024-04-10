@@ -64,7 +64,7 @@ public final class Exceptions {
         "MessagePack integer value " + value + " does not fit into type " + requestedType + ".");
   }
 
-  public static MiniPackException.InvalidMessageException invalidValueFormat(byte format) {
+  public static MiniPackException.InvalidMessageException invalidMessageFormat(byte format) {
     return new MiniPackException.InvalidMessageException(
         "Invalid MessagePack value format: " + format);
   }

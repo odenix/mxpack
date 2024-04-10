@@ -7,6 +7,7 @@ package org.minipack.core.internal;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.SeekableByteChannel;
 import org.minipack.core.BufferAllocator;
 import org.minipack.core.MessageSource;
 
@@ -33,6 +34,21 @@ public final class ChannelSource extends MessageSource {
       throw Exceptions.nonBlockingChannelDetected();
     }
     return bytesRead;
+  }
+
+  @Override
+  protected void doSkip(int length) throws IOException {
+    if (length == 0) return;
+    if (blockingChannel instanceof SeekableByteChannel channel) {
+      channel.position(channel.position() + length);
+      return;
+    }
+    var capacity = buffer.capacity();
+    var bytesToSkip = length;
+    while (bytesToSkip > 0) {
+      buffer.position(0).limit(Math.min(bytesToSkip, capacity));
+      bytesToSkip -= doRead(buffer, bytesToSkip);
+    }
   }
 
   @Override

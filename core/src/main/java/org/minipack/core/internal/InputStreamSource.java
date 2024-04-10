@@ -42,6 +42,11 @@ public final class InputStreamSource extends MessageSource {
   }
 
   @Override
+  protected void doSkip(int length) throws IOException {
+    stream.skipNBytes(length);
+  }
+
+  @Override
   protected void doClose() throws IOException {
     stream.close();
   }

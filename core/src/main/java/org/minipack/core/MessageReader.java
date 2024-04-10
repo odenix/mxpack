@@ -104,6 +104,47 @@ public final class MessageReader implements Closeable {
     return MessageFormat.toType(nextFormat());
   }
 
+  public void skipValue() throws IOException {
+    skipValue(1);
+  }
+
+  public void skipValue(int count) throws IOException {
+    while (count-- > 0) {
+      var format = source.readByte();
+      switch (format) {
+        case MessageFormat.NIL, MessageFormat.FALSE, MessageFormat.TRUE -> {}
+        case MessageFormat.UINT8, MessageFormat.INT8 -> source.skip(1);
+        case MessageFormat.UINT16, MessageFormat.INT16, MessageFormat.FIXEXT1 -> source.skip(2);
+        case MessageFormat.UINT32, MessageFormat.INT32, MessageFormat.FLOAT32 -> source.skip(4);
+        case MessageFormat.UINT64, MessageFormat.INT64, MessageFormat.FLOAT64 -> source.skip(8);
+        case MessageFormat.FIXEXT2 -> source.skip(3);
+        case MessageFormat.FIXEXT4 -> source.skip(5);
+        case MessageFormat.FIXEXT8 -> source.skip(9);
+        case MessageFormat.FIXEXT16 -> source.skip(17);
+        case MessageFormat.EXT8 -> source.skip(source.readLength8() + 1);
+        case MessageFormat.EXT16 -> source.skip(source.readLength16() + 1);
+        case MessageFormat.EXT32 -> source.skip(source.readLength32(MessageType.EXTENSION) + 1);
+        case MessageFormat.BIN8, MessageFormat.STR8 -> source.skip(source.readLength8());
+        case MessageFormat.BIN16, MessageFormat.STR16 -> source.skip(source.readLength16());
+        case MessageFormat.BIN32 -> source.skip(source.readLength32(MessageType.BINARY));
+        case MessageFormat.STR32 -> source.skip(source.readLength32(MessageType.STRING));
+        case MessageFormat.ARRAY16 -> count += source.readLength16();
+        case MessageFormat.MAP16 -> count += source.readLength16() * 2;
+        case MessageFormat.ARRAY32 -> count += source.readLength32(MessageType.ARRAY);
+        case MessageFormat.MAP32 -> count += source.readLength32(MessageType.MAP) * 2;
+        default -> {
+          switch (MessageFormat.toType(format)) {
+            case INTEGER -> {} // nothing to do
+            case STRING -> source.skip(MessageFormat.getFixStrLength(format));
+            case ARRAY -> count += MessageFormat.getFixArrayLength(format);
+            case MAP -> count += MessageFormat.getFixMapLength(format) * 2;
+            default -> throw Exceptions.invalidMessageFormat(format);
+          }
+        }
+      }
+    }
+  }
+
   /** Reads a nil (null) value. */
   public void readNil() throws IOException {
     var format = source.readByte();

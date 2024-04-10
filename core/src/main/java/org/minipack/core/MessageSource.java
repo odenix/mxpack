@@ -16,6 +16,9 @@ public abstract class MessageSource implements Closeable {
   private static final int MIN_BUFFER_CAPACITY = 9; // MessageFormat + long/double
   private static final int DEFAULT_BUFFER_CAPACITY = 1024 * 8;
 
+  protected final BufferAllocator allocator;
+  protected final ByteBuffer buffer;
+
   public static MessageSource of(InputStream stream, BufferAllocator allocator) {
     return new InputStreamSource(stream, allocator);
   }
@@ -38,9 +41,6 @@ public abstract class MessageSource implements Closeable {
     return new ByteBufferSource(buffer, allocator);
   }
 
-  private final BufferAllocator allocator;
-  private final ByteBuffer buffer;
-
   public MessageSource(BufferAllocator allocator) {
     this(allocator, DEFAULT_BUFFER_CAPACITY);
   }
@@ -58,6 +58,8 @@ public abstract class MessageSource implements Closeable {
   }
 
   protected abstract int doRead(ByteBuffer buffer, int minBytesHint) throws IOException;
+
+  protected abstract void doSkip(int length) throws IOException;
 
   protected abstract void doClose() throws IOException;
 
@@ -115,6 +117,16 @@ public abstract class MessageSource implements Closeable {
     buffer.compact();
     readAtLeast(buffer, minBytesToRead);
     buffer.flip();
+  }
+
+  public final void skip(int length) throws IOException {
+    var remaining = buffer.remaining();
+    if (remaining >= length) {
+      buffer.position(buffer.position() + length);
+      return;
+    }
+    doSkip(length - remaining);
+    buffer.position(buffer.limit());
   }
 
   public final byte nextByte() throws IOException {

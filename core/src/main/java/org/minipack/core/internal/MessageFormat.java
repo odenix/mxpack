@@ -4,6 +4,7 @@
  */
 package org.minipack.core.internal;
 
+import java.util.Arrays;
 import org.minipack.core.MessageType;
 
 /**
@@ -11,6 +12,8 @@ import org.minipack.core.MessageType;
  * MessagePack value.
  */
 public final class MessageFormat {
+  private static final MessageType[] typeLookup;
+
   private MessageFormat() {}
 
   public static final byte NIL = (byte) 0xc0;
@@ -53,12 +56,28 @@ public final class MessageFormat {
   public static final byte FIXMAP_PREFIX = (byte) 0b1000_0000;
   public static final byte FIXMAP_MASK = (byte) 0b1111_0000;
 
-  public static boolean isFixInt(byte format) {
-    return format >= -(1 << 5);
+  static {
+    typeLookup = new MessageType[256];
+    fill(0x00, 0x7f, MessageType.INTEGER); // positive fixint
+    fill(0x80, 0x8f, MessageType.MAP); // fixmap
+    fill(0x90, 0x9f, MessageType.ARRAY); // fixarray
+    fill(0xa0, 0xbf, MessageType.STRING); // fixstr
+    typeLookup[0xc0] = MessageType.NIL;
+    // 0xc1: never used
+    fill(0xc2, 0xc3, MessageType.BOOLEAN);
+    fill(0xc4, 0xc6, MessageType.BINARY);
+    fill(0xc7, 0xc9, MessageType.EXTENSION);
+    fill(0xca, 0xcb, MessageType.FLOAT);
+    fill(0xcc, 0xd3, MessageType.INTEGER);
+    fill(0xd4, 0xd8, MessageType.EXTENSION); // fixext
+    fill(0xd9, 0xdb, MessageType.STRING);
+    fill(0xdc, 0xdd, MessageType.ARRAY);
+    fill(0xde, 0xdf, MessageType.MAP);
+    fill(0xe0, 0xff, MessageType.INTEGER); // negative fixint
   }
 
-  public static boolean isFixExt(byte format) {
-    return format >= FIXEXT1 && format <= FIXEXT16;
+  public static boolean isFixInt(byte format) {
+    return format >= -(1 << 5);
   }
 
   public static boolean isFixStr(byte format) {
@@ -86,32 +105,11 @@ public final class MessageFormat {
   }
 
   public static MessageType toType(byte format) {
-    return switch (format) {
-      case NIL -> MessageType.NIL;
-      case TRUE, FALSE -> MessageType.BOOLEAN;
-      case INT8, UINT8, INT16, UINT16, INT32, UINT32, INT64, UINT64 -> MessageType.INTEGER;
-      case FLOAT32, FLOAT64 -> MessageType.FLOAT;
-      case STR8, STR16, STR32 -> MessageType.STRING;
-      case ARRAY16, ARRAY32 -> MessageType.ARRAY;
-      case MAP16, MAP32 -> MessageType.MAP;
-      case BIN8, BIN16, BIN32 -> MessageType.BINARY;
-      case FIXEXT1, FIXEXT2, FIXEXT4, FIXEXT8, EXT8, EXT16, EXT32 -> MessageType.EXTENSION;
-      default ->
-          MessageFormat.isFixInt(format)
-              ? MessageType.INTEGER
-              : MessageFormat.isFixStr(format)
-                  ? MessageType.STRING
-                  : MessageFormat.isFixArray(format)
-                      ? MessageType.ARRAY
-                      : MessageFormat.isFixMap(format)
-                          ? MessageType.MAP
-                          : MessageFormat.isFixExt(format)
-                              ? MessageType.EXTENSION
-                              : invalidFormat(format);
-    };
+    if (format == NEVER_USED) throw Exceptions.invalidMessageFormat(format);
+    return typeLookup[format & 0xff];
   }
 
-  private static MessageType invalidFormat(byte format) {
-    throw Exceptions.invalidValueFormat(format);
+  private static void fill(int from, int until, MessageType type) {
+    Arrays.fill(typeLookup, from, until + 1, type);
   }
 }
