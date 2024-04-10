@@ -19,6 +19,11 @@ public final class InputStreamSource extends MessageSource {
     this.stream = stream;
   }
 
+  public InputStreamSource(InputStream stream, BufferAllocator allocator, int bufferCapacity) {
+    super(allocator, bufferCapacity);
+    this.stream = stream;
+  }
+
   @Override
   protected int doRead(ByteBuffer buffer, int minBytesHint) throws IOException {
     if (!buffer.hasArray()) {

@@ -14,22 +14,43 @@ import org.minipack.core.internal.*;
 
 /** The underlying sink of a {@link MessageWriter}. */
 public abstract class MessageSink implements Closeable {
-  private static final int MIN_BUFFER_SIZE = 9; // MessageFormat + long/double
+  private static final int MIN_BUFFER_CAPACITY = 9; // MessageFormat + long/double
+  private static final int DEFAULT_BUFFER_CAPACITY = 8 * 1024;
 
   public static MessageSink of(OutputStream stream, BufferAllocator allocator) {
     return new OutputStreamSink(stream, allocator);
+  }
+
+  public static MessageSink of(OutputStream stream, BufferAllocator allocator, int bufferCapacity) {
+    return new OutputStreamSink(stream, allocator, bufferCapacity);
   }
 
   public static MessageSink of(WritableByteChannel channel, BufferAllocator allocator) {
     return new ChannelSink(channel, allocator);
   }
 
+  public static MessageSink of(
+      WritableByteChannel channel, BufferAllocator allocator, int bufferCapacity) {
+    return new ChannelSink(channel, allocator, bufferCapacity);
+  }
+
   protected final BufferAllocator allocator;
-  private final ByteBuffer buffer;
+  protected final ByteBuffer buffer;
 
   protected MessageSink(BufferAllocator allocator) {
+    this(allocator, DEFAULT_BUFFER_CAPACITY);
+  }
+
+  protected MessageSink(BufferAllocator allocator, int bufferCapacity) {
+    this(allocator, allocator.byteBuffer(bufferCapacity));
+  }
+
+  protected MessageSink(BufferAllocator allocator, ByteBuffer buffer) {
+    if (buffer.capacity() < MIN_BUFFER_CAPACITY) {
+      throw Exceptions.bufferTooSmall(buffer.capacity(), MIN_BUFFER_CAPACITY);
+    }
     this.allocator = allocator;
-    buffer = allocator.byteBuffer(MIN_BUFFER_SIZE);
+    this.buffer = buffer;
   }
 
   public ByteBuffer buffer() {
@@ -42,8 +63,6 @@ public abstract class MessageSink implements Closeable {
 
   protected abstract void doWrite(ByteBuffer buffer) throws IOException;
 
-  // TODO: consider changing doWrite protocol to enable sinks to copy
-  //  extra buffers to sink buffer instead of writing them immediately
   protected abstract void doWrite(ByteBuffer... buffers) throws IOException;
 
   protected abstract void doFlush() throws IOException;
@@ -54,9 +73,13 @@ public abstract class MessageSink implements Closeable {
     if (buffer == this.buffer) {
       throw new IllegalArgumentException("TODO");
     }
-    this.buffer.flip();
-    doWrite(this.buffer, buffer);
-    this.buffer.clear();
+    if (buffer.remaining() <= this.buffer.remaining()) {
+      this.buffer.put(buffer); // optimize for fewer flushes
+    } else {
+      this.buffer.flip();
+      doWrite(this.buffer, buffer);
+      this.buffer.clear();
+    }
   }
 
   public final void write(ByteBuffer... buffers) throws IOException {
@@ -120,7 +143,7 @@ public abstract class MessageSink implements Closeable {
   /**
    * Puts a byte value into the given buffer, ensuring that the buffer has enough space remaining.
    */
-  public final void writeByte(byte value) throws IOException {
+  public final void write(byte value) throws IOException {
     ensureRemaining(1);
     buffer.put(value);
   }
@@ -129,7 +152,7 @@ public abstract class MessageSink implements Closeable {
    * Puts two byte values into the given buffer, ensuring that the buffer has enough space
    * remaining.
    */
-  public final void writeBytes(byte value1, byte value2) throws IOException {
+  public final void write(byte value1, byte value2) throws IOException {
     ensureRemaining(2);
     buffer.put(value1);
     buffer.put(value2);
@@ -139,7 +162,7 @@ public abstract class MessageSink implements Closeable {
    * Puts three byte values into the given buffer, ensuring that the buffer has enough space
    * remaining.
    */
-  public final void writeBytes(byte value1, byte value2, byte value3) throws IOException {
+  public final void write(byte value1, byte value2, byte value3) throws IOException {
     ensureRemaining(3);
     buffer.put(value1);
     buffer.put(value2);
@@ -150,8 +173,7 @@ public abstract class MessageSink implements Closeable {
    * Puts four byte values into the given buffer, ensuring that the buffer has enough space
    * remaining.
    */
-  public final void writeBytes(byte value1, byte value2, byte value3, byte value4)
-      throws IOException {
+  public final void write(byte value1, byte value2, byte value3, byte value4) throws IOException {
     ensureRemaining(4);
     buffer.put(value1);
     buffer.put(value2);
@@ -159,61 +181,61 @@ public abstract class MessageSink implements Closeable {
     buffer.put(value4);
   }
 
-  public final void writeBytes(byte[] values) throws IOException {
+  public final void write(byte[] values) throws IOException {
     ensureRemaining(values.length);
     buffer.put(values);
   }
 
-  public final void writeShort(short value) throws IOException {
+  public final void write(short value) throws IOException {
     ensureRemaining(2);
     buffer.putShort(value);
   }
 
-  public final void writeInt(int value) throws IOException {
+  public final void write(int value) throws IOException {
     ensureRemaining(4);
     buffer.putInt(value);
   }
 
-  public final void writeLong(long value) throws IOException {
+  public final void write(long value) throws IOException {
     ensureRemaining(8);
     buffer.putLong(value);
   }
 
-  public final void writeFloat(float value) throws IOException {
+  public final void write(float value) throws IOException {
     ensureRemaining(4);
     buffer.putFloat(value);
   }
 
-  public final void writeDouble(double value) throws IOException {
+  public final void write(double value) throws IOException {
     ensureRemaining(8);
     buffer.putDouble(value);
   }
 
-  public void writeByteAndShort(byte value1, short value2) throws IOException {
+  public void write(byte value1, short value2) throws IOException {
     ensureRemaining(3);
     buffer.put(value1);
     buffer.putShort(value2);
   }
 
-  public void writeByteAndInt(byte value1, int value2) throws IOException {
+  public void write(byte value1, int value2) throws IOException {
     ensureRemaining(5);
     buffer.put(value1);
     buffer.putInt(value2);
   }
 
-  public void writeByteAndLong(byte value1, long value2) throws IOException {
+  public void write(byte value1, long value2) throws IOException {
     ensureRemaining(9);
     buffer.put(value1);
     buffer.putLong(value2);
   }
 
-  public void writeByteAndFloat(byte value1, float value2) throws IOException {
+  public void write(byte value1, float value2) throws IOException {
     ensureRemaining(5);
     buffer.put(value1);
     buffer.putFloat(value2);
   }
 
-  public void writeByteAndDouble(byte value1, double value2) throws IOException {
+  public void write(byte value1, double value2) throws IOException {
     ensureRemaining(9);
     buffer.put(value1);
     buffer.putDouble(value2);

@@ -19,6 +19,12 @@ public final class ChannelSource extends MessageSource {
     this.blockingChannel = blockingChannel;
   }
 
+  public ChannelSource(
+      ReadableByteChannel blockingChannel, BufferAllocator allocator, int bufferCapacity) {
+    super(allocator, bufferCapacity);
+    this.blockingChannel = blockingChannel;
+  }
+
   @Override
   protected int doRead(ByteBuffer buffer, int minBytesHint) throws IOException {
     var remaining = buffer.remaining();

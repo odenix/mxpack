@@ -95,7 +95,8 @@ public final class MessageReader implements Closeable {
     identifierDecoder =
         builder.identifierDecoder != null
             ? builder.identifierDecoder
-            : MessageDecoder.identifierDecoder(MAX_IDENTIFIER_CACHE_SIZE);
+            : MessageDecoder.identifierDecoder(
+                StandardCharsets.UTF_8.newDecoder(), MAX_IDENTIFIER_CACHE_SIZE);
   }
 
   /** Returns the type of the next value to be read. */

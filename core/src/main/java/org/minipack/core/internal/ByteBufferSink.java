@@ -27,6 +27,10 @@ public final class ByteBufferSink extends MessageSink {
     super(allocator);
   }
 
+  public ByteBufferSink(BufferAllocator allocator, int bufferCapacity) {
+    super(allocator, bufferCapacity);
+  }
+
   public ByteBuffer outputBuffer() {
     return outputBuffer;
   }

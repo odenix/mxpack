@@ -11,8 +11,6 @@ import org.minipack.core.internal.AbstractBufferAllocator;
 
 public interface BufferAllocator extends Closeable {
   interface Builder {
-    Builder minCapacity(int capacity);
-
     Builder maxCapacity(int capacity);
 
     Builder preferDirect(boolean flag);
@@ -30,7 +28,13 @@ public interface BufferAllocator extends Closeable {
 
   ByteBuffer byteBuffer(long minCapacity);
 
+  ByteBuffer newByteBuffer(long capacity);
+
   CharBuffer charBuffer(long minCapacity);
+
+  CharBuffer newCharBuffer(long minCapacity);
+
+  CharBuffer charBuffer(double minCapacity);
 
   ByteBuffer ensureRemaining(ByteBuffer buffer, int remaining);
 

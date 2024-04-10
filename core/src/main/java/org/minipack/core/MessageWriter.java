@@ -10,7 +10,6 @@ import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.time.Instant;
 import org.jspecify.annotations.Nullable;
 import org.minipack.core.internal.Exceptions;
@@ -30,7 +29,7 @@ public final class MessageWriter implements Closeable {
 
   private final MessageSink sink;
   private final MessageEncoder<CharSequence> stringEncoder;
-  private final MessageEncoder<String> identifierEncoder;
+  private final MessageEncoder<? super String> identifierEncoder;
 
   /** A builder of {@code MessageWriter}. */
   public static final class Builder {
@@ -38,7 +37,7 @@ public final class MessageWriter implements Closeable {
 
     private @Nullable MessageSink sink;
     private @Nullable MessageEncoder<CharSequence> stringEncoder;
-    private @Nullable MessageEncoder<String> identifierEncoder;
+    private @Nullable MessageEncoder<? super String> identifierEncoder;
 
     /** Sets the message sink to write to. */
     public Builder sink(MessageSink sink) {
@@ -61,7 +60,7 @@ public final class MessageWriter implements Closeable {
       return this;
     }
 
-    public Builder identifierEncoder(MessageEncoder<String> encoder) {
+    public Builder identifierEncoder(MessageEncoder<? super String> encoder) {
       identifierEncoder = encoder;
       return this;
     }
@@ -85,21 +84,22 @@ public final class MessageWriter implements Closeable {
     stringEncoder =
         builder.stringEncoder != null
             ? builder.stringEncoder
-            : MessageEncoder.stringDecoder(StandardCharsets.UTF_8.newEncoder());
+            : MessageEncoder.stringEncoder(StandardCharsets.UTF_8.newEncoder());
     identifierEncoder =
         builder.identifierEncoder != null
             ? builder.identifierEncoder
-            : MessageEncoder.identifierEncoder(MAX_IDENTIFIER_CACHE_SIZE);
+            : MessageEncoder.identifierEncoder(
+                StandardCharsets.UTF_8.newEncoder(), MAX_IDENTIFIER_CACHE_SIZE);
   }
 
   /** Writes a nil (null) value. */
   public void writeNil() throws IOException {
-    sink.writeByte(MessageFormat.NIL);
+    sink.write(MessageFormat.NIL);
   }
 
   /** Writes a boolean value. */
   public void write(boolean value) throws IOException {
-    sink.writeByte(value ? MessageFormat.TRUE : MessageFormat.FALSE);
+    sink.write(value ? MessageFormat.TRUE : MessageFormat.FALSE);
   }
 
   /** Writes an integer value that fits into a Java byte. */
@@ -107,7 +107,7 @@ public final class MessageWriter implements Closeable {
     if (value < -(1 << 5)) {
       writeInt8(value);
     } else {
-      sink.writeByte(value);
+      sink.write(value);
     }
   }
 
@@ -120,7 +120,7 @@ public final class MessageWriter implements Closeable {
         writeInt8((byte) value);
       }
     } else if (value < (1 << 7)) {
-      sink.writeByte((byte) value);
+      sink.write((byte) value);
     } else {
       if (value < (1 << 8)) {
         writeUInt8((byte) value);
@@ -143,7 +143,7 @@ public final class MessageWriter implements Closeable {
         }
       }
     } else if (value < (1 << 7)) {
-      sink.writeByte((byte) value);
+      sink.write((byte) value);
     } else {
       if (value < (1 << 16)) {
         if (value < (1 << 8)) {
@@ -174,7 +174,7 @@ public final class MessageWriter implements Closeable {
         }
       }
     } else if (value < (1L << 7)) {
-      sink.writeByte((byte) value);
+      sink.write((byte) value);
     } else {
       if (value < (1L << 32)) {
         if (value < (1L << 16)) {
@@ -208,14 +208,14 @@ public final class MessageWriter implements Closeable {
     var nanos = value.getNano();
     if (nanos == 0 && seconds >= 0 && seconds < (1L << 32)) {
       writeExtensionHeader(4, ExtensionHeader.TIMESTAMP_TYPE);
-      sink.writeInt((int) seconds);
+      sink.write((int) seconds);
     } else if (seconds >= 0 && seconds < (1L << 34)) {
       writeExtensionHeader(8, ExtensionHeader.TIMESTAMP_TYPE);
-      sink.writeLong(((long) nanos) << 34 | seconds);
+      sink.write(((long) nanos) << 34 | seconds);
     } else {
       writeExtensionHeader(12, ExtensionHeader.TIMESTAMP_TYPE);
-      sink.writeInt(nanos);
-      sink.writeLong(seconds);
+      sink.write(nanos);
+      sink.write(seconds);
     }
   }
 
@@ -242,11 +242,11 @@ public final class MessageWriter implements Closeable {
   public void writeArrayHeader(int elementCount) throws IOException {
     checkLength(elementCount);
     if (elementCount < (1 << 4)) {
-      sink.writeByte((byte) (MessageFormat.FIXARRAY_PREFIX | elementCount));
+      sink.write((byte) (MessageFormat.FIXARRAY_PREFIX | elementCount));
     } else if (elementCount < (1 << 16)) {
-      sink.writeByteAndShort(MessageFormat.ARRAY16, (short) elementCount);
+      sink.write(MessageFormat.ARRAY16, (short) elementCount);
     } else {
-      sink.writeByteAndInt(MessageFormat.ARRAY32, elementCount);
+      sink.write(MessageFormat.ARRAY32, elementCount);
     }
   }
 
@@ -259,11 +259,11 @@ public final class MessageWriter implements Closeable {
   public void writeMapHeader(int entryCount) throws IOException {
     checkLength(entryCount);
     if (entryCount < (1 << 4)) {
-      sink.writeByte((byte) (MessageFormat.FIXMAP_PREFIX | entryCount));
+      sink.write((byte) (MessageFormat.FIXMAP_PREFIX | entryCount));
     } else if (entryCount < (1 << 16)) {
-      sink.writeByteAndShort(MessageFormat.MAP16, (short) entryCount);
+      sink.write(MessageFormat.MAP16, (short) entryCount);
     } else {
-      sink.writeByteAndInt(MessageFormat.MAP32, entryCount);
+      sink.write(MessageFormat.MAP32, entryCount);
     }
   }
 
@@ -284,13 +284,13 @@ public final class MessageWriter implements Closeable {
   public void writeStringHeader(int length) throws IOException {
     checkLength(length);
     if (length < (1 << 5)) {
-      sink.writeByte((byte) (MessageFormat.FIXSTR_PREFIX | length));
+      sink.write((byte) (MessageFormat.FIXSTR_PREFIX | length));
     } else if (length < (1 << 8)) {
-      sink.writeBytes(MessageFormat.STR8, (byte) length);
+      sink.write(MessageFormat.STR8, (byte) length);
     } else if (length < (1 << 16)) {
-      sink.writeByteAndShort(MessageFormat.STR16, (short) length);
+      sink.write(MessageFormat.STR16, (short) length);
     } else {
-      sink.writeByteAndInt(MessageFormat.STR32, length);
+      sink.write(MessageFormat.STR32, length);
     }
   }
 
@@ -303,31 +303,31 @@ public final class MessageWriter implements Closeable {
   public void writeBinaryHeader(int length) throws IOException {
     checkLength(length);
     if (length < (1 << 8)) {
-      sink.writeBytes(MessageFormat.BIN8, (byte) length);
+      sink.write(MessageFormat.BIN8, (byte) length);
     } else if (length < (1 << 16)) {
-      sink.writeByteAndShort(MessageFormat.BIN16, (short) length);
+      sink.write(MessageFormat.BIN16, (short) length);
     } else {
-      sink.writeByteAndInt(MessageFormat.BIN32, length);
+      sink.write(MessageFormat.BIN32, length);
     }
   }
 
   public void writeExtensionHeader(int length, byte type) throws IOException {
     checkLength(length);
     switch (length) {
-      case 1 -> sink.writeBytes(MessageFormat.FIXEXT1, type);
-      case 2 -> sink.writeBytes(MessageFormat.FIXEXT2, type);
-      case 4 -> sink.writeBytes(MessageFormat.FIXEXT4, type);
-      case 8 -> sink.writeBytes(MessageFormat.FIXEXT8, type);
-      case 16 -> sink.writeBytes(MessageFormat.FIXEXT16, type);
+      case 1 -> sink.write(MessageFormat.FIXEXT1, type);
+      case 2 -> sink.write(MessageFormat.FIXEXT2, type);
+      case 4 -> sink.write(MessageFormat.FIXEXT4, type);
+      case 8 -> sink.write(MessageFormat.FIXEXT8, type);
+      case 16 -> sink.write(MessageFormat.FIXEXT16, type);
       default -> {
         if (length < (1 << 8)) {
-          sink.writeBytes(MessageFormat.EXT8, (byte) length);
+          sink.write(MessageFormat.EXT8, (byte) length);
         } else if (length < (1 << 16)) {
-          sink.writeByteAndShort(MessageFormat.EXT16, (short) length);
+          sink.write(MessageFormat.EXT16, (short) length);
         } else {
-          sink.writeByteAndInt(MessageFormat.EXT32, length);
+          sink.write(MessageFormat.EXT32, length);
         }
-        sink.writeByte(type);
+        sink.write(type);
       }
     }
   }
@@ -348,12 +348,6 @@ public final class MessageWriter implements Closeable {
     return sink.transferFrom(Channels.newChannel(source), maxBytes);
   }
 
-  public long writePayload(Path source) throws IOException {
-    try (var stream = new FileInputStream(source.toFile())) {
-      return sink.transferFrom(stream.getChannel(), Long.MAX_VALUE);
-    }
-  }
-
   /**
    * {@linkplain MessageSink#flush() Flushes} the underlying message {@linkplain MessageSink sink}.
    */
@@ -370,43 +364,43 @@ public final class MessageWriter implements Closeable {
   }
 
   private void writeInt8(byte value) throws IOException {
-    sink.writeBytes(MessageFormat.INT8, value);
+    sink.write(MessageFormat.INT8, value);
   }
 
   private void writeUInt8(byte value) throws IOException {
-    sink.writeBytes(MessageFormat.UINT8, value);
+    sink.write(MessageFormat.UINT8, value);
   }
 
   private void writeInt16(short value) throws IOException {
-    sink.writeByteAndShort(MessageFormat.INT16, value);
+    sink.write(MessageFormat.INT16, value);
   }
 
   private void writeUInt16(short value) throws IOException {
-    sink.writeByteAndShort(MessageFormat.UINT16, value);
+    sink.write(MessageFormat.UINT16, value);
   }
 
   private void writeInt32(int value) throws IOException {
-    sink.writeByteAndInt(MessageFormat.INT32, value);
+    sink.write(MessageFormat.INT32, value);
   }
 
   private void writeUInt32(int value) throws IOException {
-    sink.writeByteAndInt(MessageFormat.UINT32, value);
+    sink.write(MessageFormat.UINT32, value);
   }
 
   private void writeInt64(long value) throws IOException {
-    sink.writeByteAndLong(MessageFormat.INT64, value);
+    sink.write(MessageFormat.INT64, value);
   }
 
   private void writeUInt64(long value) throws IOException {
-    sink.writeByteAndLong(MessageFormat.UINT64, value);
+    sink.write(MessageFormat.UINT64, value);
   }
 
   private void writeFloat32(float value) throws IOException {
-    sink.writeByteAndFloat(MessageFormat.FLOAT32, value);
+    sink.write(MessageFormat.FLOAT32, value);
   }
 
   private void writeFloat64(double value) throws IOException {
-    sink.writeByteAndDouble(MessageFormat.FLOAT64, value);
+    sink.write(MessageFormat.FLOAT64, value);
   }
 
   private void checkLength(int length) {

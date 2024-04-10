@@ -22,8 +22,7 @@ public final class CharsetStringDecoder implements MessageDecoder<String> {
     if (byteLength == 0) return "";
     var bytesLeft = byteLength;
     var byteBuffer = source.buffer();
-    var charBuffer =
-        source.allocator().charBuffer(byteLength * (long) charsetDecoder.maxCharsPerByte());
+    var charBuffer = source.allocator().charBuffer(byteLength * charsetDecoder.maxCharsPerByte());
     try {
       charsetDecoder.reset();
       while (true) {

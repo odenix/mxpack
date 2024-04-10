@@ -7,7 +7,7 @@ package org.minipack.bench.write;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-import org.minipack.bench.NullSink;
+import org.minipack.bench.BenchmarkSink;
 import org.minipack.core.BufferAllocator;
 import org.minipack.core.MessageWriter;
 import org.msgpack.core.MessagePack;
@@ -31,8 +31,8 @@ public abstract class WriteValue {
   @Setup
   public void setUp() {
     allocator = BufferAllocator.pooled().build();
-    buffer = allocator.byteBuffer(8 * 1024);
-    writer = MessageWriter.builder().sink(new NullSink(buffer, allocator)).build();
+    buffer = allocator.newByteBuffer(8 * 1024);
+    writer = MessageWriter.builder().sink(new BenchmarkSink(buffer, allocator)).build();
     bufferOutput = new ArrayBufferOutput(8 * 1024);
     packer = MessagePack.newDefaultPacker(bufferOutput);
   }

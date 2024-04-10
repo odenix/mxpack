@@ -46,13 +46,13 @@ public abstract class MessageReaderTest {
     var in = new PipedInputStream(1 << 16);
     var out = new PipedOutputStream(in);
     packer = MessagePack.newDefaultPacker(out);
-    var allocator = BufferAllocator.unpooled().minCapacity(1 << 8).build();
+    var allocator = BufferAllocator.unpooled().build();
     reader =
         MessageReader.builder()
             .source(
                 isChannel
-                    ? MessageSource.of(Channels.newChannel(in), allocator)
-                    : MessageSource.of(in, allocator))
+                    ? MessageSource.of(Channels.newChannel(in), allocator, 1 << 8)
+                    : MessageSource.of(in, allocator, 1 << 8))
             .build();
   }
 

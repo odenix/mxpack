@@ -8,9 +8,9 @@ import java.nio.ByteBuffer;
 import org.minipack.core.BufferAllocator;
 import org.minipack.core.MessageSink;
 
-public final class NullSink extends MessageSink {
-  public NullSink(ByteBuffer buffer, BufferAllocator allocator) {
-    super(allocator);
+public final class BenchmarkSink extends MessageSink {
+  public BenchmarkSink(ByteBuffer buffer, BufferAllocator allocator) {
+    super(allocator, buffer);
   }
 
   @Override

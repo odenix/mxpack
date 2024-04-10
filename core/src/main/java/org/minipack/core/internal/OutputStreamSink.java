@@ -19,6 +19,11 @@ public final class OutputStreamSink extends MessageSink {
     this.stream = stream;
   }
 
+  public OutputStreamSink(OutputStream stream, BufferAllocator allocator, int bufferCapacity) {
+    super(allocator, bufferCapacity);
+    this.stream = stream;
+  }
+
   @Override
   protected void doWrite(ByteBuffer buffer) throws IOException {
     if (!buffer.hasArray()) {

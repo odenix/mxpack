@@ -13,14 +13,25 @@ import org.minipack.core.internal.*;
 
 /** The underlying source of a {@link MessageReader}. */
 public abstract class MessageSource implements Closeable {
-  private static final int MIN_BUFFER_SIZE = 9; // MessageFormat + long/double
+  private static final int MIN_BUFFER_CAPACITY = 9; // MessageFormat + long/double
+  private static final int DEFAULT_BUFFER_CAPACITY = 1024 * 8;
 
   public static MessageSource of(InputStream stream, BufferAllocator allocator) {
     return new InputStreamSource(stream, allocator);
   }
 
+  public static MessageSource of(
+      InputStream stream, BufferAllocator allocator, int bufferCapacity) {
+    return new InputStreamSource(stream, allocator, bufferCapacity);
+  }
+
   public static MessageSource of(ReadableByteChannel blockingChannel, BufferAllocator allocator) {
     return new ChannelSource(blockingChannel, allocator);
+  }
+
+  public static MessageSource of(
+      ReadableByteChannel blockingChannel, BufferAllocator allocator, int bufferCapacity) {
+    return new ChannelSource(blockingChannel, allocator, bufferCapacity);
   }
 
   public static MessageSource of(ByteBuffer buffer, BufferAllocator allocator) {
@@ -31,13 +42,19 @@ public abstract class MessageSource implements Closeable {
   private final ByteBuffer buffer;
 
   public MessageSource(BufferAllocator allocator) {
-    this.allocator = allocator;
-    this.buffer = allocator.byteBuffer(MIN_BUFFER_SIZE).limit(0);
+    this(allocator, DEFAULT_BUFFER_CAPACITY);
+  }
+
+  public MessageSource(BufferAllocator allocator, int bufferCapacity) {
+    this(allocator, allocator.byteBuffer(bufferCapacity).limit(0));
   }
 
   public MessageSource(BufferAllocator allocator, ByteBuffer buffer) {
+    if (buffer.capacity() < MIN_BUFFER_CAPACITY) {
+      throw Exceptions.bufferTooSmall(buffer.capacity(), MIN_BUFFER_CAPACITY);
+    }
     this.allocator = allocator;
-    this.buffer = buffer.position(0).limit(0);
+    this.buffer = buffer;
   }
 
   protected abstract int doRead(ByteBuffer buffer, int minBytesHint) throws IOException;

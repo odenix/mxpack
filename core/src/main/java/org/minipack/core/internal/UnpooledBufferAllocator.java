@@ -19,9 +19,24 @@ public final class UnpooledBufferAllocator extends AbstractBufferAllocator {
   }
 
   @Override
+  public ByteBuffer newByteBuffer(long capacity) {
+    return byteBuffer(capacity);
+  }
+
+  @Override
   public CharBuffer charBuffer(long minCapacity) {
     var capacity = checkCharCapacity(minCapacity);
     return CharBuffer.allocate(capacity);
+  }
+
+  @Override
+  public CharBuffer newCharBuffer(long capacity) {
+    return CharBuffer.allocate(checkCharCapacity(capacity));
+  }
+
+  @Override
+  public CharBuffer charBuffer(double minCapacity) {
+    return charBuffer((long) Math.ceil(minCapacity));
   }
 
   @Override

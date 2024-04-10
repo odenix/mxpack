@@ -8,30 +8,21 @@ import java.nio.ByteBuffer;
 import org.minipack.core.BufferAllocator;
 
 public abstract class AbstractBufferAllocator implements BufferAllocator {
-  protected final int minCapacity;
   protected final int maxCapacity;
   protected final boolean preferDirect;
 
   protected AbstractBufferAllocator(Builder builder) {
-    minCapacity = builder.minCapacity;
     maxCapacity = builder.maxCapacity;
     preferDirect = builder.preferDirect;
   }
 
   public static final class Builder implements BufferAllocator.Builder {
     private final boolean isPooled;
-    private int minCapacity = 1024 * 8;
     private int maxCapacity = 1024 * 1024;
     private boolean preferDirect;
 
     public Builder(boolean isPooled) {
       this.isPooled = isPooled;
-    }
-
-    @Override
-    public Builder minCapacity(int capacity) {
-      minCapacity = capacity;
-      return this;
     }
 
     @Override
@@ -66,13 +57,13 @@ public abstract class AbstractBufferAllocator implements BufferAllocator {
     if (capacity > maxCapacity) {
       throw Exceptions.bufferSizeLimitExceeded(capacity, maxCapacity);
     }
-    return Math.max((int) capacity, minCapacity);
+    return (int) capacity;
   }
 
   protected final int checkCharCapacity(long capacity) {
     if (capacity > maxCapacity / 2) {
       throw Exceptions.bufferSizeLimitExceeded(capacity * 2, maxCapacity);
     }
-    return Math.max((int) capacity, minCapacity / 2);
+    return (int) capacity;
   }
 }

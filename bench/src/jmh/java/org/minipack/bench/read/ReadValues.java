@@ -9,7 +9,7 @@ import java.nio.ByteBuffer;
 import org.minipack.core.BufferAllocator;
 import org.minipack.core.MessageReader;
 import org.minipack.core.MessageWriter;
-import org.minipack.bench.NullSink;
+import org.minipack.bench.BenchmarkSink;
 import org.msgpack.core.MessagePack;
 import org.msgpack.core.MessageUnpacker;
 import org.msgpack.core.buffer.ArrayBufferInput;
@@ -36,8 +36,8 @@ public abstract class ReadValues {
   @Setup
   public void setUp() throws IOException {
     allocator = BufferAllocator.pooled().build();
-    buffer = ByteBuffer.allocate(8 * 1024);
-    var writer = MessageWriter.builder().sink(new NullSink(buffer, allocator)).build();
+    buffer = allocator.newByteBuffer(16 * 1024);
+    var writer = MessageWriter.builder().sink(new BenchmarkSink(buffer, allocator)).build();
     writeValues(writer);
     reader = MessageReader.builder().source(buffer, allocator).build();
     messageBuffer = MessageBuffer.wrap(buffer.array());

@@ -5,6 +5,7 @@
 package org.minipack.core.internal;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.CharsetEncoder;
 import org.minipack.core.*;
@@ -35,7 +36,7 @@ public final class CharsetStringEncoder implements MessageEncoder<CharSequence> 
     var byteBuffer = sinkBuffer; // fill sink buffer before switching to extra buffer
     sink.ensureRemaining(headerLength);
     var headerPosition = byteBuffer.position();
-    byteBuffer.position(headerPosition + headerLength); // skip and fill in later
+    byteBuffer.position(headerPosition + headerLength); // filled in by fillInHeader()
     CharBuffer charBuffer;
     CharBuffer allocatedCharBuffer = null;
     try {
@@ -58,7 +59,6 @@ public final class CharsetStringEncoder implements MessageEncoder<CharSequence> 
             allocator.byteBuffer(
                 headerLength + maxByteLength - byteBuffer.position() + headerPosition);
         result = charsetEncoder.encode(charBuffer, byteBuffer, true);
-        assert !result.isOverflow();
       }
       if (result.isError()) {
         throw Exceptions.codingError(result, charBuffer.position());
@@ -66,26 +66,11 @@ public final class CharsetStringEncoder implements MessageEncoder<CharSequence> 
       result = charsetEncoder.flush(byteBuffer);
       if (result.isOverflow()) {
         byteBuffer = allocator.byteBuffer(MAX_ENCODER_SUFFIX_SIZE);
-        result = charsetEncoder.flush(byteBuffer);
-        assert !result.isOverflow();
+        charsetEncoder.flush(byteBuffer);
       }
       var byteLength = sinkBuffer.position() - (headerPosition + headerLength);
       if (byteBuffer != sinkBuffer) byteLength += byteBuffer.position();
-      switch (headerLength) {
-        case 1 -> sinkBuffer.put(headerPosition, (byte) (MessageFormat.FIXSTR_PREFIX | byteLength));
-        case 2 ->
-            sinkBuffer
-                .put(headerPosition, MessageFormat.STR8)
-                .put(headerPosition + 1, (byte) byteLength);
-        case 3 ->
-            sinkBuffer
-                .put(headerPosition, MessageFormat.STR16)
-                .putShort(headerPosition + 1, (short) byteLength);
-        default ->
-            sinkBuffer
-                .put(headerPosition, MessageFormat.STR32)
-                .putInt(headerPosition + 1, byteLength);
-      }
+      fillInHeader(headerPosition, headerLength, byteLength, sinkBuffer);
       if (byteBuffer != sinkBuffer) { // extra buffer was allocated
         sink.write(byteBuffer.flip());
       }
@@ -96,6 +81,25 @@ public final class CharsetStringEncoder implements MessageEncoder<CharSequence> 
       if (allocatedCharBuffer != null) {
         allocator.release(allocatedCharBuffer);
       }
+    }
+  }
+
+  private static void fillInHeader(
+      int headerPosition, int headerLength, int stringLength, ByteBuffer sinkBuffer) {
+    switch (headerLength) {
+      case 1 -> sinkBuffer.put(headerPosition, (byte) (MessageFormat.FIXSTR_PREFIX | stringLength));
+      case 2 ->
+          sinkBuffer
+              .put(headerPosition, MessageFormat.STR8)
+              .put(headerPosition + 1, (byte) stringLength);
+      case 3 ->
+          sinkBuffer
+              .put(headerPosition, MessageFormat.STR16)
+              .putShort(headerPosition + 1, (short) stringLength);
+      default ->
+          sinkBuffer
+              .put(headerPosition, MessageFormat.STR32)
+              .putInt(headerPosition + 1, stringLength);
     }
   }
 }

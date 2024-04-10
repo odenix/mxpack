@@ -7,7 +7,7 @@ package org.minipack.bench.read;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-import org.minipack.bench.NullSink;
+import org.minipack.bench.BenchmarkSink;
 import org.minipack.core.BufferAllocator;
 import org.minipack.core.MessageReader;
 import org.minipack.core.MessageWriter;
@@ -37,8 +37,8 @@ public abstract class ReadValue {
   @Setup
   public void setUp() throws IOException {
     allocator = BufferAllocator.pooled().build();
-    buffer = allocator.byteBuffer(8 * 1024);
-    var writer = MessageWriter.builder().sink(new NullSink(buffer, allocator)).build();
+    buffer = allocator.byteBuffer(1024 * 8);
+    var writer = MessageWriter.builder().sink(new BenchmarkSink(buffer, allocator)).build();
     writeValue(writer);
     reader = MessageReader.builder().source(buffer, allocator).build();
     messageBuffer = MessageBuffer.wrap(buffer.array());

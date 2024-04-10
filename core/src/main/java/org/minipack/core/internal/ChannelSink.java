@@ -22,6 +22,12 @@ public final class ChannelSink extends MessageSink {
     this.blockingChannel = blockingChannel;
   }
 
+  public ChannelSink(
+      WritableByteChannel blockingChannel, BufferAllocator allocator, int bufferCapacity) {
+    super(allocator, bufferCapacity);
+    this.blockingChannel = blockingChannel;
+  }
+
   @Override
   public long transferFrom(ReadableByteChannel channel, long maxBytesToTransfer)
       throws IOException {

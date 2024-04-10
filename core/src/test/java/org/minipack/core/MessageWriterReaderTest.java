@@ -42,21 +42,21 @@ public abstract class MessageWriterReaderTest {
   public MessageWriterReaderTest(boolean isChannel) throws IOException {
     var in = new PipedInputStream(1 << 16);
     var out = new PipedOutputStream(in);
-    var writeAllocator = BufferAllocator.unpooled().minCapacity(1 << 7).build();
+    var writeAllocator = BufferAllocator.unpooled().build();
     writer =
         MessageWriter.builder()
             .sink(
                 isChannel
-                    ? MessageSink.of(Channels.newChannel(out), writeAllocator)
-                    : MessageSink.of(out, writeAllocator))
+                    ? MessageSink.of(Channels.newChannel(out), writeAllocator, 1 << 7)
+                    : MessageSink.of(out, writeAllocator, 1 << 7))
             .build();
-    var readAllocator = BufferAllocator.unpooled().minCapacity(1 << 9).build();
+    var readAllocator = BufferAllocator.unpooled().build();
     reader =
         MessageReader.builder()
             .source(
                 isChannel
-                    ? MessageSource.of(in, readAllocator)
-                    : MessageSource.of(Channels.newChannel(in), readAllocator))
+                    ? MessageSource.of(in, readAllocator, 1 << 9)
+                    : MessageSource.of(Channels.newChannel(in), readAllocator, 1 << 9))
             .build();
   }
 

@@ -11,13 +11,13 @@ import org.minipack.core.internal.IdentifierEncoder;
 
 @FunctionalInterface
 public interface MessageEncoder<T> {
-  static MessageEncoder<CharSequence> stringDecoder(CharsetEncoder charsetEncoder) {
+  static MessageEncoder<CharSequence> stringEncoder(CharsetEncoder charsetEncoder) {
     return new CharsetStringEncoder(charsetEncoder);
   }
 
   /** The returned encoder is thread-safe and can be shared between multiple message write. */
-  static MessageEncoder<String> identifierEncoder(int maxCacheSize) {
-    return new IdentifierEncoder(maxCacheSize);
+  static MessageEncoder<String> identifierEncoder(CharsetEncoder charsetEncoder, int maxCacheSize) {
+    return new IdentifierEncoder(charsetEncoder, maxCacheSize);
   }
 
   void encode(T value, MessageSink sink, MessageWriter writer) throws IOException;

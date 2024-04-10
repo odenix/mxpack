@@ -16,8 +16,8 @@ public interface MessageDecoder<T> {
   }
 
   /** The returned decoder is thread-safe and can be shared between multiple message readers. */
-  static MessageDecoder<String> identifierDecoder(int maxCacheSize) {
-    return new IdentifierDecoder(maxCacheSize);
+  static MessageDecoder<String> identifierDecoder(CharsetDecoder charsetDecoder, int maxCacheSize) {
+    return new IdentifierDecoder(charsetDecoder, maxCacheSize);
   }
 
   T decode(MessageSource source, MessageReader reader) throws IOException;
