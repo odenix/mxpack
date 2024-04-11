@@ -6,11 +6,11 @@ plugins {
   alias(libs.plugins.spotless)
 }
 
-val javaBuildVersion = 22
+val jdkVersion = 22
 
 java {
   toolchain {
-    languageVersion = JavaLanguageVersion.of(javaBuildVersion)
+    languageVersion = JavaLanguageVersion.of(jdkVersion)
     vendor = JvmVendorSpec.ORACLE
   }
 }

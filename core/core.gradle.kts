@@ -8,12 +8,12 @@ plugins {
   alias(libs.plugins.spotless)
 }
 
-val javaReleaseVersion = 17
-val javaBuildVersion = 22
+val jdkVersion = 22
+val javaVersion = 17
 
 java {
   toolchain {
-    languageVersion = JavaLanguageVersion.of(javaBuildVersion)
+    languageVersion = JavaLanguageVersion.of(jdkVersion)
     vendor = JvmVendorSpec.ORACLE
   }
   consistentResolution {
@@ -22,7 +22,7 @@ java {
 }
 
 tasks.withType<JavaCompile>().configureEach {
-  options.release = javaReleaseVersion
+  options.release = javaVersion
 }
 
 tasks.compileTestJava {
@@ -70,7 +70,7 @@ dokkatoo {
   }
   dokkatooSourceSets {
     register("main") {
-      jdkVersion = javaReleaseVersion // link to JDK docs
+      jdkVersion = javaVersion // link to JDK docs
       documentedVisibilities(VisibilityModifier.PUBLIC, VisibilityModifier.PROTECTED)
       sourceRoots = fileTree("src/main/java/org/minipack") {
         include("core/*.java")
