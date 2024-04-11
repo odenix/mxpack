@@ -32,9 +32,14 @@ public final class ChannelSink extends MessageSink {
   public long transferFrom(ReadableByteChannel channel, long maxBytesToTransfer)
       throws IOException {
     if (blockingChannel instanceof FileChannel fileChannel) {
-      return fileChannel.transferFrom(channel, fileChannel.position(), maxBytesToTransfer);
+      flushBuffer();
+      var bytesTransferred =
+          fileChannel.transferFrom(channel, fileChannel.position(), maxBytesToTransfer);
+      fileChannel.position(fileChannel.position() + bytesTransferred);
+      return bytesTransferred;
     }
     if (channel instanceof FileChannel fileChannel) {
+      flushBuffer();
       return fileChannel.transferTo(fileChannel.position(), maxBytesToTransfer, blockingChannel);
     }
     return super.transferFrom(channel, maxBytesToTransfer);

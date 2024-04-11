@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.WritableByteChannel;
 import org.minipack.core.internal.*;
 
 /** The underlying source of a {@link MessageReader}. */
@@ -103,6 +104,25 @@ public abstract class MessageSource implements Closeable {
       totalBytesRead += bytesRead;
     }
     return totalBytesRead;
+  }
+
+  public long transferTo(WritableByteChannel channel, final long maxBytesToTransfer)
+      throws IOException {
+    var bytesLeft = maxBytesToTransfer;
+    while (bytesLeft > 0) {
+      buffer.limit((int) Math.min(bytesLeft, buffer.remaining()));
+      var bytesRead = doRead(buffer, 1);
+      if (bytesRead == -1) return maxBytesToTransfer - bytesLeft;
+      buffer.flip();
+      var remaining = buffer.remaining();
+      var bytesWritten = channel.write(buffer);
+      if (bytesWritten != remaining) {
+        throw Exceptions.nonBlockingChannelDetected();
+      }
+      bytesLeft -= bytesWritten;
+      buffer.clear();
+    }
+    return maxBytesToTransfer;
   }
 
   /**

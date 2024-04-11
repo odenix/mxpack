@@ -6,8 +6,10 @@ package org.minipack.core.internal;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SeekableByteChannel;
+import java.nio.channels.WritableByteChannel;
 import org.minipack.core.BufferAllocator;
 import org.minipack.core.MessageSource;
 
@@ -54,5 +56,23 @@ public final class ChannelSource extends MessageSource {
   @Override
   protected void doClose() throws IOException {
     blockingChannel.close();
+  }
+
+  @Override
+  public long transferTo(WritableByteChannel channel, long maxBytesToTransfer) throws IOException {
+    if (blockingChannel instanceof FileChannel fileChannel) {
+      channel.write(buffer.flip());
+      buffer.clear();
+      var bytesTransferred =
+          fileChannel.transferTo(fileChannel.position(), maxBytesToTransfer, channel);
+      fileChannel.position(fileChannel.position() + bytesTransferred);
+      return bytesTransferred;
+    }
+    if (channel instanceof FileChannel fileChannel) {
+      channel.write(buffer.flip());
+      buffer.clear();
+      return fileChannel.transferFrom(blockingChannel, fileChannel.position(), maxBytesToTransfer);
+    }
+    return super.transferTo(channel, maxBytesToTransfer);
   }
 }

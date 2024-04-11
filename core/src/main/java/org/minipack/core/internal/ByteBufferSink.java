@@ -8,18 +8,6 @@ import java.nio.ByteBuffer;
 import org.minipack.core.BufferAllocator;
 import org.minipack.core.MessageSink;
 
-/**
- * Note: By design, minipack is optimized for "real" sinks such as OutputStreamSink and especially
- * ChannelSink. Writing to an in-memory sink such as ByteBufferSink will result in some buffer
- * copying:
- *
- * <ul>
- *   <li>Every byte written to ByteBufferSink is eventually copied to outputBuffer() (in batches).
- *   <li>If outputBuffer() needs to grow, its content is copied to the new output buffer.
- * </ul>
- *
- * For most usages, this buffer copying should not present a problem.
- */
 public final class ByteBufferSink extends MessageSink {
   private ByteBuffer outputBuffer = ByteBuffer.allocate(0);
 

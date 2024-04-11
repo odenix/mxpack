@@ -15,7 +15,7 @@ import org.minipack.core.internal.*;
 /** The underlying sink of a {@link MessageWriter}. */
 public abstract class MessageSink implements Closeable {
   private static final int MIN_BUFFER_CAPACITY = 9; // MessageFormat + long/double
-  private static final int DEFAULT_BUFFER_CAPACITY = 8 * 1024;
+  private static final int DEFAULT_BUFFER_CAPACITY = 1024 * 8;
 
   public static MessageSink of(OutputStream stream, BufferAllocator allocator) {
     return new OutputStreamSink(stream, allocator);
@@ -95,13 +95,13 @@ public abstract class MessageSink implements Closeable {
 
   public long transferFrom(ReadableByteChannel channel, final long maxBytesToTransfer)
       throws IOException {
-    var bytesToTransfer = maxBytesToTransfer;
-    while (bytesToTransfer > 0) {
-      buffer.limit((int) Math.min(bytesToTransfer, buffer.remaining()));
+    var bytesLeft = maxBytesToTransfer;
+    while (bytesLeft > 0) {
+      buffer.limit((int) Math.min(bytesLeft, buffer.remaining()));
       var bytesRead = channel.read(buffer);
-      if (bytesRead == -1) return maxBytesToTransfer - bytesToTransfer;
+      if (bytesRead == -1) return maxBytesToTransfer - bytesLeft;
       if (bytesRead == 0) throw Exceptions.nonBlockingChannelDetected();
-      bytesToTransfer -= bytesRead;
+      bytesLeft -= bytesRead;
       flushBuffer();
     }
     return maxBytesToTransfer;
