@@ -9,7 +9,7 @@ plugins {
 }
 
 val javaReleaseVersion = 17
-val javaBuildVersion = 21
+val javaBuildVersion = 22
 
 java {
   toolchain {

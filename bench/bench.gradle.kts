@@ -6,6 +6,15 @@ plugins {
   alias(libs.plugins.spotless)
 }
 
+val javaBuildVersion = 22
+
+java {
+  toolchain {
+    languageVersion = JavaLanguageVersion.of(javaBuildVersion)
+    vendor = JvmVendorSpec.ORACLE
+  }
+}
+
 dependencies {
   implementation(libs.jSpecify)
   implementation(project(":core"))
