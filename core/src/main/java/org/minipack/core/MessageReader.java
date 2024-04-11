@@ -134,7 +134,7 @@ public final class MessageReader implements Closeable {
         case MessageFormat.MAP32 -> count += source.readLength32(MessageType.MAP) * 2;
         default -> {
           switch (MessageFormat.toType(format)) {
-            case INTEGER -> {} // nothing to do
+            case INTEGER -> {}
             case STRING -> source.skip(MessageFormat.getFixStrLength(format));
             case ARRAY -> count += MessageFormat.getFixArrayLength(format);
             case MAP -> count += MessageFormat.getFixMapLength(format) * 2;

@@ -228,7 +228,7 @@ public abstract class MessageWriterTest {
   }
 
   @Property
-  public void readRawBinary(@ForAll byte[] input) throws IOException {
+  public void readBinary(@ForAll byte[] input) throws IOException {
     writer.writeBinaryHeader(input.length);
     writer.writePayload(ByteBuffer.wrap(input));
     writer.flush();

@@ -19,6 +19,7 @@ import net.jqwik.api.Example;
 import net.jqwik.api.ForAll;
 import net.jqwik.api.Property;
 import net.jqwik.api.constraints.CharRange;
+import net.jqwik.api.constraints.Size;
 import net.jqwik.api.constraints.StringLength;
 import org.minipack.core.internal.MessageFormat;
 
@@ -230,7 +231,7 @@ public abstract class MessageWriterReaderTest {
   }
 
   @Property
-  public void readRawBinary(@ForAll byte[] input) throws IOException {
+  public void readBinary(@ForAll byte[] input) throws IOException {
     writer.writeBinaryHeader(input.length);
     writer.writePayload(ByteBuffer.wrap(input));
     writer.flush();
@@ -382,6 +383,92 @@ public abstract class MessageWriterReaderTest {
       assertThat(reader.readString()).isEqualTo(entry.getKey());
       assertThat(reader.readString()).isEqualTo(entry.getValue());
     }
+  }
+
+  @Property
+  public void skipValues(
+      @ForAll boolean bool,
+      @ForAll byte b,
+      @ForAll short s,
+      @ForAll int i,
+      @ForAll long l,
+      @ForAll float f,
+      @ForAll double d,
+      @ForAll Instant t,
+      @ForAll String str)
+      throws IOException {
+    writer.writeNil();
+    writer.write(bool);
+    writer.write(b);
+    writer.write(s);
+    writer.write(i);
+    writer.write(l);
+    writer.write(f);
+    writer.write(d);
+    writer.write(t);
+    writer.write(str);
+    writer.writeNil();
+    writer.flush();
+
+    reader.skipValue(10);
+    reader.readNil();
+  }
+
+  @Property
+  public void skipStringMap(@ForAll Map<String, String> input) throws IOException {
+    writer.writeMapHeader(input.size());
+    for (var entry : input.entrySet()) {
+      writer.write(entry.getKey());
+      writer.write(entry.getValue());
+    }
+    writer.writeNil();
+    writer.flush();
+
+    reader.skipValue();
+    reader.readNil();
+  }
+
+  @Property
+  public void skipStringArray(@ForAll List<String> input) throws IOException {
+    writer.writeArrayHeader(input.size());
+    for (var str : input) {
+      writer.write(str);
+    }
+    writer.writeNil();
+    writer.flush();
+
+    reader.skipValue();
+    reader.readNil();
+  }
+
+  @Property
+  public void skipNested(
+      @ForAll @Size(max = 5) List<@Size(max = 3) Map<@StringLength(max = 5) String, Long>> input)
+      throws IOException {
+    writer.writeArrayHeader(input.size());
+    for (Map<String, Long> map : input) {
+      writer.writeMapHeader(map.size());
+      for (var entry : map.entrySet()) {
+        writer.write(entry.getKey());
+        writer.write(entry.getValue());
+      }
+    }
+    writer.writeNil();
+    writer.flush();
+
+    reader.skipValue();
+    reader.readNil();
+  }
+
+  @Property
+  public void skipBinary(@ForAll byte[] input) throws IOException {
+    writer.writeBinaryHeader(input.length);
+    writer.writePayload(ByteBuffer.wrap(input));
+    writer.writeNil();
+    writer.flush();
+
+    reader.skipValue();
+    reader.readNil();
   }
 
   private void doWriteReadString(CharSequence input) throws IOException {

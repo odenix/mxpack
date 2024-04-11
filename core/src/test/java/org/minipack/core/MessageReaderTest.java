@@ -20,6 +20,7 @@ import net.jqwik.api.Example;
 import net.jqwik.api.ForAll;
 import net.jqwik.api.Property;
 import net.jqwik.api.constraints.CharRange;
+import net.jqwik.api.constraints.Size;
 import net.jqwik.api.constraints.StringLength;
 import org.minipack.core.internal.MessageFormat;
 import org.msgpack.core.MessagePack;
@@ -204,7 +205,7 @@ public abstract class MessageReaderTest {
   }
 
   @Property
-  public void readRawBinary(@ForAll byte[] input) throws IOException {
+  public void readBinary(@ForAll byte[] input) throws IOException {
     packer.packBinaryHeader(input.length);
     packer.writePayload(input);
     packer.flush();
@@ -350,8 +351,7 @@ public abstract class MessageReaderTest {
   public void readStringMap(@ForAll Map<String, String> input) throws IOException {
     packer.packMapHeader(input.size());
     for (var entry : input.entrySet()) {
-      packer.packString(entry.getKey());
-      packer.packString(entry.getValue());
+      packer.packString(entry.getKey()).packString(entry.getValue());
     }
     packer.flush();
 
@@ -360,6 +360,85 @@ public abstract class MessageReaderTest {
       assertThat(reader.readString()).isEqualTo(entry.getKey());
       assertThat(reader.readString()).isEqualTo(entry.getValue());
     }
+  }
+
+  @Property
+  public void skipValues(
+      @ForAll boolean bool,
+      @ForAll byte b,
+      @ForAll short s,
+      @ForAll int i,
+      @ForAll long l,
+      @ForAll float f,
+      @ForAll double d,
+      @ForAll Instant t,
+      @ForAll String str)
+      throws IOException {
+    packer
+        .packNil()
+        .packBoolean(bool)
+        .packByte(b)
+        .packShort(s)
+        .packInt(i)
+        .packLong(l)
+        .packFloat(f)
+        .packDouble(d)
+        .packTimestamp(t)
+        .packString(str)
+        .packNil()
+        .flush();
+
+    reader.skipValue(10);
+    reader.readNil();
+  }
+
+  @Property
+  public void skipStringMap(@ForAll Map<String, String> input) throws IOException {
+    packer.packMapHeader(input.size());
+    for (var entry : input.entrySet()) {
+      packer.packString(entry.getKey()).packString(entry.getValue());
+    }
+    packer.packNil().flush();
+
+    reader.skipValue();
+    reader.readNil();
+  }
+
+  @Property
+  public void skipStringArray(@ForAll List<String> input) throws IOException {
+    packer.packArrayHeader(input.size());
+    for (var str : input) {
+      packer.packString(str);
+    }
+    packer.packNil().flush();
+
+    reader.skipValue();
+    reader.readNil();
+  }
+
+  @Property
+  public void skipNested(
+      @ForAll @Size(max = 5) List<@Size(max = 3) Map<@StringLength(max = 5) String, Long>> input)
+      throws IOException {
+    packer.packArrayHeader(input.size());
+    for (Map<String, Long> map : input) {
+      packer.packMapHeader(map.size());
+      for (var entry : map.entrySet()) {
+        packer.packString(entry.getKey()).packLong(entry.getValue());
+      }
+    }
+    packer.packNil().flush();
+
+    reader.skipValue();
+    reader.readNil();
+  }
+
+  @Property
+  public void skipBinary(@ForAll byte[] input) throws IOException {
+    packer.packBinaryHeader(input.length).writePayload(input).packNil().flush();
+
+    reader.skipValue();
+    reader.readNil();
   }
 
   private void doReadString(String input) throws IOException {
