@@ -27,17 +27,17 @@ import org.msgpack.core.MessagePack;
 import org.msgpack.core.MessagePacker;
 
 /** Tests {@link MessageReader} against {@link org.msgpack.core.MessagePacker}. */
-public abstract class MessageReaderTest {
+public abstract sealed class MessageReaderTest {
   private final MessagePacker packer;
   private final MessageReader reader;
 
-  public static class OutputStreamTest extends MessageReaderTest {
+  public static final class OutputStreamTest extends MessageReaderTest {
     public OutputStreamTest() throws IOException {
       super(false);
     }
   }
 
-  public static class ChannelTest extends MessageReaderTest {
+  public static final class ChannelTest extends MessageReaderTest {
     public ChannelTest() throws IOException {
       super(true);
     }

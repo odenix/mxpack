@@ -4,13 +4,13 @@
  */
 package org.minipack.core;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNoException;
+import static org.assertj.core.api.Assertions.*;
 
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -25,17 +25,17 @@ import org.msgpack.core.MessageUnpacker;
 import org.msgpack.value.ValueType;
 
 /** Tests {@link MessageWriter} against {@link org.msgpack.core.MessageUnpacker}. */
-public abstract class MessageWriterTest {
-  private final MessageUnpacker unpacker;
+public abstract sealed class MessageWriterTest {
   private final MessageWriter writer;
+  private final MessageUnpacker unpacker;
 
-  public static class OutputStreamTest extends MessageWriterTest {
+  public static final class OutputStreamTest extends MessageWriterTest {
     public OutputStreamTest() throws IOException {
       super(false);
     }
   }
 
-  public static class ChannelTest extends MessageWriterTest {
+  public static final class ChannelTest extends MessageWriterTest {
     public ChannelTest() throws IOException {
       super(true);
     }
@@ -44,7 +44,6 @@ public abstract class MessageWriterTest {
   public MessageWriterTest(boolean isChannel) throws IOException {
     var in = new PipedInputStream(1 << 16);
     var out = new PipedOutputStream(in);
-    unpacker = MessagePack.newDefaultUnpacker(in);
     var allocator = BufferAllocator.unpooled().build();
     writer =
         MessageWriter.builder()
@@ -53,6 +52,7 @@ public abstract class MessageWriterTest {
                     ? MessageSink.of(Channels.newChannel(out), allocator, 1 << 8)
                     : MessageSink.of(out, allocator, 1 << 8))
             .build();
+    unpacker = MessagePack.newDefaultUnpacker(in);
   }
 
   @Example
@@ -216,7 +216,7 @@ public abstract class MessageWriterTest {
   }
 
   @Property
-  public void readRawString(@ForAll String input) throws IOException {
+  public void writeRawString(@ForAll String input) throws IOException {
     writer.write(input);
     writer.flush();
     assertThat(unpacker.getNextFormat().getValueType()).isEqualTo(ValueType.STRING);
@@ -228,10 +228,83 @@ public abstract class MessageWriterTest {
   }
 
   @Property
-  public void readBinary(@ForAll byte[] input) throws IOException {
+  public void writeBinaryWithByteBufferPayload(@ForAll byte[] input) throws IOException {
     writer.writeBinaryHeader(input.length);
     writer.writePayload(ByteBuffer.wrap(input));
     writer.flush();
+    checkBinary(input);
+  }
+
+  @Property
+  public void writeBinaryWithMultipleByteBuffersPayload1(
+      @ForAll byte[] input1, @ForAll byte[] input2) throws IOException {
+    var length = input1.length + input2.length;
+    writer.writeBinaryHeader(length);
+    writer.writePayload(ByteBuffer.wrap(input1));
+    writer.writePayload(ByteBuffer.wrap(input2));
+    writer.flush();
+    var input = ByteBuffer.allocate(length).put(input1).put(input2);
+    checkBinary(input.array());
+  }
+
+  @Property
+  public void writeBinaryWithMultipleByteBuffersPayload2(
+      @ForAll byte[] input1, @ForAll byte[] input2) throws IOException {
+    var length = input1.length + input2.length;
+    writer.writeBinaryHeader(length);
+    writer.writePayloads(ByteBuffer.wrap(input1), ByteBuffer.wrap(input2));
+    writer.flush();
+    var input = ByteBuffer.allocate(length).put(input1).put(input2);
+    checkBinary(input.array());
+  }
+
+  @Property
+  public void writeBinaryWithInputStreamPayload(@ForAll byte[] input) throws IOException {
+    writer.writeBinaryHeader(input.length);
+    var inputStream = new ByteArrayInputStream(input);
+    writer.writePayload(inputStream, Long.MAX_VALUE);
+    writer.flush();
+    checkBinary(input);
+  }
+
+  @Property
+  public void writeBinaryWithChannelPayload(@ForAll byte[] input) throws IOException {
+    writer.writeBinaryHeader(input.length);
+    var inputStream = new ByteArrayInputStream(input);
+    var channel = Channels.newChannel(inputStream);
+    writer.writePayload(channel, Long.MAX_VALUE);
+    writer.flush();
+    checkBinary(input);
+  }
+
+  @Property(tries = 10)
+  public void writeBinaryWithFileChannelPayload(@ForAll byte[] input) throws IOException {
+    var inputFile = Files.createTempFile(null, null);
+    Files.write(inputFile, input);
+    try (var inputStream = new FileInputStream(inputFile.toFile())) {
+      writer.writeBinaryHeader(input.length);
+      writer.writePayload(inputStream.getChannel(), Long.MAX_VALUE);
+      writer.flush();
+      checkBinary(input);
+    } finally {
+      Files.delete(inputFile);
+    }
+  }
+
+  @Property
+  public void writeBinaryWithMixedPayload(
+      @ForAll byte[] input1, @ForAll byte[] input2, @ForAll byte[] input3) throws IOException {
+    var length = input1.length + input2.length + input3.length;
+    writer.writeBinaryHeader(length);
+    writer.writePayload(ByteBuffer.wrap(input1));
+    writer.writePayload(new ByteArrayInputStream(input2), Long.MAX_VALUE);
+    writer.writePayload(Channels.newChannel(new ByteArrayInputStream(input3)), Long.MAX_VALUE);
+    writer.flush();
+    var input = ByteBuffer.allocate(length).put(input1).put(input2).put(input3);
+    checkBinary(input.array());
+  }
+
+  private void checkBinary(byte[] input) throws IOException {
     assertThat(unpacker.getNextFormat().getValueType()).isEqualTo(ValueType.BINARY);
     var length = unpacker.unpackBinaryHeader();
     var buffer = ByteBuffer.allocate(length);
@@ -241,7 +314,7 @@ public abstract class MessageWriterTest {
   }
 
   @Property
-  public void readExtension(@ForAll byte[] input, @ForAll byte extensionType) throws IOException {
+  public void writeExtension(@ForAll byte[] input, @ForAll byte extensionType) throws IOException {
     writer.writeExtensionHeader(input.length, extensionType);
     writer.writePayload(ByteBuffer.wrap(input));
     writer.flush();
@@ -255,7 +328,7 @@ public abstract class MessageWriterTest {
   }
 
   @Property
-  public void readArray(
+  public void writeArray(
       @ForAll boolean bool,
       @ForAll byte b,
       @ForAll short s,

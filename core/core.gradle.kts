@@ -8,7 +8,7 @@ plugins {
   alias(libs.plugins.spotless)
 }
 
-val jdkVersion = 22
+val jdkVersion = 21
 val javaVersion = 17
 
 java {
@@ -31,10 +31,7 @@ tasks.compileTestJava {
 }
 
 tasks.test {
-  useJUnitPlatform {
-    includeEngines("jqwik")
-    includeEngines("junit-jupiter")
-  }
+  useJUnitPlatform()
 }
 
 spotless {
@@ -47,7 +44,7 @@ spotless {
 dependencies {
   api(libs.jSpecify)
   dokkatooPluginHtml(libs.dokkaJava)
-  testImplementation(libs.junitApi)
+  testImplementation(libs.junitJupiter)
   testImplementation(libs.assertJ)
   testImplementation(libs.jqwik)
   testImplementation(libs.messagePack)

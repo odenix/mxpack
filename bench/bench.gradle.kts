@@ -6,7 +6,7 @@ plugins {
   alias(libs.plugins.spotless)
 }
 
-val jdkVersion = 22
+val jdkVersion = 21
 
 java {
   toolchain {

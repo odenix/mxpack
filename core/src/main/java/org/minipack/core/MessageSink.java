@@ -97,10 +97,11 @@ public abstract class MessageSink implements Closeable {
       throws IOException {
     var bytesLeft = maxBytesToTransfer;
     while (bytesLeft > 0) {
-      buffer.limit((int) Math.min(bytesLeft, buffer.remaining()));
+      var remaining = buffer.remaining();
+      buffer.limit((int) Math.min(bytesLeft, remaining));
       var bytesRead = channel.read(buffer);
       if (bytesRead == -1) return maxBytesToTransfer - bytesLeft;
-      if (bytesRead == 0) throw Exceptions.nonBlockingChannelDetected();
+      if (bytesRead == 0 && remaining > 0) throw Exceptions.nonBlockingChannelDetected();
       bytesLeft -= bytesRead;
       flushBuffer();
     }
