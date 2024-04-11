@@ -64,9 +64,9 @@ configurations.matching {
 }
 
 dokkatoo {
-  moduleName.set("minipack")
+  moduleName.set("MiniPack")
   pluginsConfiguration.html {
-    footerMessage = "Copyright 2024 The minipack project authors"
+    footerMessage = "Copyright 2024 the MiniPack contributors"
   }
   dokkatooSourceSets {
     register("main") {

@@ -1,4 +1,4 @@
 /*
- * Copyright $YEAR the minipack project authors
+ * Copyright $YEAR the MiniPack contributors
  * SPDX-License-Identifier: Apache-2.0
  */

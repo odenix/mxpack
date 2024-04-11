@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 the minipack project authors
+ * Copyright 2024 the MiniPack contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 package org.minipack.core;
