@@ -20,57 +20,75 @@ import net.jqwik.api.Property;
 import net.jqwik.api.constraints.CharRange;
 import net.jqwik.api.constraints.Size;
 import net.jqwik.api.constraints.StringLength;
-import net.jqwik.api.lifecycle.AfterExample;
 import net.jqwik.api.lifecycle.AfterProperty;
 import org.minipack.core.internal.MessageFormat;
 
 /** Tests {@link MessageReader} against {@link MessageWriter}. */
 public abstract sealed class MessageWriterReaderTest {
+  private final BufferAllocator allocator;
   private final MessageWriter writer;
   private final MessageReader reader;
 
+  public static final class StreamToStreamTest extends MessageWriterReaderTest {
+    public StreamToStreamTest() throws IOException {
+      super(false, false, false);
+    }
+  }
+
   public static final class ChannelToStreamTest extends MessageWriterReaderTest {
     public ChannelToStreamTest() throws IOException {
-      super(true);
+      super(true, false, false);
     }
   }
 
   public static final class StreamToChannelTest extends MessageWriterReaderTest {
     public StreamToChannelTest() throws IOException {
-      super(false);
+      super(false, true, false);
     }
   }
 
-  public MessageWriterReaderTest(boolean isChannel) throws IOException {
+  public static final class ChannelToChannelHeapBufferTest extends MessageWriterReaderTest {
+    public ChannelToChannelHeapBufferTest() throws IOException {
+      super(true, true, false);
+    }
+  }
+
+  public static final class ChannelToChannelDirectBufferTest extends MessageWriterReaderTest {
+    public ChannelToChannelDirectBufferTest() throws IOException {
+      super(true, true, true);
+    }
+  }
+
+  public MessageWriterReaderTest(boolean isWriterChannel, boolean isReaderChannel, boolean isDirect)
+      throws IOException {
     var in = new PipedInputStream(1 << 16);
     var out = new PipedOutputStream(in);
-    var writeAllocator = BufferAllocator.unpooled().build();
+    allocator = BufferAllocator.pooled().preferDirect(isDirect).build();
     writer =
         MessageWriter.builder()
             .sink(
-                isChannel
-                    ? MessageSink.of(Channels.newChannel(out), writeAllocator, 1 << 7)
-                    : MessageSink.of(out, writeAllocator, 1 << 7))
+                isWriterChannel
+                    ? MessageSink.of(Channels.newChannel(out), allocator, 1 << 7)
+                    : MessageSink.of(out, allocator, 1 << 7))
             .build();
-    var readAllocator = BufferAllocator.unpooled().build();
     reader =
         MessageReader.builder()
             .source(
-                isChannel
-                    ? MessageSource.of(in, readAllocator, 1 << 9)
-                    : MessageSource.of(Channels.newChannel(in), readAllocator, 1 << 9))
+                isReaderChannel
+                    ? MessageSource.of(Channels.newChannel(in), allocator, 1 << 9)
+                    : MessageSource.of(in, allocator, 1 << 9))
             .build();
   }
 
   @AfterProperty
-  @AfterExample
-  public void afterEach() throws IOException {
+  public void afterProperty() throws IOException {
     writer.close();
     reader.close();
+    allocator.close();
   }
 
   @Example
-  public void writeReadNil() throws IOException {
+  public void roundtripNil() throws IOException {
     writer.writeNil();
     writer.flush();
     assertThat(reader.nextFormat()).isEqualTo(MessageFormat.NIL);
@@ -79,7 +97,7 @@ public abstract sealed class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeReadBoolean(@ForAll boolean input) throws IOException {
+  public void roundtripBoolean(@ForAll boolean input) throws IOException {
     writer.write(input);
     writer.flush();
     assertThat(reader.nextFormat()).isEqualTo(input ? MessageFormat.TRUE : MessageFormat.FALSE);
@@ -89,7 +107,7 @@ public abstract sealed class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeReadByte(@ForAll byte input) throws IOException {
+  public void roundtripByte(@ForAll byte input) throws IOException {
     writer.write(input);
     writer.flush();
     assertThat(reader.nextFormat())
@@ -104,7 +122,7 @@ public abstract sealed class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeReadShort(@ForAll short input) throws IOException {
+  public void roundtripShort(@ForAll short input) throws IOException {
     writer.write(input);
     writer.flush();
     assertThat(reader.nextFormat())
@@ -121,7 +139,7 @@ public abstract sealed class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeReadInt(@ForAll int input) throws IOException {
+  public void roundtripInt(@ForAll int input) throws IOException {
     writer.write(input);
     writer.flush();
     assertThat(reader.nextFormat())
@@ -141,7 +159,7 @@ public abstract sealed class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeReadLong(@ForAll long input) throws IOException {
+  public void roundtripLong(@ForAll long input) throws IOException {
     writer.write(input);
     writer.flush();
     assertThat(reader.nextFormat())
@@ -164,7 +182,7 @@ public abstract sealed class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeReadFloat(@ForAll float input) throws IOException {
+  public void roundtripFloat(@ForAll float input) throws IOException {
     writer.write(input);
     writer.flush();
     assertThat(reader.nextFormat()).isEqualTo(MessageFormat.FLOAT32);
@@ -174,7 +192,7 @@ public abstract sealed class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeReadDouble(@ForAll double input) throws IOException {
+  public void roundtripDouble(@ForAll double input) throws IOException {
     writer.write(input);
     writer.flush();
     assertThat(reader.nextFormat()).isEqualTo(MessageFormat.FLOAT64);
@@ -184,7 +202,7 @@ public abstract sealed class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeReadTimestamp(@ForAll Instant input) throws IOException {
+  public void roundtripTimestamp(@ForAll Instant input) throws IOException {
     writer.write(input);
     writer.flush();
     assertThat(reader.nextType()).isEqualTo(MessageType.EXTENSION);
@@ -193,41 +211,41 @@ public abstract sealed class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeReadAsciiString(@ForAll @CharRange(to = 127) String input) throws IOException {
-    doWriteReadString(input);
+  public void roundtripAsciiString(@ForAll @CharRange(to = 127) String input) throws IOException {
+    doRoundtripString(input);
   }
 
   @Property
-  public void writeReadString(@ForAll String input) throws IOException {
-    doWriteReadString(input);
+  public void roundtripString(@ForAll String input) throws IOException {
+    doRoundtripString(input);
   }
 
   @Property
-  public void writeReadCharSequence(@ForAll String input) throws IOException {
-    doWriteReadString(new StringBuilder(input));
+  public void roundtripCharSequence(@ForAll String input) throws IOException {
+    doRoundtripString(new StringBuilder(input));
   }
 
   @Property
-  public void writeReadLongAsciiString(
+  public void roundtripLongAsciiString(
       @ForAll @CharRange(to = 127) @StringLength(min = 1 << 5, max = 1 << 10) String input)
       throws IOException {
-    doWriteReadString(input);
+    doRoundtripString(input);
   }
 
   @Property
-  public void writeReadLongString(@ForAll @StringLength(min = 1 << 5, max = 1 << 10) String input)
+  public void roundtripLongString(@ForAll @StringLength(min = 1 << 5, max = 1 << 10) String input)
       throws IOException {
-    doWriteReadString(input);
+    doRoundtripString(input);
   }
 
   @Property
-  public void writeReadIdentifier(@ForAll @StringLength(max = 1 << 5) String input)
+  public void roundtripIdentifier(@ForAll @StringLength(max = 1 << 5) String input)
       throws IOException {
-    doWriteReadIdentifier(input);
+    doRoundtripIdentifier(input);
   }
 
   @Property
-  public void writeReadRawString(@ForAll String input) throws IOException {
+  public void roundtripRawString(@ForAll String input) throws IOException {
     writer.write(input);
     writer.flush();
     assertThat(reader.nextType()).isEqualTo(MessageType.STRING);
@@ -239,7 +257,7 @@ public abstract sealed class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeReadBinaryFromByteBuffer(@ForAll byte[] input) throws IOException {
+  public void roundtripBinaryFromByteBuffer(@ForAll byte[] input) throws IOException {
     writer.writeBinaryHeader(input.length);
     writer.writePayload(ByteBuffer.wrap(input));
     writer.flush();
@@ -247,7 +265,7 @@ public abstract sealed class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeReadBinaryFromMultipleByteBuffers1(@ForAll byte[] input1, @ForAll byte[] input2)
+  public void roundtripBinaryFromMultipleByteBuffers1(@ForAll byte[] input1, @ForAll byte[] input2)
       throws IOException {
     var length = input1.length + input2.length;
     writer.writeBinaryHeader(length);
@@ -259,7 +277,7 @@ public abstract sealed class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeReadBinaryFromMultipleByteBuffers2(@ForAll byte[] input1, @ForAll byte[] input2)
+  public void roundtripBinaryFromMultipleByteBuffers2(@ForAll byte[] input1, @ForAll byte[] input2)
       throws IOException {
     var length = input1.length + input2.length;
     writer.writeBinaryHeader(length);
@@ -270,7 +288,7 @@ public abstract sealed class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeReadBinaryFromInputStream(@ForAll byte[] input) throws IOException {
+  public void roundtripBinaryFromInputStream(@ForAll byte[] input) throws IOException {
     writer.writeBinaryHeader(input.length);
     var inputStream = new ByteArrayInputStream(input);
     writer.writePayload(inputStream, Long.MAX_VALUE);
@@ -279,7 +297,7 @@ public abstract sealed class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeReadBinaryFromChannel(@ForAll byte[] input) throws IOException {
+  public void roundtripBinaryFromChannel(@ForAll byte[] input) throws IOException {
     writer.writeBinaryHeader(input.length);
     var inputStream = new ByteArrayInputStream(input);
     var channel = Channels.newChannel(inputStream);
@@ -289,7 +307,7 @@ public abstract sealed class MessageWriterReaderTest {
   }
 
   @Property(tries = 10)
-  public void writeReadBinaryFromChannelToFileChannelSink(@ForAll byte[] input) throws IOException {
+  public void roundtripBinaryFromChannelToFileChannelSink(@ForAll byte[] input) throws IOException {
     var outputFile = Files.createTempFile(null, null);
     var allocator = BufferAllocator.unpooled().build();
     try (var source = MessageSource.of(Files.newInputStream(outputFile), allocator, 1 << 9);
@@ -309,7 +327,7 @@ public abstract sealed class MessageWriterReaderTest {
   }
 
   @Property(tries = 10)
-  public void writeReadBinaryFromFileChannel(@ForAll byte[] input) throws IOException {
+  public void roundtripBinaryFromFileChannel(@ForAll byte[] input) throws IOException {
     var inputFile = Files.createTempFile(null, null);
     Files.write(inputFile, input);
     try (var inputStream = new FileInputStream(inputFile.toFile())) {
@@ -322,21 +340,8 @@ public abstract sealed class MessageWriterReaderTest {
     }
   }
 
-  private void checkBinary(byte[] input) throws IOException {
-    checkBinary(input, reader);
-  }
-
-  private void checkBinary(byte[] input, MessageReader reader) throws IOException {
-    assertThat(reader.nextType()).isEqualTo(MessageType.BINARY);
-    var length = reader.readBinaryHeader();
-    var buffer = ByteBuffer.allocate(length);
-    reader.readPayload(buffer);
-    var output = buffer.array();
-    assertThat(output).isEqualTo(input);
-  }
-
   @Property
-  public void writeReadBinaryIntoByteBuffer(@ForAll byte[] input) throws IOException {
+  public void roundtripBinaryIntoByteBuffer(@ForAll byte[] input) throws IOException {
     var length = writeBinaryAndReadHeader(input);
     var buffer = ByteBuffer.allocate(length);
     while (buffer.hasRemaining()) reader.readPayload(buffer);
@@ -345,7 +350,7 @@ public abstract sealed class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeReadBinaryIntoMultipleByteBuffers1(@ForAll byte[] input1, @ForAll byte[] input2)
+  public void roundtripBinaryIntoMultipleByteBuffers1(@ForAll byte[] input1, @ForAll byte[] input2)
       throws IOException {
     var length = input1.length + input2.length;
     var input = ByteBuffer.allocate(length).put(input1).put(input2);
@@ -359,7 +364,7 @@ public abstract sealed class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeReadBinaryIntoOutputStream(@ForAll byte[] input) throws IOException {
+  public void roundtripBinaryIntoOutputStream(@ForAll byte[] input) throws IOException {
     var length = writeBinaryAndReadHeader(input);
     var outputStream = new ByteArrayOutputStream(length);
     reader.readPayload(outputStream, length);
@@ -368,7 +373,7 @@ public abstract sealed class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeReadBinaryIntoChannel(@ForAll byte[] input) throws IOException {
+  public void roundtripBinaryIntoChannel(@ForAll byte[] input) throws IOException {
     var length = writeBinaryAndReadHeader(input);
     var outputStream = new ByteArrayOutputStream(length);
     reader.readPayload(Channels.newChannel(outputStream), length);
@@ -377,7 +382,7 @@ public abstract sealed class MessageWriterReaderTest {
   }
 
   @Property(tries = 10)
-  public void writeReadBinaryIntoChannelFromFileChannelSource(@ForAll byte[] input)
+  public void roundtripBinaryIntoChannelFromFileChannelSource(@ForAll byte[] input)
       throws IOException {
     var inputFile = Files.createTempFile(null, null);
     var allocator = BufferAllocator.unpooled().build();
@@ -397,7 +402,7 @@ public abstract sealed class MessageWriterReaderTest {
   }
 
   @Property(tries = 10)
-  public void writeReadBinaryIntoFileChannel(@ForAll byte[] input) throws IOException {
+  public void roundtripBinaryIntoFileChannel(@ForAll byte[] input) throws IOException {
     var outputFile = Files.createTempFile(null, null);
     try (var outputStream = new FileOutputStream(outputFile.toFile())) {
       var length = writeBinaryAndReadHeader(input);
@@ -424,7 +429,7 @@ public abstract sealed class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeReadExtension(@ForAll byte[] input, @ForAll byte extensionType)
+  public void roundtripExtension(@ForAll byte[] input, @ForAll byte extensionType)
       throws IOException {
     writer.writeExtensionHeader(input.length, extensionType);
     writer.writePayload(ByteBuffer.wrap(input));
@@ -439,7 +444,7 @@ public abstract sealed class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeReadArray(
+  public void roundtripArray(
       @ForAll boolean bool,
       @ForAll byte b,
       @ForAll short s,
@@ -478,7 +483,7 @@ public abstract sealed class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeReadStringArray(@ForAll List<String> strings) throws IOException {
+  public void roundtripStringArray(@ForAll List<String> strings) throws IOException {
     writer.writeArrayHeader(strings.size());
     for (var str : strings) {
       writer.write(str);
@@ -492,7 +497,7 @@ public abstract sealed class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeReadMap(
+  public void roundtripMap(
       @ForAll boolean bool,
       @ForAll byte b,
       @ForAll short s,
@@ -551,7 +556,7 @@ public abstract sealed class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeReadStringMap(@ForAll Map<String, String> strings) throws IOException {
+  public void roundtripStringMap(@ForAll Map<String, String> strings) throws IOException {
     writer.writeMapHeader(strings.size());
     for (var entry : strings.entrySet()) {
       writer.write(entry.getKey());
@@ -567,7 +572,7 @@ public abstract sealed class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeSkipValues(
+  public void skipValues(
       @ForAll boolean bool,
       @ForAll byte b,
       @ForAll short s,
@@ -596,7 +601,7 @@ public abstract sealed class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeSkipStringMap(@ForAll Map<String, String> input) throws IOException {
+  public void skipStringMap(@ForAll Map<String, String> input) throws IOException {
     writer.writeMapHeader(input.size());
     for (var entry : input.entrySet()) {
       writer.write(entry.getKey());
@@ -610,7 +615,7 @@ public abstract sealed class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeSkipStringArray(@ForAll List<String> input) throws IOException {
+  public void skipStringArray(@ForAll List<String> input) throws IOException {
     writer.writeArrayHeader(input.size());
     for (var str : input) {
       writer.write(str);
@@ -623,7 +628,7 @@ public abstract sealed class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeSkipNested(
+  public void skipNested(
       @ForAll @Size(max = 5) List<@Size(max = 3) Map<@StringLength(max = 5) String, Long>> input)
       throws IOException {
     writer.writeArrayHeader(input.size());
@@ -642,7 +647,7 @@ public abstract sealed class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeSkipBinary(@ForAll byte[] input) throws IOException {
+  public void skipBinary(@ForAll byte[] input) throws IOException {
     writer.writeBinaryHeader(input.length);
     writer.writePayload(ByteBuffer.wrap(input));
     writer.writeNil();
@@ -652,7 +657,20 @@ public abstract sealed class MessageWriterReaderTest {
     reader.readNil();
   }
 
-  private void doWriteReadString(CharSequence input) throws IOException {
+  private void checkBinary(byte[] input) throws IOException {
+    checkBinary(input, reader);
+  }
+
+  private void checkBinary(byte[] input, MessageReader reader) throws IOException {
+    assertThat(reader.nextType()).isEqualTo(MessageType.BINARY);
+    var length = reader.readBinaryHeader();
+    var buffer = ByteBuffer.allocate(length);
+    reader.readPayload(buffer);
+    var output = buffer.array();
+    assertThat(output).isEqualTo(input);
+  }
+
+  private void doRoundtripString(CharSequence input) throws IOException {
     writer.write(input);
     writer.flush();
     assertThat(reader.nextFormat())
@@ -666,7 +684,7 @@ public abstract sealed class MessageWriterReaderTest {
     assertThat(output).isEqualTo(input.toString());
   }
 
-  private void doWriteReadIdentifier(String input) throws IOException {
+  private void doRoundtripIdentifier(String input) throws IOException {
     writer.writeIdentifier(input);
     writer.flush();
     assertThat(reader.nextType()).isEqualTo(MessageType.STRING);

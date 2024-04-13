@@ -27,7 +27,7 @@ public final class PooledBufferAllocator extends AbstractBufferAllocator {
   @Override
   public ByteBuffer byteBuffer(long minCapacity) {
     var capacity = checkCapacity(minCapacity);
-    var index = 32 - Integer.numberOfLeadingZeros(capacity - 1);
+    var index = getBucketIndex(capacity);
     var bucket = byteBufferBuckets[index];
     var buffer = bucket.poll();
     return buffer != null
@@ -38,7 +38,7 @@ public final class PooledBufferAllocator extends AbstractBufferAllocator {
   @Override
   public CharBuffer charBuffer(long minCapacity) {
     var capacity = checkCharCapacity(minCapacity);
-    var index = 32 - Integer.numberOfLeadingZeros(capacity - 1);
+    var index = getBucketIndex(capacity);
     var bucket = charBufferBuckets[index];
     var buffer = bucket.poll();
     return buffer != null ? buffer.clear() : CharBuffer.allocate(1 << index);
@@ -46,14 +46,14 @@ public final class PooledBufferAllocator extends AbstractBufferAllocator {
 
   @Override
   public void release(ByteBuffer buffer) {
-    var index = 32 - Integer.numberOfLeadingZeros(buffer.capacity() - 1);
+    var index = getBucketIndex(buffer.capacity());
     var bucket = byteBufferBuckets[index];
     bucket.add(buffer);
   }
 
   @Override
   public void release(CharBuffer buffer) {
-    var index = 32 - Integer.numberOfLeadingZeros(buffer.capacity() - 1);
+    var index = getBucketIndex(buffer.capacity());
     var bucket = charBufferBuckets[index];
     bucket.add(buffer);
   }
@@ -65,5 +65,9 @@ public final class PooledBufferAllocator extends AbstractBufferAllocator {
       byteBufferBuckets[i] = null;
       charBufferBuckets[i] = null;
     }
+  }
+
+  private int getBucketIndex(int capacity) {
+    return capacity == 0 ? 0 : 32 - Integer.numberOfLeadingZeros(capacity - 1);
   }
 }

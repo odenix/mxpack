@@ -19,6 +19,7 @@ public abstract class MessageSource implements Closeable {
 
   protected final BufferAllocator allocator;
   protected final ByteBuffer buffer;
+  private boolean isClosed;
 
   public static MessageSource of(InputStream stream, BufferAllocator allocator) {
     return new InputStreamSource(stream, allocator);
@@ -228,6 +229,8 @@ public abstract class MessageSource implements Closeable {
 
   @Override
   public final void close() throws IOException {
+    if (isClosed) return;
+    isClosed = true;
     try {
       doClose();
     } finally {

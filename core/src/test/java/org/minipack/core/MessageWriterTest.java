@@ -19,7 +19,6 @@ import net.jqwik.api.ForAll;
 import net.jqwik.api.Property;
 import net.jqwik.api.constraints.CharRange;
 import net.jqwik.api.constraints.StringLength;
-import net.jqwik.api.lifecycle.AfterExample;
 import net.jqwik.api.lifecycle.AfterProperty;
 import org.msgpack.core.MessageFormat;
 import org.msgpack.core.MessagePack;
@@ -28,25 +27,32 @@ import org.msgpack.value.ValueType;
 
 /** Tests {@link MessageWriter} against {@link org.msgpack.core.MessageUnpacker}. */
 public abstract sealed class MessageWriterTest {
+  private final BufferAllocator allocator;
   private final MessageWriter writer;
   private final MessageUnpacker unpacker;
 
-  public static final class OutputStreamTest extends MessageWriterTest {
-    public OutputStreamTest() throws IOException {
-      super(false);
+  public static final class OutputStreamHeapBufferTest extends MessageWriterTest {
+    public OutputStreamHeapBufferTest() throws IOException {
+      super(false, false);
     }
   }
 
-  public static final class ChannelTest extends MessageWriterTest {
-    public ChannelTest() throws IOException {
-      super(true);
+  public static final class ChannelHeapBufferTest extends MessageWriterTest {
+    public ChannelHeapBufferTest() throws IOException {
+      super(true, false);
     }
   }
 
-  public MessageWriterTest(boolean isChannel) throws IOException {
+  public static final class ChannelDirectBufferTest extends MessageWriterTest {
+    public ChannelDirectBufferTest() throws IOException {
+      super(true, true);
+    }
+  }
+
+  public MessageWriterTest(boolean isChannel, boolean isDirect) throws IOException {
     var in = new PipedInputStream(1 << 16);
     var out = new PipedOutputStream(in);
-    var allocator = BufferAllocator.unpooled().build();
+    allocator = BufferAllocator.pooled().preferDirect(isDirect).build();
     writer =
         MessageWriter.builder()
             .sink(
@@ -58,10 +64,10 @@ public abstract sealed class MessageWriterTest {
   }
 
   @AfterProperty
-  @AfterExample
-  public void afterEach() throws IOException {
+  public void afterProperty() throws IOException {
     writer.close();
     unpacker.close();
+    allocator.close();
   }
 
   @Example
@@ -332,19 +338,6 @@ public abstract sealed class MessageWriterTest {
     checkBinary(input.array());
   }
 
-  private void checkBinary(byte[] input) throws IOException {
-    checkBinary(input, unpacker);
-  }
-
-  private void checkBinary(byte[] input, MessageUnpacker unpacker) throws IOException {
-    assertThat(unpacker.getNextFormat().getValueType()).isEqualTo(ValueType.BINARY);
-    var length = unpacker.unpackBinaryHeader();
-    var buffer = ByteBuffer.allocate(length);
-    unpacker.readPayload(buffer);
-    var output = buffer.array();
-    assertThat(output).isEqualTo(input);
-  }
-
   @Property
   public void writeExtension(@ForAll byte[] input, @ForAll byte extensionType) throws IOException {
     writer.writeExtensionHeader(input.length, extensionType);
@@ -485,6 +478,19 @@ public abstract sealed class MessageWriterTest {
       assertThat(unpacker.unpackString()).isEqualTo(entry.getKey());
       assertThat(unpacker.unpackString()).isEqualTo(entry.getValue());
     }
+  }
+
+  private void checkBinary(byte[] input) throws IOException {
+    checkBinary(input, unpacker);
+  }
+
+  private void checkBinary(byte[] input, MessageUnpacker unpacker) throws IOException {
+    assertThat(unpacker.getNextFormat().getValueType()).isEqualTo(ValueType.BINARY);
+    var length = unpacker.unpackBinaryHeader();
+    var buffer = ByteBuffer.allocate(length);
+    unpacker.readPayload(buffer);
+    var output = buffer.array();
+    assertThat(output).isEqualTo(input);
   }
 
   private void doWriteString(CharSequence input) throws IOException {

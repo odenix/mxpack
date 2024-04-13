@@ -21,7 +21,6 @@ import net.jqwik.api.Property;
 import net.jqwik.api.constraints.CharRange;
 import net.jqwik.api.constraints.Size;
 import net.jqwik.api.constraints.StringLength;
-import net.jqwik.api.lifecycle.AfterExample;
 import net.jqwik.api.lifecycle.AfterProperty;
 import org.minipack.core.internal.MessageFormat;
 import org.msgpack.core.MessagePack;
@@ -29,26 +28,33 @@ import org.msgpack.core.MessagePacker;
 
 /** Tests {@link MessageReader} against {@link org.msgpack.core.MessagePacker}. */
 public abstract sealed class MessageReaderTest {
+  private final BufferAllocator allocator;
   private final MessagePacker packer;
   private final MessageReader reader;
 
-  public static final class OutputStreamTest extends MessageReaderTest {
-    public OutputStreamTest() throws IOException {
-      super(false);
+  public static final class InputStreamHeapBufferTest extends MessageReaderTest {
+    public InputStreamHeapBufferTest() throws IOException {
+      super(false, false);
     }
   }
 
-  public static final class ChannelTest extends MessageReaderTest {
-    public ChannelTest() throws IOException {
-      super(true);
+  public static final class ChannelHeapBufferTest extends MessageReaderTest {
+    public ChannelHeapBufferTest() throws IOException {
+      super(true, false);
     }
   }
 
-  public MessageReaderTest(boolean isChannel) throws IOException {
+  public static final class ChannelDirectBufferTest extends MessageReaderTest {
+    public ChannelDirectBufferTest() throws IOException {
+      super(true, true);
+    }
+  }
+
+  public MessageReaderTest(boolean isChannel, boolean isDirect) throws IOException {
     var in = new PipedInputStream(1 << 16);
     var out = new PipedOutputStream(in);
+    allocator = BufferAllocator.pooled().preferDirect(isDirect).build();
     packer = MessagePack.newDefaultPacker(out);
-    var allocator = BufferAllocator.unpooled().build();
     reader =
         MessageReader.builder()
             .source(
@@ -59,10 +65,10 @@ public abstract sealed class MessageReaderTest {
   }
 
   @AfterProperty
-  @AfterExample
-  public void afterEach() throws IOException {
+  public void afterProperty() throws IOException {
     packer.close();
     reader.close();
+    allocator.close();
   }
 
   @Example

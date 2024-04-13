@@ -36,6 +36,7 @@ public abstract class MessageSink implements Closeable {
 
   protected final BufferAllocator allocator;
   protected final ByteBuffer buffer;
+  private boolean isClosed;
 
   protected MessageSink(BufferAllocator allocator) {
     this(allocator, DEFAULT_BUFFER_CAPACITY);
@@ -115,6 +116,8 @@ public abstract class MessageSink implements Closeable {
 
   @Override
   public final void close() throws IOException {
+    if (isClosed) return;
+    isClosed = true;
     try {
       doClose();
     } finally {
