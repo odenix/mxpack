@@ -106,22 +106,31 @@ public abstract class MessageSource implements Closeable {
     return totalBytesRead;
   }
 
-  public long transferTo(WritableByteChannel channel, final long maxBytesToTransfer)
+  public long transferTo(WritableByteChannel destination, final long maxBytesToTransfer)
       throws IOException {
     var bytesLeft = maxBytesToTransfer;
-    while (bytesLeft > 0) {
-      buffer.limit((int) Math.min(bytesLeft, buffer.remaining()));
-      var bytesRead = doRead(buffer, 1);
-      if (bytesRead == -1) return maxBytesToTransfer - bytesLeft;
-      buffer.flip();
-      var remaining = buffer.remaining();
-      var bytesWritten = channel.write(buffer);
+    for (var remaining = buffer.remaining(); bytesLeft > buffer.remaining(); ) {
+      var bytesWritten = destination.write(buffer);
       if (bytesWritten != remaining) {
         throw Exceptions.nonBlockingChannelDetected();
       }
       bytesLeft -= bytesWritten;
+      assert bytesLeft > 0;
       buffer.clear();
+      var bytesRead = doRead(buffer, 1);
+      buffer.flip();
+      if (bytesRead == -1) {
+        return maxBytesToTransfer - bytesLeft;
+      }
     }
+    assert bytesLeft <= buffer.remaining();
+    var savedLimit = buffer.limit();
+    buffer.limit(buffer.position() + (int) bytesLeft);
+    var bytesWritten = destination.write(buffer);
+    if (bytesWritten != bytesLeft) {
+      throw Exceptions.nonBlockingChannelDetected();
+    }
+    buffer.limit(savedLimit);
     return maxBytesToTransfer;
   }
 

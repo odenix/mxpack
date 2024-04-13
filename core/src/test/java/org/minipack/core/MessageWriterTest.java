@@ -19,6 +19,8 @@ import net.jqwik.api.ForAll;
 import net.jqwik.api.Property;
 import net.jqwik.api.constraints.CharRange;
 import net.jqwik.api.constraints.StringLength;
+import net.jqwik.api.lifecycle.AfterExample;
+import net.jqwik.api.lifecycle.AfterProperty;
 import org.msgpack.core.MessageFormat;
 import org.msgpack.core.MessagePack;
 import org.msgpack.core.MessageUnpacker;
@@ -53,6 +55,13 @@ public abstract sealed class MessageWriterTest {
                     : MessageSink.of(out, allocator, 1 << 8))
             .build();
     unpacker = MessagePack.newDefaultUnpacker(in);
+  }
+
+  @AfterProperty
+  @AfterExample
+  public void afterEach() throws IOException {
+    writer.close();
+    unpacker.close();
   }
 
   @Example
@@ -228,7 +237,7 @@ public abstract sealed class MessageWriterTest {
   }
 
   @Property
-  public void writeBinaryWithByteBufferPayload(@ForAll byte[] input) throws IOException {
+  public void writeBinaryFromByteBuffer(@ForAll byte[] input) throws IOException {
     writer.writeBinaryHeader(input.length);
     writer.writePayload(ByteBuffer.wrap(input));
     writer.flush();
@@ -236,8 +245,8 @@ public abstract sealed class MessageWriterTest {
   }
 
   @Property
-  public void writeBinaryWithMultipleByteBuffersPayload1(
-      @ForAll byte[] input1, @ForAll byte[] input2) throws IOException {
+  public void writeBinaryFromMultipleByteBuffers1(@ForAll byte[] input1, @ForAll byte[] input2)
+      throws IOException {
     var length = input1.length + input2.length;
     writer.writeBinaryHeader(length);
     writer.writePayload(ByteBuffer.wrap(input1));
@@ -248,8 +257,8 @@ public abstract sealed class MessageWriterTest {
   }
 
   @Property
-  public void writeBinaryWithMultipleByteBuffersPayload2(
-      @ForAll byte[] input1, @ForAll byte[] input2) throws IOException {
+  public void writeBinaryFromMultipleByteBuffers2(@ForAll byte[] input1, @ForAll byte[] input2)
+      throws IOException {
     var length = input1.length + input2.length;
     writer.writeBinaryHeader(length);
     writer.writePayloads(ByteBuffer.wrap(input1), ByteBuffer.wrap(input2));
@@ -259,7 +268,7 @@ public abstract sealed class MessageWriterTest {
   }
 
   @Property
-  public void writeBinaryWithInputStreamPayload(@ForAll byte[] input) throws IOException {
+  public void writeBinaryFromInputStream(@ForAll byte[] input) throws IOException {
     writer.writeBinaryHeader(input.length);
     var inputStream = new ByteArrayInputStream(input);
     writer.writePayload(inputStream, Long.MAX_VALUE);
@@ -268,7 +277,7 @@ public abstract sealed class MessageWriterTest {
   }
 
   @Property
-  public void writeBinaryWithChannelPayload(@ForAll byte[] input) throws IOException {
+  public void writeBinaryFromChannel(@ForAll byte[] input) throws IOException {
     writer.writeBinaryHeader(input.length);
     var inputStream = new ByteArrayInputStream(input);
     var channel = Channels.newChannel(inputStream);
@@ -278,7 +287,26 @@ public abstract sealed class MessageWriterTest {
   }
 
   @Property(tries = 10)
-  public void writeBinaryWithFileChannelPayload(@ForAll byte[] input) throws IOException {
+  public void writeBinaryFromChannelToFileChannelSink(@ForAll byte[] input) throws IOException {
+    var outputFile = Files.createTempFile(null, null);
+    var allocator = BufferAllocator.unpooled().build();
+    try (var unpacker = MessagePack.newDefaultUnpacker(Files.newInputStream(outputFile));
+        var outputStream = new FileOutputStream(outputFile.toFile());
+        var sink = MessageSink.of(outputStream.getChannel(), allocator, 1 << 8);
+        var writer = MessageWriter.builder().sink(sink).build()) {
+      writer.writeBinaryHeader(input.length);
+      var inputStream = new ByteArrayInputStream(input);
+      var channel = Channels.newChannel(inputStream);
+      writer.writePayload(channel, Long.MAX_VALUE);
+      writer.flush();
+      checkBinary(input, unpacker);
+    } finally {
+      Files.delete(outputFile);
+    }
+  }
+
+  @Property(tries = 10)
+  public void writeBinaryFromFileChannel(@ForAll byte[] input) throws IOException {
     var inputFile = Files.createTempFile(null, null);
     Files.write(inputFile, input);
     try (var inputStream = new FileInputStream(inputFile.toFile())) {
@@ -292,7 +320,7 @@ public abstract sealed class MessageWriterTest {
   }
 
   @Property
-  public void writeBinaryWithMixedPayload(
+  public void writeBinaryFromDifferentSources(
       @ForAll byte[] input1, @ForAll byte[] input2, @ForAll byte[] input3) throws IOException {
     var length = input1.length + input2.length + input3.length;
     writer.writeBinaryHeader(length);
@@ -305,6 +333,10 @@ public abstract sealed class MessageWriterTest {
   }
 
   private void checkBinary(byte[] input) throws IOException {
+    checkBinary(input, unpacker);
+  }
+
+  private void checkBinary(byte[] input, MessageUnpacker unpacker) throws IOException {
     assertThat(unpacker.getNextFormat().getValueType()).isEqualTo(ValueType.BINARY);
     var length = unpacker.unpackBinaryHeader();
     var buffer = ByteBuffer.allocate(length);

@@ -20,6 +20,8 @@ import net.jqwik.api.Property;
 import net.jqwik.api.constraints.CharRange;
 import net.jqwik.api.constraints.Size;
 import net.jqwik.api.constraints.StringLength;
+import net.jqwik.api.lifecycle.AfterExample;
+import net.jqwik.api.lifecycle.AfterProperty;
 import org.minipack.core.internal.MessageFormat;
 
 /** Tests {@link MessageReader} against {@link MessageWriter}. */
@@ -58,6 +60,13 @@ public abstract sealed class MessageWriterReaderTest {
                     ? MessageSource.of(in, readAllocator, 1 << 9)
                     : MessageSource.of(Channels.newChannel(in), readAllocator, 1 << 9))
             .build();
+  }
+
+  @AfterProperty
+  @AfterExample
+  public void afterEach() throws IOException {
+    writer.close();
+    reader.close();
   }
 
   @Example
@@ -230,7 +239,7 @@ public abstract sealed class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeBinaryWithByteBufferPayload(@ForAll byte[] input) throws IOException {
+  public void writeReadBinaryFromByteBuffer(@ForAll byte[] input) throws IOException {
     writer.writeBinaryHeader(input.length);
     writer.writePayload(ByteBuffer.wrap(input));
     writer.flush();
@@ -238,8 +247,8 @@ public abstract sealed class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeBinaryWithMultipleByteBuffersPayload1(
-      @ForAll byte[] input1, @ForAll byte[] input2) throws IOException {
+  public void writeReadBinaryFromMultipleByteBuffers1(@ForAll byte[] input1, @ForAll byte[] input2)
+      throws IOException {
     var length = input1.length + input2.length;
     writer.writeBinaryHeader(length);
     writer.writePayload(ByteBuffer.wrap(input1));
@@ -250,8 +259,8 @@ public abstract sealed class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeBinaryWithMultipleByteBuffersPayload2(
-      @ForAll byte[] input1, @ForAll byte[] input2) throws IOException {
+  public void writeReadBinaryFromMultipleByteBuffers2(@ForAll byte[] input1, @ForAll byte[] input2)
+      throws IOException {
     var length = input1.length + input2.length;
     writer.writeBinaryHeader(length);
     writer.writePayloads(ByteBuffer.wrap(input1), ByteBuffer.wrap(input2));
@@ -261,7 +270,7 @@ public abstract sealed class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeBinaryWithInputStreamPayload(@ForAll byte[] input) throws IOException {
+  public void writeReadBinaryFromInputStream(@ForAll byte[] input) throws IOException {
     writer.writeBinaryHeader(input.length);
     var inputStream = new ByteArrayInputStream(input);
     writer.writePayload(inputStream, Long.MAX_VALUE);
@@ -270,7 +279,7 @@ public abstract sealed class MessageWriterReaderTest {
   }
 
   @Property
-  public void writeBinaryWithChannelPayload(@ForAll byte[] input) throws IOException {
+  public void writeReadBinaryFromChannel(@ForAll byte[] input) throws IOException {
     writer.writeBinaryHeader(input.length);
     var inputStream = new ByteArrayInputStream(input);
     var channel = Channels.newChannel(inputStream);
@@ -280,7 +289,27 @@ public abstract sealed class MessageWriterReaderTest {
   }
 
   @Property(tries = 10)
-  public void writeBinaryWithFileChannelPayload(@ForAll byte[] input) throws IOException {
+  public void writeReadBinaryFromChannelToFileChannelSink(@ForAll byte[] input) throws IOException {
+    var outputFile = Files.createTempFile(null, null);
+    var allocator = BufferAllocator.unpooled().build();
+    try (var source = MessageSource.of(Files.newInputStream(outputFile), allocator, 1 << 9);
+        var reader = MessageReader.builder().source(source).build();
+        var outputStream = new FileOutputStream(outputFile.toFile());
+        var sink = MessageSink.of(outputStream.getChannel(), allocator, 1 << 7);
+        var writer = MessageWriter.builder().sink(sink).build()) {
+      writer.writeBinaryHeader(input.length);
+      var inputStream = new ByteArrayInputStream(input);
+      var channel = Channels.newChannel(inputStream);
+      writer.writePayload(channel, Long.MAX_VALUE);
+      writer.flush();
+      checkBinary(input, reader);
+    } finally {
+      Files.delete(outputFile);
+    }
+  }
+
+  @Property(tries = 10)
+  public void writeReadBinaryFromFileChannel(@ForAll byte[] input) throws IOException {
     var inputFile = Files.createTempFile(null, null);
     Files.write(inputFile, input);
     try (var inputStream = new FileInputStream(inputFile.toFile())) {
@@ -293,26 +322,105 @@ public abstract sealed class MessageWriterReaderTest {
     }
   }
 
-  @Property
-  public void writeBinaryWithMixedPayload(
-      @ForAll byte[] input1, @ForAll byte[] input2, @ForAll byte[] input3) throws IOException {
-    var length = input1.length + input2.length + input3.length;
-    writer.writeBinaryHeader(length);
-    writer.writePayload(ByteBuffer.wrap(input1));
-    writer.writePayload(new ByteArrayInputStream(input2), Long.MAX_VALUE);
-    writer.writePayload(Channels.newChannel(new ByteArrayInputStream(input3)), Long.MAX_VALUE);
-    writer.flush();
-    var input = ByteBuffer.allocate(length).put(input1).put(input2).put(input3);
-    checkBinary(input.array());
+  private void checkBinary(byte[] input) throws IOException {
+    checkBinary(input, reader);
   }
 
-  private void checkBinary(byte[] input) throws IOException {
+  private void checkBinary(byte[] input, MessageReader reader) throws IOException {
     assertThat(reader.nextType()).isEqualTo(MessageType.BINARY);
     var length = reader.readBinaryHeader();
     var buffer = ByteBuffer.allocate(length);
     reader.readPayload(buffer);
     var output = buffer.array();
     assertThat(output).isEqualTo(input);
+  }
+
+  @Property
+  public void writeReadBinaryIntoByteBuffer(@ForAll byte[] input) throws IOException {
+    var length = writeBinaryAndReadHeader(input);
+    var buffer = ByteBuffer.allocate(length);
+    while (buffer.hasRemaining()) reader.readPayload(buffer);
+    var output = buffer.array();
+    assertThat(input).isEqualTo(output);
+  }
+
+  @Property
+  public void writeReadBinaryIntoMultipleByteBuffers1(@ForAll byte[] input1, @ForAll byte[] input2)
+      throws IOException {
+    var length = input1.length + input2.length;
+    var input = ByteBuffer.allocate(length).put(input1).put(input2);
+    writeBinaryAndReadHeader(input.array());
+    var buffer1 = ByteBuffer.allocate(input1.length);
+    while (buffer1.hasRemaining()) reader.readPayload(buffer1);
+    assertThat(buffer1.array()).isEqualTo(input1);
+    var buffer2 = ByteBuffer.allocate(input2.length);
+    while (buffer2.hasRemaining()) reader.readPayload(buffer2);
+    assertThat(buffer2.array()).isEqualTo(input2);
+  }
+
+  @Property
+  public void writeReadBinaryIntoOutputStream(@ForAll byte[] input) throws IOException {
+    var length = writeBinaryAndReadHeader(input);
+    var outputStream = new ByteArrayOutputStream(length);
+    reader.readPayload(outputStream, length);
+    var output = outputStream.toByteArray();
+    assertThat(input).isEqualTo(output);
+  }
+
+  @Property
+  public void writeReadBinaryIntoChannel(@ForAll byte[] input) throws IOException {
+    var length = writeBinaryAndReadHeader(input);
+    var outputStream = new ByteArrayOutputStream(length);
+    reader.readPayload(Channels.newChannel(outputStream), length);
+    var output = outputStream.toByteArray();
+    assertThat(input).isEqualTo(output);
+  }
+
+  @Property(tries = 10)
+  public void writeReadBinaryIntoChannelFromFileChannelSource(@ForAll byte[] input)
+      throws IOException {
+    var inputFile = Files.createTempFile(null, null);
+    var allocator = BufferAllocator.unpooled().build();
+    try (var sink = MessageSink.of(Files.newOutputStream(inputFile), allocator, 1 << 7);
+        var writer = MessageWriter.builder().sink(sink).build();
+        var inputStream = new FileInputStream(inputFile.toFile());
+        var source = MessageSource.of(inputStream.getChannel(), allocator, 1 << 9);
+        var reader = MessageReader.builder().source(source).build()) {
+      var length = writeBinaryAndReadHeader(input, writer, reader);
+      var outputStream = new ByteArrayOutputStream(length);
+      reader.readPayload(Channels.newChannel(outputStream), length);
+      var output = outputStream.toByteArray();
+      assertThat(input).isEqualTo(output);
+    } finally {
+      Files.delete(inputFile);
+    }
+  }
+
+  @Property(tries = 10)
+  public void writeReadBinaryIntoFileChannel(@ForAll byte[] input) throws IOException {
+    var outputFile = Files.createTempFile(null, null);
+    try (var outputStream = new FileOutputStream(outputFile.toFile())) {
+      var length = writeBinaryAndReadHeader(input);
+      reader.readPayload(outputStream.getChannel(), length);
+      assertThat(input).isEqualTo(Files.readAllBytes(outputFile));
+    } finally {
+      Files.delete(outputFile);
+    }
+  }
+
+  private int writeBinaryAndReadHeader(byte[] input) throws IOException {
+    return writeBinaryAndReadHeader(input, writer, reader);
+  }
+
+  private int writeBinaryAndReadHeader(byte[] input, MessageWriter writer, MessageReader reader)
+      throws IOException {
+    writer.writeBinaryHeader(input.length);
+    writer.writePayload(ByteBuffer.wrap(input));
+    writer.flush();
+    assertThat(reader.nextType()).isEqualTo(MessageType.BINARY);
+    var length = reader.readBinaryHeader();
+    assertThat(length).isEqualTo(input.length);
+    return length;
   }
 
   @Property

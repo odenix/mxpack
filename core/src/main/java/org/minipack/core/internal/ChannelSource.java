@@ -61,18 +61,33 @@ public final class ChannelSource extends MessageSource {
   @Override
   public long transferTo(WritableByteChannel channel, long maxBytesToTransfer) throws IOException {
     if (blockingChannel instanceof FileChannel fileChannel) {
-      channel.write(buffer.flip());
-      buffer.clear();
+      var bytesWritten = writeBufferTo(channel, maxBytesToTransfer);
       var bytesTransferred =
-          fileChannel.transferTo(fileChannel.position(), maxBytesToTransfer, channel);
+          fileChannel.transferTo(
+              fileChannel.position(), maxBytesToTransfer - bytesWritten, channel);
       fileChannel.position(fileChannel.position() + bytesTransferred);
-      return bytesTransferred;
+      return bytesWritten + bytesTransferred;
     }
     if (channel instanceof FileChannel fileChannel) {
-      channel.write(buffer.flip());
-      buffer.clear();
-      return fileChannel.transferFrom(blockingChannel, fileChannel.position(), maxBytesToTransfer);
+      var bytesWritten = writeBufferTo(channel, maxBytesToTransfer);
+      var bytesTransferred =
+          fileChannel.transferFrom(
+              blockingChannel, fileChannel.position(), maxBytesToTransfer - bytesWritten);
+      return bytesWritten + bytesTransferred;
     }
     return super.transferTo(channel, maxBytesToTransfer);
+  }
+
+  private int writeBufferTo(WritableByteChannel channel, long maxBytesToTransfer)
+      throws IOException {
+    var bytesToWrite = (int) Math.min(maxBytesToTransfer, buffer.remaining());
+    var savedLimit = buffer.limit();
+    buffer.limit(buffer.position() + bytesToWrite);
+    var bytesWritten = channel.write(buffer);
+    buffer.limit(savedLimit);
+    if (bytesWritten != bytesToWrite) {
+      throw Exceptions.nonBlockingChannelDetected();
+    }
+    return bytesWritten;
   }
 }

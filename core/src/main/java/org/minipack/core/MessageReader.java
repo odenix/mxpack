@@ -7,8 +7,11 @@ package org.minipack.core;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.WritableByteChannel;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import org.jspecify.annotations.Nullable;
@@ -464,7 +467,15 @@ public final class MessageReader implements Closeable {
       buffer.position(buffer.position() + transferLength);
       destination.position(destination.position() + transferLength);
     }
-    source.readAtLeast(destination, destination.remaining());
+    source.read(destination);
+  }
+
+  public void readPayload(WritableByteChannel destination, long maxBytes) throws IOException {
+    source.transferTo(destination, maxBytes);
+  }
+
+  public void readPayload(OutputStream destination, long maxBytes) throws IOException {
+    source.transferTo(Channels.newChannel(destination), maxBytes);
   }
 
   /** Closes the underlying message {@linkplain MessageSource source}. */
