@@ -470,12 +470,12 @@ public final class MessageReader implements Closeable {
     source.read(destination);
   }
 
-  public void readPayload(WritableByteChannel destination, long maxBytes) throws IOException {
-    source.transferTo(destination, maxBytes);
+  public long readPayload(WritableByteChannel destination, long maxBytes) throws IOException {
+    return source.transferTo(destination, maxBytes);
   }
 
-  public void readPayload(OutputStream destination, long maxBytes) throws IOException {
-    source.transferTo(Channels.newChannel(destination), maxBytes);
+  public long readPayload(OutputStream destination, long maxBytes) throws IOException {
+    return source.transferTo(Channels.newChannel(destination), maxBytes);
   }
 
   /** Closes the underlying message {@linkplain MessageSource source}. */
