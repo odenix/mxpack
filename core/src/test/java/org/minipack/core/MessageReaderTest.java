@@ -10,8 +10,10 @@ import static org.assertj.core.api.Assertions.assertThatNoException;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
+import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -264,8 +266,7 @@ public abstract sealed class MessageReaderTest {
     var inputFile = Files.createTempFile(null, null);
     var allocator = BufferAllocator.unpooled().build();
     try (var packer = MessagePack.newDefaultPacker(Files.newOutputStream(inputFile));
-        var inputStream = new FileInputStream(inputFile.toFile());
-        var source = MessageSource.of(inputStream.getChannel(), allocator, 1 << 8);
+        var source = MessageSource.of(FileChannel.open(inputFile), allocator, 1 << 8);
         var reader = MessageReader.builder().source(source).build()) {
       var length = writeBinaryAndReadHeader(input, packer, reader);
       var outputStream = new ByteArrayOutputStream(length);
@@ -280,9 +281,9 @@ public abstract sealed class MessageReaderTest {
   @Property(tries = 10)
   public void readBinaryIntoFileChannel(@ForAll byte[] input) throws IOException {
     var outputFile = Files.createTempFile(null, null);
-    try (var outputStream = new FileOutputStream(outputFile.toFile())) {
+    try (var channel = FileChannel.open(outputFile, StandardOpenOption.WRITE)) {
       var length = writeBinaryAndReadHeader(input);
-      reader.readPayload(outputStream.getChannel(), length);
+      reader.readPayload(channel, length);
       assertThat(input).isEqualTo(Files.readAllBytes(outputFile));
     } finally {
       Files.delete(outputFile);

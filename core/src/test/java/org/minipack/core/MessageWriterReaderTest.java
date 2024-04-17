@@ -9,8 +9,10 @@ import static org.assertj.core.api.Assertions.*;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
+import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -312,8 +314,9 @@ public abstract sealed class MessageWriterReaderTest {
     var allocator = BufferAllocator.unpooled().build();
     try (var source = MessageSource.of(Files.newInputStream(outputFile), allocator, 1 << 9);
         var reader = MessageReader.builder().source(source).build();
-        var outputStream = new FileOutputStream(outputFile.toFile());
-        var sink = MessageSink.of(outputStream.getChannel(), allocator, 1 << 7);
+        var sink =
+            MessageSink.of(
+                FileChannel.open(outputFile, StandardOpenOption.WRITE), allocator, 1 << 7);
         var writer = MessageWriter.builder().sink(sink).build()) {
       writer.writeBinaryHeader(input.length);
       var inputStream = new ByteArrayInputStream(input);
@@ -330,9 +333,9 @@ public abstract sealed class MessageWriterReaderTest {
   public void roundtripBinaryFromFileChannel(@ForAll byte[] input) throws IOException {
     var inputFile = Files.createTempFile(null, null);
     Files.write(inputFile, input);
-    try (var inputStream = new FileInputStream(inputFile.toFile())) {
+    try (var channel = FileChannel.open(inputFile)) {
       writer.writeBinaryHeader(input.length);
-      writer.writePayload(inputStream.getChannel(), Long.MAX_VALUE);
+      writer.writePayload(channel, Long.MAX_VALUE);
       writer.flush();
       checkBinary(input);
     } finally {
@@ -388,8 +391,7 @@ public abstract sealed class MessageWriterReaderTest {
     var allocator = BufferAllocator.unpooled().build();
     try (var sink = MessageSink.of(Files.newOutputStream(inputFile), allocator, 1 << 7);
         var writer = MessageWriter.builder().sink(sink).build();
-        var inputStream = new FileInputStream(inputFile.toFile());
-        var source = MessageSource.of(inputStream.getChannel(), allocator, 1 << 9);
+        var source = MessageSource.of(FileChannel.open(inputFile), allocator, 1 << 9);
         var reader = MessageReader.builder().source(source).build()) {
       var length = writeBinaryAndReadHeader(input, writer, reader);
       var outputStream = new ByteArrayOutputStream(length);
@@ -404,9 +406,9 @@ public abstract sealed class MessageWriterReaderTest {
   @Property(tries = 10)
   public void roundtripBinaryIntoFileChannel(@ForAll byte[] input) throws IOException {
     var outputFile = Files.createTempFile(null, null);
-    try (var outputStream = new FileOutputStream(outputFile.toFile())) {
+    try (var channel = FileChannel.open(outputFile, StandardOpenOption.WRITE)) {
       var length = writeBinaryAndReadHeader(input);
-      reader.readPayload(outputStream.getChannel(), length);
+      reader.readPayload(channel, length);
       assertThat(input).isEqualTo(Files.readAllBytes(outputFile));
     } finally {
       Files.delete(outputFile);

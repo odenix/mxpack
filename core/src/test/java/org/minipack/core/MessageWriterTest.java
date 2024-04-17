@@ -9,8 +9,10 @@ import static org.assertj.core.api.Assertions.*;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
+import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -297,8 +299,9 @@ public abstract sealed class MessageWriterTest {
     var outputFile = Files.createTempFile(null, null);
     var allocator = BufferAllocator.unpooled().build();
     try (var unpacker = MessagePack.newDefaultUnpacker(Files.newInputStream(outputFile));
-        var outputStream = new FileOutputStream(outputFile.toFile());
-        var sink = MessageSink.of(outputStream.getChannel(), allocator, 1 << 8);
+        var sink =
+            MessageSink.of(
+                FileChannel.open(outputFile, StandardOpenOption.WRITE), allocator, 1 << 8);
         var writer = MessageWriter.builder().sink(sink).build()) {
       writer.writeBinaryHeader(input.length);
       var inputStream = new ByteArrayInputStream(input);
@@ -315,9 +318,9 @@ public abstract sealed class MessageWriterTest {
   public void writeBinaryFromFileChannel(@ForAll byte[] input) throws IOException {
     var inputFile = Files.createTempFile(null, null);
     Files.write(inputFile, input);
-    try (var inputStream = new FileInputStream(inputFile.toFile())) {
+    try (var channel = FileChannel.open(inputFile)) {
       writer.writeBinaryHeader(input.length);
-      writer.writePayload(inputStream.getChannel(), Long.MAX_VALUE);
+      writer.writePayload(channel, Long.MAX_VALUE);
       writer.flush();
       checkBinary(input);
     } finally {
