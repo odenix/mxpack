@@ -42,7 +42,7 @@ public final class IdentifierEncoder implements MessageEncoder<String> {
         sink.allocator().byteBuffer(value.length() * (long) charsetEncoder.maxBytesPerChar());
     try {
       var result = charsetEncoder.encode(charBuffer, byteBuffer, true);
-      if (result.isError()) throw Exceptions.codingError(result, 0);
+      if (result.isError()) throw Exceptions.stringEncodingError(result, charBuffer);
       byteBuffer.flip();
       var bytes = new byte[byteBuffer.remaining()];
       byteBuffer.get(bytes);

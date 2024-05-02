@@ -100,7 +100,7 @@ public abstract class MessageSource implements Closeable {
     while (totalBytesRead < minBytes) {
       var bytesRead = doRead(buffer, minBytes);
       if (bytesRead == -1) {
-        throw Exceptions.prematureEndOfInput(minBytes, totalBytesRead);
+        throw Exceptions.unexpectedEndOfInput(minBytes - totalBytesRead);
       }
       totalBytesRead += bytesRead;
     }

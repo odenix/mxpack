@@ -61,7 +61,7 @@ public final class CharsetStringEncoder implements MessageEncoder<CharSequence> 
         result = charsetEncoder.encode(charBuffer, byteBuffer, true);
       }
       if (result.isError()) {
-        throw Exceptions.codingError(result, charBuffer.position());
+        throw Exceptions.stringEncodingError(result, charBuffer);
       }
       result = charsetEncoder.flush(byteBuffer);
       if (result.isOverflow()) {

@@ -72,7 +72,7 @@ public abstract class MessageSink implements Closeable {
 
   public final void write(ByteBuffer buffer) throws IOException {
     if (buffer == this.buffer) {
-      throw new IllegalArgumentException("TODO");
+      throw Exceptions.cannotWriteSinkBuffer();
     }
     this.buffer.flip();
     doWrite(this.buffer, buffer);
@@ -85,7 +85,7 @@ public abstract class MessageSink implements Closeable {
     for (int i = 0; i < buffers.length; i++) {
       var buf = buffers[i];
       if (buf == buffer) {
-        throw new IllegalArgumentException("TODO");
+        throw Exceptions.cannotWriteSinkBuffer();
       }
       allBuffers[i + 1] = buf;
     }
@@ -134,7 +134,7 @@ public abstract class MessageSink implements Closeable {
   public final void ensureRemaining(int byteCount) throws IOException {
     if (byteCount > buffer.remaining()) {
       if (byteCount > buffer.capacity()) {
-        throw new IllegalArgumentException("TODO");
+        throw Exceptions.bufferSizeLimitExceeded(byteCount, buffer.capacity());
       }
       flushBuffer();
     }

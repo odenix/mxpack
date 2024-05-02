@@ -4,6 +4,7 @@
  */
 package org.minipack.core.internal;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import org.minipack.core.BufferAllocator;
 import org.minipack.core.MessageSource;
@@ -19,8 +20,8 @@ public final class ByteBufferSource extends MessageSource {
   }
 
   @Override
-  protected void doSkip(int length) {
-    throw Exceptions.unreachableCode();
+  protected void doSkip(int length) throws IOException {
+    throw Exceptions.unexpectedEndOfInput(length);
   }
 
   @Override

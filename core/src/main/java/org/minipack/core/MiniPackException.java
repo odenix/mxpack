@@ -5,12 +5,12 @@
 package org.minipack.core;
 
 /**
- * The root of minipack's exception hierarchy.
+ * The root of MiniPack's exception hierarchy.
  *
- * <p>Minipack throws the following exceptions:
+ * <p>MiniPack code throws the following exception types:
  *
  * <ul>
- *   <li>{@code MinipackException} (including subclasses)
+ *   <li>{@code MiniPackException} (including subclasses)
  *   <li>{@link java.io.IOException} (including subclasses)
  *   <li>{@link IllegalArgumentException}
  *   <li>{@link IllegalStateException}
@@ -25,18 +25,7 @@ public abstract class MiniPackException extends RuntimeException {
     super(message, cause);
   }
 
-  /** Indicates that a message is too small or large by some metric. */
-  public static final class MessageSizeException extends MiniPackException {
-    public MessageSizeException(String message) {
-      super(message);
-    }
-
-    public MessageSizeException(String message, Throwable cause) {
-      super(message, cause);
-    }
-  }
-
-  /** Indicates that a message doesn't match the requested type. */
+  /** Indicates that a MessagePack value is incompatible with the requested type. */
   public static final class TypeMismatchException extends MiniPackException {
     public TypeMismatchException(String message) {
       super(message);
@@ -47,22 +36,35 @@ public abstract class MiniPackException extends RuntimeException {
     }
   }
 
-  public static final class InvalidMessageException extends MiniPackException {
-    public InvalidMessageException(String message) {
+  /** Indicates that a MessagePack value has an invalid header. * */
+  public static final class InvalidMessageHeaderException extends MiniPackException {
+    public InvalidMessageHeaderException(String message) {
       super(message);
     }
 
-    public InvalidMessageException(String message, Throwable cause) {
+    public InvalidMessageHeaderException(String message, Throwable cause) {
       super(message, cause);
     }
   }
 
+  /** Indicates that the size limit for a resource, such as a buffer, has been exceeded. * */
   public static final class SizeLimitExceededException extends MiniPackException {
     public SizeLimitExceededException(String message) {
       super(message);
     }
 
     public SizeLimitExceededException(String message, Throwable cause) {
+      super(message, cause);
+    }
+  }
+
+  /** Indicates that a MessagePack or Java string has an invalid encoding. * */
+  public static final class InvalidStringEncodingException extends MiniPackException {
+    public InvalidStringEncodingException(String message) {
+      super(message);
+    }
+
+    public InvalidStringEncodingException(String message, Throwable cause) {
       super(message, cause);
     }
   }

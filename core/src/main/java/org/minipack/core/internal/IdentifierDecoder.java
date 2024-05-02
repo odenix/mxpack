@@ -57,7 +57,7 @@ public final class IdentifierDecoder implements MessageDecoder<String> {
     try {
       charsetDecoder.reset();
       var result = charsetDecoder.decode(buffer, charBuffer, true);
-      if (result.isError()) throw Exceptions.codingError(result, 0);
+      if (result.isError()) throw Exceptions.stringDecodingError(result, buffer);
       charsetDecoder.flush(charBuffer);
       var string = charBuffer.flip().toString();
       if (cacheSize > maxCacheSize) {

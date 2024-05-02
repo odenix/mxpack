@@ -27,18 +27,18 @@ public final class CharsetStringDecoder implements MessageDecoder<String> {
       int remaining;
       while (bytesLeft > (remaining = byteBuffer.remaining())) {
         var result = charsetDecoder.decode(byteBuffer, charBuffer, false);
-        if (result.isError()) throw Exceptions.codingError(result, 0);
+        if (result.isError()) throw Exceptions.stringDecodingError(result, byteBuffer);
         bytesLeft -= (remaining - byteBuffer.remaining());
         var bytesRead = source.read(byteBuffer.compact());
         if (bytesRead == -1) {
-          throw Exceptions.prematureEndOfInput(byteLength, byteLength - bytesLeft);
+          throw Exceptions.unexpectedEndOfInput(bytesLeft);
         }
         byteBuffer.flip();
       }
       var savedLimit = byteBuffer.limit();
       byteBuffer.limit(byteBuffer.position() + bytesLeft);
       var result = charsetDecoder.decode(byteBuffer, charBuffer, true);
-      if (result.isError()) throw Exceptions.codingError(result, 0);
+      if (result.isError()) throw Exceptions.stringDecodingError(result, byteBuffer);
       byteBuffer.limit(savedLimit);
       charsetDecoder.flush(charBuffer);
       return charBuffer.flip().toString();
