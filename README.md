@@ -9,15 +9,15 @@ MiniPack requires Java 17+ and uses semantic versioning.
 ## MiniPack at a Glance
 
 * Complete implementation of the MessagePack binary serialization format.
-* Clean API with [JSpecify](https://github.com/jspecify/jspecify) nullness annotations.
-* Designed to be correct, efficient and extensible.
+* Clean and modern API with [JSpecify](https://github.com/jspecify/jspecify) nullness annotations.
+* Designed to be correct, efficient, and extensible.
 * Embraces Java NIO: Heap and direct byte buffers, channels, channel transfers, gathering writes, buffer pooling.
-* Fast, correct, customizable string encoding/decoding via java.nio.charset.CharsetEncoder/CharsetDecoder.
+* Fast, correct, and customizable string encoding/decoding with java.nio.charset.CharsetEncoder/CharsetDecoder.
 * Optimized handling of strings used as identifiers.
-* Small JAR size (about 50 KB).
+* Small JAR size (~50 KB).
 * No use of reflection or internal/unsafe JDK classes.
-* Ships as a Java (JPMS) module.
-* No dependencies other than [JSpecify](https://central.sonatype.com/artifact/org.jspecify/jspecify) (which can be excluded).
+* Ships as Java (JPMS) module.
+* No dependencies other than [JSpecify](https://central.sonatype.com/artifact/org.jspecify/jspecify) (~3 KB).
 * Compatible with [GraalVM Native Image](https://www.graalvm.org/latest/reference-manual/native-image/).
-* Thoroughly benchmarked with JMH.
+* Thoroughly benchmarked with [JMH](https://github.com/openjdk/jmh).
 * Thoroughly tested with [jqwik](https://jqwik.net/).
