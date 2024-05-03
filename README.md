@@ -2,22 +2,22 @@
 [![GitHub license](https://img.shields.io/github/license/translatenix/minipack)](https://github.com/translatenix/minipack/blob/main/LICENSE.txt)
 # MiniPack
 
-A modern, small, and efficient implementation of the [MessagePack](https://msgpack.org/) serialization format for Java 17 and higher.
+A modern, small, and efficient Java implementation of the [MessagePack](https://msgpack.org/) serialization format.
 
-minipack uses semantic versioning.
+MiniPack requires Java 17+ and uses semantic versioning.
 
-## Reasons to choose MiniPack
+## MiniPack at a Glance
 
+* Complete implementation of the MessagePack binary serialization format.
 * Clean API with [JSpecify](https://github.com/jspecify/jspecify) nullness annotations.
-* No use of Java reflection or unsafe APIs.
-* Small JAR size (less than 50 KB).
-* Ships as Java (JPMS) module.
-* No dependencies other than [JSpecify](https://central.sonatype.com/artifact/org.jspecify/jspecify), which can be excluded.
+* Designed to be correct, efficient and extensible.
+* Embraces Java NIO: Heap and direct byte buffers, channels, channel transfers, gathering writes, buffer pooling.
+* Fast, correct, customizable string encoding/decoding via java.nio.charset.CharsetEncoder/CharsetDecoder.
+* Optimized handling of strings used as identifiers.
+* Small JAR size (about 50 KB).
+* No use of reflection or internal/unsafe JDK classes.
+* Ships as a Java (JPMS) module.
+* No dependencies other than [JSpecify](https://central.sonatype.com/artifact/org.jspecify/jspecify) (which can be excluded).
 * Compatible with [GraalVM Native Image](https://www.graalvm.org/latest/reference-manual/native-image/).
-* Designed with efficiency in mind.
-
-## Reasons not to choose MiniPack
-
-* minipack hasn't reached 1.0.0.
-* minipack is a low-level MessagePack library and doesn't support 
-  features such as mapping messages to Java objects.
+* Thoroughly benchmarked with JMH.
+* Thoroughly tested with [jqwik](https://jqwik.net/).
