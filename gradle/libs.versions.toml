@@ -1,7 +1,7 @@
 [libraries]
 assertJ = { module = "org.assertj:assertj-core", version = "3.25.3" }
 dokkaJava = { module = "org.jetbrains.dokka:kotlin-as-java-plugin", version = "1.9.20" }
-jqwik = { module = "net.jqwik:jqwik", version = "1.8.4" }
+jqwik = { module = "net.jqwik:jqwik", version = "1.8.5" }
 jSpecify = { module = "org.jspecify:jspecify", version = "0.3.0" }
 junitJupiter = { module = "org.junit.jupiter:junit-jupiter", version = "5.10.2" }
 junitLauncher = { module = "org.junit.platform:junit-platform-launcher", version = "1.10.2" }
