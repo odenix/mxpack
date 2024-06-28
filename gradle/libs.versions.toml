@@ -4,7 +4,7 @@ dokkaJava = { module = "org.jetbrains.dokka:kotlin-as-java-plugin", version = "1
 jqwik = { module = "net.jqwik:jqwik", version = "1.8.4" }
 jSpecify = { module = "org.jspecify:jspecify", version = "0.3.0" }
 junitJupiter = { module = "org.junit.jupiter:junit-jupiter", version = "5.10.2" }
-junitLauncher = { module = "org.junit.platform:junit-platform-launcher", version = "1.10.2" }
+junitLauncher = { module = "org.junit.platform:junit-platform-launcher", version = "1.10.3" }
 messagePack = { module = "org.msgpack:msgpack-core", version = "0.9.8" }
 
 [plugins]
