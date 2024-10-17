@@ -8,6 +8,6 @@ junitLauncher = { module = "org.junit.platform:junit-platform-launcher", version
 messagePack = { module = "org.msgpack:msgpack-core", version = "0.9.8" }
 
 [plugins]
-dokkaHtml = { id = "dev.adamko.dokkatoo-html", version = "2.3.1" }
+dokkaHtml = { id = "dev.adamko.dokkatoo-html", version = "2.4.0" }
 jmh = { id = "me.champeau.jmh", version = "0.7.2" }
 spotless = { id = "com.diffplug.spotless", version = "6.25.0" }
