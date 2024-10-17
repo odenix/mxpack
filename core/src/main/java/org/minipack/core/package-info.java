@@ -1,6 +1,5 @@
 /**
- * A modern, small, and efficient Java implementation of the <a
- * href="https://msgpack.org/">MessagePack</a> binary serialization format.
+ * A modern Java implementation of the <a href="https://msgpack.org/">MessagePack</a> serialization format.
  */
 @NullMarked
 package org.minipack.core;

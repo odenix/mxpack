@@ -2,7 +2,7 @@
 [![GitHub license](https://img.shields.io/github/license/translatenix/minipack)](https://github.com/translatenix/minipack/blob/main/LICENSE.txt)
 # MiniPack
 
-A modern replacement for [MessagePack](https://msgpack.org/)'s official Java library.
+A modern Java implementation of the [MessagePack](https://msgpack.org/) serialization format.
 
 MiniPack requires Java 17+ and uses semantic versioning.
 

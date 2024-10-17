@@ -1,6 +1,6 @@
 ## Prequisities
 * Windows, Linux, or macOS with JDK 8 or higher on the PATH.
-  * Gradle and a newer JDK will be automatically downloaded if necessary.
+  * Gradle and a suitable JDK will be automatically downloaded if necessary.
 
 ## Common build commands
 ```

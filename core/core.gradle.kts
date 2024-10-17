@@ -80,11 +80,11 @@ publishing {
   publications {
     create<MavenPublication>("maven") {
       groupId = "org.minipack"
-      artifactId = "minipack"
+      artifactId = "minipack-core"
       from(components["java"])
       pom {
         name = "MiniPack"
-        description = "A modern replacement for MessagePack's official Java library."
+        description = "A modern Java implementation of the MessagePack serialization format."
         url = "https://github.com/translatenix/minipack"
         licenses {
           license {
