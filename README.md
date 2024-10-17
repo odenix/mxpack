@@ -4,7 +4,10 @@
 
 A modern Java implementation of the [MessagePack](https://msgpack.org/) serialization format.
 
-MiniPack requires Java 17+ and uses semantic versioning.
+MiniPack is compatible with Java 17 and higher.
+
+MiniPack uses semantic versioning.
+
 
 ## MiniPack at a Glance
 
