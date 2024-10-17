@@ -8,7 +8,8 @@ MiniPack requires Java 17+ and uses semantic versioning.
 
 ## MiniPack at a Glance
 
-* Complete implementation of the MessagePack binary serialization format.
+* Modern replacement for MessagePack's official [Java library](https://github.com/msgpack/msgpack-java).
+* Complete implementation of the MessagePack [specification](https://github.com/msgpack/msgpack/blob/master/spec.md).
 * Designed to be correct, efficient, and extensible.
 * Clean API with [JSpecify](https://github.com/jspecify/jspecify) nullness annotations.
 * Embraces Java NIO: Heap and direct byte buffers, channels, channel transfers, gathering writes, buffer pooling.
