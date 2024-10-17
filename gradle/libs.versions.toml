@@ -1,5 +1,5 @@
 [libraries]
-assertJ = { module = "org.assertj:assertj-core", version = "3.25.3" }
+assertJ = { module = "org.assertj:assertj-core", version = "3.26.3" }
 dokkaJava = { module = "org.jetbrains.dokka:kotlin-as-java-plugin", version = "1.9.20" }
 jqwik = { module = "net.jqwik:jqwik", version = "1.8.4" }
 jSpecify = { module = "org.jspecify:jspecify", version = "0.3.0" }
