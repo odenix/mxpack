@@ -55,7 +55,7 @@ configurations.matching {
   "dokka" !in it.name.lowercase()
 }.configureEach {
   resolutionStrategy {
-    failOnVersionConflict()
+    //failOnVersionConflict()
     failOnNonReproducibleResolution()
   }
 }
@@ -80,12 +80,11 @@ publishing {
   publications {
     create<MavenPublication>("maven") {
       groupId = "org.minipack"
-      artifactId = "minipack-core"
+      artifactId = "minipack"
       from(components["java"])
       pom {
         name = "MiniPack"
-        description =
-          "A modern, small, and efficient Java implementation of the MessagePack binary serialization format."
+        description = "A modern replacement for MessagePack's official Java library."
         url = "https://github.com/translatenix/minipack"
         licenses {
           license {
