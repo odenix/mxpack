@@ -1,5 +1,5 @@
 /**
- * A modern Java implementation of the <a href="https://msgpack.org/">MessagePack</a> serialization format.
+ * Public API for reading and writing the <a href="https://msgpack.org/">MessagePack</a> serialization format.
  */
 @NullMarked
 package org.minipack.core;

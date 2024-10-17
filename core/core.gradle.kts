@@ -60,13 +60,15 @@ configurations.matching {
   }
 }
 
+// For configuration options see:
+// https://adamko-dev.github.io/dokkatoo/kdoc/modules/dokkatoo-plugin/dev.adamko.dokkatoo/-dokkatoo-extension/index.html
 dokkatoo {
-  moduleName.set("MiniPack")
+  moduleName.set("minipack-core")
   pluginsConfiguration.html {
     footerMessage = "Copyright 2024 the MiniPack contributors"
   }
   dokkatooSourceSets {
-    register("main") {
+    named("javaMain") {
       jdkVersion = javaVersion // link to JDK docs
       documentedVisibilities(VisibilityModifier.PUBLIC, VisibilityModifier.PROTECTED)
       sourceRoots = fileTree("src/main/java/org/minipack") {
