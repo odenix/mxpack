@@ -6,8 +6,8 @@ plugins {
 
 rootProject.name = "minipack"
 
-include("bench")
-include("core")
+include("benchmark")
+include("minipack-java")
 
 dependencyResolutionManagement {
   repositories {
