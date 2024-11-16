@@ -285,19 +285,65 @@ public final class DefaultMessageWriter implements MessageWriter {
   }
 
   public void writeUnsigned(byte value) throws IOException {
-    throw Exceptions.TODO();
+    if (value < 0) {
+      writeUInt8(value);
+    } else {
+      sink.write(value);
+    }
   }
 
   public void writeUnsigned(short value) throws IOException {
-    throw Exceptions.TODO();
+    if (value < 0) {
+      writeUInt16(value);
+    } else if (value < (1 << 7)) {
+      sink.write((byte) value);
+    } else {
+      if (value < (1 << 8)) {
+        writeUInt8((byte) value);
+      } else {
+        writeUInt16(value);
+      }
+    }
   }
 
   public void writeUnsigned(int value) throws IOException {
-    throw Exceptions.TODO();
+    if (value < 0) {
+      writeUInt32(value);
+    } else if (value < (1 << 7)) {
+      sink.write((byte) value);
+    } else {
+      if (value < (1 << 16)) {
+        if (value < (1 << 8)) {
+          writeUInt8((byte) value);
+        } else {
+          writeUInt16((short) value);
+        }
+      } else {
+        writeUInt32(value);
+      }
+    }
   }
 
   public void writeUnsigned(long value) throws IOException {
-    throw Exceptions.TODO();
+    if (value < 0) {
+      writeUInt64(value);
+    } else if (value < (1 << 7)) {
+      sink.write((byte) value);
+    } else {
+      if (value < (1L << 32)) {
+        if (value < (1 << 16)) {
+          if (value < (1 << 8)) {
+            writeUInt8((byte) value);
+          } else {
+            writeUInt16((short) value);
+          }
+        } else {
+          writeUInt32((int) value);
+        }
+      } else {
+        writeUInt64(value);
+      }
+    }
   }
 
   @Override
