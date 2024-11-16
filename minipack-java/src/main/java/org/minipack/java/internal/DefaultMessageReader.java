@@ -48,9 +48,7 @@ public final class DefaultMessageReader implements MessageReader {
     stringDecoder =
         options.stringDecoder != null ? options.stringDecoder : MessageDecoder.ofStrings();
     identifierDecoder =
-        options.identifierDecoder != null
-            ? options.identifierDecoder
-            : MessageDecoder.ofIdentifiers();
+        options.identifierDecoder != null ? options.identifierDecoder : MessageDecoder.ofStrings();
   }
 
   @Override

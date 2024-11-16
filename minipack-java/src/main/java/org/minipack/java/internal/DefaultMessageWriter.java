@@ -50,9 +50,7 @@ public final class DefaultMessageWriter implements MessageWriter {
     stringEncoder =
         options.stringEncoder != null ? options.stringEncoder : MessageEncoder.ofStrings();
     identifierEncoder =
-        options.identifierEncoder != null
-            ? options.identifierEncoder
-            : MessageEncoder.ofIdentifiers();
+        options.identifierEncoder != null ? options.identifierEncoder : MessageEncoder.ofStrings();
   }
 
   @Override
