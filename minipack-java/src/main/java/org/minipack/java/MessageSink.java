@@ -31,6 +31,14 @@ public interface MessageSink extends Closeable {
     return new DefaultMessageSink<>(new StreamSinkProvider(stream), consumer);
   }
 
+  static MessageSink of(ByteBuffer buffer) {
+    return new DefaultMessageSink<>(new FixedByteBufferProvider(), options -> {}, buffer);
+  }
+
+  static MessageSink of(ByteBuffer buffer, Consumer<Options> consumer) {
+    return new DefaultMessageSink<>(new FixedByteBufferProvider(), consumer, buffer);
+  }
+
   static MessageSink.InMemory<ByteBuffer> ofBuffer() {
     return new DefaultMessageSink<>(new BufferSinkProvider());
   }

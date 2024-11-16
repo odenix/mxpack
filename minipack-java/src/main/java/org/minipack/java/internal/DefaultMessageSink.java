@@ -51,6 +51,15 @@ public final class DefaultMessageSink<T> implements MessageSink.InMemory<T> {
     sinkBuffer = allocator.acquireByteBuffer(options.bufferCapacity);
   }
 
+  public DefaultMessageSink(
+      MessageSink.Provider<T> provider, Consumer<Options> consumer, ByteBuffer buffer) {
+    this.provider = provider;
+    var options = new DefaultOptions();
+    consumer.accept(options);
+    allocator = options.allocator;
+    sinkBuffer = buffer;
+  }
+
   @Override
   public ByteBuffer buffer() {
     return sinkBuffer;

@@ -6,7 +6,6 @@ package org.minipack.benchmark.write;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import org.minipack.benchmark.BenchmarkSinkProvider;
 import org.minipack.java.BufferAllocator;
 import org.minipack.java.MessageSink;
 import org.minipack.java.MessageWriter;
@@ -36,7 +35,7 @@ public abstract class WriteValue {
   public void setUp() {
     allocator = BufferAllocator.ofUnpooled();
     buffer = allocator.newByteBuffer(1024 * 16);
-    var sink = MessageSink.of(new BenchmarkSinkProvider(), options -> options.allocator(allocator));
+    var sink = MessageSink.of(buffer, options -> options.allocator(allocator));
     writer = MessageWriter.of(sink);
     bufferOutput = new ArrayBufferOutput(1024 * 16);
     packer = MessagePack.newDefaultPacker(bufferOutput);

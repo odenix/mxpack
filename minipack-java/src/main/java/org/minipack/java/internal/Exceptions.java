@@ -137,12 +137,9 @@ public final class Exceptions {
         "Detected a *non-blocking* channel, which is not supported by this message source/sink.");
   }
 
-  public static IllegalStateException sourceRequired() {
-    return new IllegalStateException("MessageReader.Builder.source() must be set.");
-  }
-
-  public static IllegalStateException sinkRequired() {
-    return new IllegalStateException("MessageWriter.Builder.sink() must be set.");
+  public static IllegalStateException fixedByteBufferOverflow() {
+    return new IllegalStateException(
+        "The byte buffer written to by this sink does not have enough remaining space.");
   }
 
   public static UnsupportedOperationException TODO() {

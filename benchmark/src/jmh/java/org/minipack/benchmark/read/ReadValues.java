@@ -6,7 +6,6 @@ package org.minipack.benchmark.read;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import org.minipack.benchmark.BenchmarkSinkProvider;
 import org.minipack.java.*;
 import org.minipack.java.MessageWriter;
 import org.msgpack.core.MessagePack;
@@ -37,8 +36,7 @@ public abstract class ReadValues {
   public void setUp() throws IOException {
     allocator = BufferAllocator.ofUnpooled();
     buffer = allocator.newByteBuffer(1024 * 16);
-    // TODO: how to set MessageSink's buffer to this.buffer
-    var sink = MessageSink.of(new BenchmarkSinkProvider(), options -> options.allocator(allocator));
+    var sink = MessageSink.of(buffer, options -> options.allocator(allocator));
     var writer = MessageWriter.of(sink);
     write256Values(writer);
     buffer.flip();
