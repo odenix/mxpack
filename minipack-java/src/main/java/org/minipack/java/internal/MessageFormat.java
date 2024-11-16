@@ -12,7 +12,7 @@ import org.minipack.java.MessageType;
  * MessagePack value.
  */
 public final class MessageFormat {
-  private static final MessageType[] typeLookup;
+  private static final MessageType[] TYPE_LOOKUP;
 
   private MessageFormat() {}
 
@@ -57,12 +57,12 @@ public final class MessageFormat {
   public static final byte FIXMAP_MASK = (byte) 0b1111_0000;
 
   static {
-    typeLookup = new MessageType[256];
+    TYPE_LOOKUP = new MessageType[256];
     fill(0x00, 0x7f, MessageType.INTEGER); // positive fixint
     fill(0x80, 0x8f, MessageType.MAP); // fixmap
     fill(0x90, 0x9f, MessageType.ARRAY); // fixarray
     fill(0xa0, 0xbf, MessageType.STRING); // fixstr
-    typeLookup[0xc0] = MessageType.NIL;
+    TYPE_LOOKUP[0xc0] = MessageType.NIL;
     // 0xc1: never used
     fill(0xc2, 0xc3, MessageType.BOOLEAN);
     fill(0xc4, 0xc6, MessageType.BINARY);
@@ -106,10 +106,10 @@ public final class MessageFormat {
 
   public static MessageType toType(byte format) {
     if (format == NEVER_USED) throw Exceptions.invalidMessageFormat(format);
-    return typeLookup[format & 0xff];
+    return TYPE_LOOKUP[format & 0xff];
   }
 
   private static void fill(int from, int until, MessageType type) {
-    Arrays.fill(typeLookup, from, until + 1, type);
+    Arrays.fill(TYPE_LOOKUP, from, until + 1, type);
   }
 }

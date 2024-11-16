@@ -23,6 +23,10 @@ java {
   }
 }
 
+tasks.withType<JavaCompile>().configureEach {
+  options.release = minJavaVersion
+}
+
 kotlin {
   compilerOptions {
     jvmTarget = JvmTarget.fromTarget(minJavaVersion.toString())
@@ -41,12 +45,11 @@ spotless {
 }
 
 dependencies {
-  api(libs.jSpecify)
+  implementation(project(":minipack-java"))
   dokkatooPluginHtml(libs.dokkaJava)
   testImplementation(libs.junitJupiter)
   testImplementation(libs.assertJ)
   testImplementation(libs.jqwik)
-  testImplementation(libs.messagePack)
   testRuntimeOnly(libs.junitLauncher)
 }
 

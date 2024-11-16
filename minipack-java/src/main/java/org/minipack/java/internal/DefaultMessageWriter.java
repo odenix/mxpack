@@ -11,10 +11,7 @@ import java.nio.channels.ReadableByteChannel;
 import java.time.Instant;
 import java.util.function.Consumer;
 import org.jspecify.annotations.Nullable;
-import org.minipack.java.ExtensionHeader;
-import org.minipack.java.MessageEncoder;
-import org.minipack.java.MessageSink;
-import org.minipack.java.MessageWriter;
+import org.minipack.java.*;
 
 /** Default implementation of {@link MessageWriter}. */
 public final class DefaultMessageWriter implements MessageWriter {
@@ -285,6 +282,22 @@ public final class DefaultMessageWriter implements MessageWriter {
   @Override
   public long writePayload(InputStream source, long maxBytes) throws IOException {
     return sink.transferFrom(Channels.newChannel(source), maxBytes);
+  }
+
+  public void writeUnsigned(byte value) throws IOException {
+    throw Exceptions.TODO();
+  }
+
+  public void writeUnsigned(short value) throws IOException {
+    throw Exceptions.TODO();
+  }
+
+  public void writeUnsigned(int value) throws IOException {
+    throw Exceptions.TODO();
+  }
+
+  public void writeUnsigned(long value) throws IOException {
+    throw Exceptions.TODO();
   }
 
   @Override

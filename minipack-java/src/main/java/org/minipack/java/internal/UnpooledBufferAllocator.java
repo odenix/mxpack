@@ -14,13 +14,13 @@ public final class UnpooledBufferAllocator extends AbstractBufferAllocator {
     private boolean directBuffers = false;
 
     @Override
-    public UnpooledOptions maxCapacity(int capacity) {
+    public UnpooledOptions maxBufferCapacity(int capacity) {
       maxCapacity = capacity;
       return this;
     }
 
     @Override
-    public UnpooledOptions directBuffers(boolean flag) {
+    public UnpooledOptions useDirectBuffers(boolean flag) {
       directBuffers = flag;
       return this;
     }

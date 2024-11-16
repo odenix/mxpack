@@ -129,6 +129,18 @@ public interface MessageReader extends Closeable {
   @SuppressWarnings("UnusedReturnValue")
   long readPayload(OutputStream destination, long maxBytes) throws IOException;
 
+  /** Reads an integer value that fits into a Java byte interpreted as an unsigned value. */
+  byte readUByte() throws IOException;
+
+  /** Reads an integer value that fits into a Java short interpreted as an unsigned value. */
+  short readUShort() throws IOException;
+
+  /** Reads an integer value that fits into a Java int interpreted as an unsigned value. */
+  int readUInt() throws IOException;
+
+  /** Reads an integer value that fits into a Java long interpreted as an unsigned value. */
+  long readULong() throws IOException;
+
   /** Closes the underlying message {@linkplain MessageSource source}. */
   @Override
   void close() throws IOException;

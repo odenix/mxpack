@@ -406,6 +406,152 @@ public final class DefaultMessageReader implements MessageReader {
   }
 
   @Override
+  public byte readUByte() throws IOException {
+    var format = source.readByte();
+    return switch (format) {
+      case MessageFormat.INT8 -> {
+        var value = source.readByte();
+        if (value >= 0) yield value;
+        throw Exceptions.integerOverflow(value, RequestedType.UBYTE);
+      }
+      case MessageFormat.INT16, MessageFormat.UINT16 -> {
+        var value = source.readShort();
+        if (value >= 0 && value <= 0xff) yield (byte) value;
+        throw Exceptions.integerOverflow(value, RequestedType.UBYTE);
+      }
+      case MessageFormat.INT32, MessageFormat.UINT32 -> {
+        var value = source.readInt();
+        if (value >= 0 && value <= 0xff) yield (byte) value;
+        throw Exceptions.integerOverflow(value, RequestedType.UBYTE);
+      }
+      case MessageFormat.INT64, MessageFormat.UINT64 -> {
+        var value = source.readLong();
+        if (value >= 0 && value <= 0xff) yield (byte) value;
+        throw Exceptions.integerOverflow(value, RequestedType.UBYTE);
+      }
+      case MessageFormat.UINT8 -> source.readByte();
+      default -> {
+        if (MessageFormat.isFixInt(format)) {
+          if (format >= 0) yield format;
+          throw Exceptions.integerOverflow(format, RequestedType.UBYTE);
+        }
+        throw Exceptions.typeMismatch(format, RequestedType.UBYTE);
+      }
+    };
+  }
+
+  @Override
+  public short readUShort() throws IOException {
+    var format = source.readByte();
+    return switch (format) {
+      case MessageFormat.INT8 -> {
+        var value = source.readByte();
+        if (value >= 0) yield value;
+        throw Exceptions.integerOverflow(value, RequestedType.USHORT);
+      }
+      case MessageFormat.INT16 -> {
+        var value = source.readShort();
+        if (value >= 0) yield value;
+        throw Exceptions.integerOverflow(value, RequestedType.USHORT);
+      }
+      case MessageFormat.INT32, MessageFormat.UINT32 -> {
+        var value = source.readInt();
+        if (value >= 0 && value <= 0xffff) yield (short) value;
+        throw Exceptions.integerOverflow(value, RequestedType.USHORT);
+      }
+      case MessageFormat.INT64, MessageFormat.UINT64 -> {
+        var value = source.readLong();
+        if (value >= 0 && value <= 0xffff) yield (short) value;
+        throw Exceptions.integerOverflow(value, RequestedType.USHORT);
+      }
+      case MessageFormat.UINT8 -> source.readByte();
+      case MessageFormat.UINT16 -> source.readShort();
+      default -> {
+        if (MessageFormat.isFixInt(format)) {
+          if (format >= 0) yield format;
+          throw Exceptions.integerOverflow(format, RequestedType.USHORT);
+        }
+        throw Exceptions.typeMismatch(format, RequestedType.USHORT);
+      }
+    };
+  }
+
+  @Override
+  public int readUInt() throws IOException {
+    var format = source.readByte();
+    return switch (format) {
+      case MessageFormat.INT8 -> {
+        var value = source.readByte();
+        if (value >= 0) yield value;
+        throw Exceptions.integerOverflow(value, RequestedType.UINT);
+      }
+      case MessageFormat.INT16 -> {
+        var value = source.readShort();
+        if (value >= 0) yield value;
+        throw Exceptions.integerOverflow(value, RequestedType.UINT);
+      }
+      case MessageFormat.INT32 -> {
+        var value = source.readInt();
+        if (value >= 0) yield value;
+        throw Exceptions.integerOverflow(value, RequestedType.UINT);
+      }
+      case MessageFormat.INT64, MessageFormat.UINT64 -> {
+        var value = source.readLong();
+        if (value >= 0 && value <= 0xffffffffL) yield (int) value;
+        throw Exceptions.integerOverflow(value, RequestedType.UINT);
+      }
+      case MessageFormat.UINT8 -> source.readByte();
+      case MessageFormat.UINT16 -> source.readShort();
+      case MessageFormat.UINT32 -> source.readInt();
+      default -> {
+        if (MessageFormat.isFixInt(format)) {
+          if (format >= 0) yield format;
+          throw Exceptions.integerOverflow(format, RequestedType.UINT);
+        }
+        throw Exceptions.typeMismatch(format, RequestedType.UINT);
+      }
+    };
+  }
+
+  @Override
+  public long readULong() throws IOException {
+    var format = source.readByte();
+    return switch (format) {
+      case MessageFormat.INT8 -> {
+        var value = source.readByte();
+        if (value >= 0) yield value;
+        throw Exceptions.integerOverflow(value, RequestedType.ULONG);
+      }
+      case MessageFormat.INT16 -> {
+        var value = source.readShort();
+        if (value >= 0) yield value;
+        throw Exceptions.integerOverflow(value, RequestedType.ULONG);
+      }
+      case MessageFormat.INT32 -> {
+        var value = source.readInt();
+        if (value >= 0) yield value;
+        throw Exceptions.integerOverflow(value, RequestedType.ULONG);
+      }
+      case MessageFormat.INT64 -> {
+        var value = source.readLong();
+        if (value >= 0) yield value;
+        throw Exceptions.integerOverflow(value, RequestedType.ULONG);
+      }
+      case MessageFormat.UINT8 -> source.readByte();
+      case MessageFormat.UINT16 -> source.readShort();
+      case MessageFormat.UINT32 -> source.readInt();
+      case MessageFormat.UINT64 -> source.readLong();
+      default -> {
+        if (MessageFormat.isFixInt(format)) {
+          if (format >= 0) yield format;
+          throw Exceptions.integerOverflow(format, RequestedType.ULONG);
+        }
+        throw Exceptions.typeMismatch(format, RequestedType.ULONG);
+      }
+    };
+  }
+
+  @Override
   public void close() throws IOException {
     source.close();
   }

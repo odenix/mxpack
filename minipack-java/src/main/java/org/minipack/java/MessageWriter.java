@@ -126,6 +126,30 @@ public interface MessageWriter extends Closeable {
   long writePayload(InputStream source, long maxBytes) throws IOException;
 
   /**
+   * Writes an integer value that fits into a Java byte. The given value is interpreted as unsigned
+   * value.
+   */
+  void writeUnsigned(byte value) throws IOException;
+
+  /**
+   * Writes an integer value that fits into a Java short. The given value is interpreted as unsigned
+   * value.
+   */
+  void writeUnsigned(short value) throws IOException;
+
+  /**
+   * Writes an integer value that fits into a Java int. The given value is interpreted as unsigned
+   * value.
+   */
+  void writeUnsigned(int value) throws IOException;
+
+  /**
+   * Writes an integer value that fits into a Java long. The given value is interpreted as unsigned
+   * value.
+   */
+  void writeUnsigned(long value) throws IOException;
+
+  /**
    * {@linkplain MessageSink#flush() Flushes} the underlying message {@linkplain MessageSink sink}.
    */
   void flush() throws IOException;

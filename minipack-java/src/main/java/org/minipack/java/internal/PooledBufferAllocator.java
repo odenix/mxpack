@@ -22,13 +22,13 @@ public final class PooledBufferAllocator extends AbstractBufferAllocator {
     private boolean directBuffers = false;
 
     @Override
-    public PooledOptions maxCapacity(int capacity) {
+    public PooledOptions maxBufferCapacity(int capacity) {
       maxCapacity = capacity;
       return this;
     }
 
     @Override
-    public PooledOptions directBuffers(boolean flag) {
+    public PooledOptions useDirectBuffers(boolean flag) {
       directBuffers = flag;
       return this;
     }

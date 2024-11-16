@@ -29,16 +29,16 @@ public interface BufferAllocator extends Closeable {
   }
 
   interface PooledOptions {
-    PooledOptions maxCapacity(int capacity);
+    PooledOptions maxBufferCapacity(int capacity);
 
-    PooledOptions directBuffers(boolean flag);
+    PooledOptions useDirectBuffers(boolean flag);
   }
 
   interface UnpooledOptions {
-    UnpooledOptions maxCapacity(int capacity);
+    UnpooledOptions maxBufferCapacity(int capacity);
 
     @SuppressWarnings("UnusedReturnValue")
-    UnpooledOptions directBuffers(boolean flag);
+    UnpooledOptions useDirectBuffers(boolean flag);
   }
 
   ByteBuffer acquireByteBuffer(long minCapacity);

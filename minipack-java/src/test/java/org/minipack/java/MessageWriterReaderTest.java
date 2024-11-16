@@ -66,7 +66,7 @@ public abstract sealed class MessageWriterReaderTest {
       throws IOException {
     var in = new PipedInputStream(1 << 16);
     var out = new PipedOutputStream(in);
-    allocator = BufferAllocator.ofUnpooled(options -> options.directBuffers(isDirect));
+    allocator = BufferAllocator.ofUnpooled(options -> options.useDirectBuffers(isDirect));
     var sink =
         isWriterChannel
             ? MessageSink.of(

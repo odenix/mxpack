@@ -57,7 +57,7 @@ public abstract sealed class MessageReaderTest {
     var in = new PipedInputStream(1 << 16);
     var out = new PipedOutputStream(in);
     packer = MessagePack.newDefaultPacker(out);
-    allocator = BufferAllocator.ofUnpooled(options -> options.directBuffers(isDirect));
+    allocator = BufferAllocator.ofUnpooled(options -> options.useDirectBuffers(isDirect));
     reader =
         MessageReader.of(
             isChannel

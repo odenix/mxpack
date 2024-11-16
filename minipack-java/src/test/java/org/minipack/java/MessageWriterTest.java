@@ -54,7 +54,7 @@ public abstract sealed class MessageWriterTest {
   public MessageWriterTest(boolean isChannel, boolean isDirect) throws IOException {
     var in = new PipedInputStream(1 << 16);
     var out = new PipedOutputStream(in);
-    allocator = BufferAllocator.ofUnpooled(options -> options.directBuffers(isDirect));
+    allocator = BufferAllocator.ofUnpooled(options -> options.useDirectBuffers(isDirect));
     var sink =
         isChannel
             ? MessageSink.of(
