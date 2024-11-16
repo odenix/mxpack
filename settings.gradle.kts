@@ -8,6 +8,8 @@ rootProject.name = "minipack"
 
 include("benchmark")
 include("minipack-java")
+include("minipack-kotlin")
+include("minipack-extension")
 
 dependencyResolutionManagement {
   repositories {
