@@ -35,7 +35,7 @@ public abstract class WriteValues {
   public void setUp() {
     allocator = BufferAllocator.ofUnpooled();
     buffer = allocator.newByteBuffer(1024 * 16);
-    var sink = MessageSink.of(buffer, options -> options.allocator(allocator));
+    var sink = MessageSink.ofDebug(buffer, options -> options.allocator(allocator));
     writer = MessageWriter.of(sink);
     bufferOutput = new ArrayBufferOutput(1024 * 16);
     packer = MessagePack.newDefaultPacker(bufferOutput);

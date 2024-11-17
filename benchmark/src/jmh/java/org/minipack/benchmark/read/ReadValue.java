@@ -35,7 +35,7 @@ public abstract class ReadValue {
   public void setUp() throws IOException {
     allocator = BufferAllocator.ofUnpooled();
     buffer = allocator.acquireByteBuffer(1024 * 16);
-    var sink = MessageSink.of(buffer, options -> options.allocator(allocator));
+    var sink = MessageSink.ofDebug(buffer, options -> options.allocator(allocator));
     var writer = MessageWriter.of(sink);
     writeValue(writer);
     buffer.flip();

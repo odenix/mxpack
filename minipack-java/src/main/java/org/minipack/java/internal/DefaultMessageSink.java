@@ -97,18 +97,8 @@ public final class DefaultMessageSink<T> implements MessageSink.InMemory<T> {
   }
 
   @Override
-  public long transferFrom(ReadableByteChannel channel, final long length) throws IOException {
-    var bytesLeft = length;
-    while (bytesLeft > 0) {
-      var remaining = sinkBuffer.remaining();
-      sinkBuffer.limit((int) Math.min(bytesLeft, remaining));
-      var bytesRead = channel.read(sinkBuffer);
-      if (bytesRead == -1) return length - bytesLeft;
-      if (bytesRead == 0 && remaining > 0) throw Exceptions.nonBlockingChannelDetected();
-      bytesLeft -= bytesRead;
-      flushBuffer();
-    }
-    return length;
+  public long transferFrom(ReadableByteChannel channel, long length) throws IOException {
+    return provider.transferFrom(channel, length, sinkBuffer);
   }
 
   @Override

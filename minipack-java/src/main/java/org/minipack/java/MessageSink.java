@@ -31,18 +31,20 @@ public interface MessageSink extends Closeable {
     return new DefaultMessageSink<>(new StreamSinkProvider(stream), consumer);
   }
 
-  static MessageSink of(ByteBuffer buffer) {
+  static MessageSink ofDebug(ByteBuffer buffer) {
     return new DefaultMessageSink<>(new ErrorSinkProvider(), options -> {}, buffer);
   }
 
-  static MessageSink of(ByteBuffer buffer, Consumer<Options> consumer) {
+  static MessageSink ofDebug(ByteBuffer buffer, Consumer<Options> consumer) {
     return new DefaultMessageSink<>(new ErrorSinkProvider(), consumer, buffer);
   }
 
+  /** Note: This sink performs buffer copying. */
   static MessageSink.InMemory<ByteBuffer> ofBuffer() {
     return new DefaultMessageSink<>(new BufferSinkProvider());
   }
 
+  /** Note: This sink performs buffer copying. */
   static MessageSink.InMemory<ByteBuffer> ofBuffer(Consumer<Options> consumer) {
     return new DefaultMessageSink<>(new BufferSinkProvider(consumer), consumer);
   }
@@ -83,14 +85,26 @@ public interface MessageSink extends Closeable {
 
     void close() throws IOException;
 
-    default long transferFrom(ReadableByteChannel channel, long length, ByteBuffer buffer)
+    default long transferFrom(ReadableByteChannel channel, final long length, ByteBuffer buffer)
         throws IOException {
-      throw Exceptions.TODO();
+      if (length == 0) return 0; // avoid writing buffer in this case
+      write(buffer); // TODO: first fill?
+      var bytesLeft = length;
+      var capacity = buffer.capacity();
+      while (bytesLeft > 0) {
+        buffer.position(0).limit((int) Math.min(bytesLeft, capacity));
+        var bytesRead = channel.read(buffer);
+        if (bytesRead == -1) {
+          return length - bytesLeft;
+        }
+        write(buffer);
+        bytesLeft -= bytesRead;
+      }
+      return length;
     }
 
     default T output() {
-      // TODO: move to Exceptions
-      throw new UnsupportedOperationException();
+      throw Exceptions.notAnInMemorySink();
     }
   }
 

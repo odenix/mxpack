@@ -142,6 +142,10 @@ public final class Exceptions {
         "The byte buffer written to by this sink does not have enough remaining space.");
   }
 
+  public static UnsupportedOperationException notAnInMemorySink() {
+    return new UnsupportedOperationException("This sink does not produce in-memory output.");
+  }
+
   public static UnsupportedOperationException TODO() {
     return new UnsupportedOperationException("TODO");
   }

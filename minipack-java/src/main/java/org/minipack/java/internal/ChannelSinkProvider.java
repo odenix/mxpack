@@ -14,16 +14,16 @@ import org.minipack.java.MessageSink;
 
 /** A source provider that writes to a blocking {@link WritableByteChannel}. */
 public final class ChannelSinkProvider implements MessageSink.Provider<Void> {
-  private final WritableByteChannel blockingChannel;
+  private final WritableByteChannel sinkChannel;
 
-  public ChannelSinkProvider(WritableByteChannel blockingChannel) {
-    this.blockingChannel = blockingChannel;
+  public ChannelSinkProvider(WritableByteChannel sinkChannel) {
+    this.sinkChannel = sinkChannel;
   }
 
   @Override
   public void write(ByteBuffer buffer) throws IOException {
     var remaining = buffer.remaining();
-    var bytesWritten = blockingChannel.write(buffer);
+    var bytesWritten = sinkChannel.write(buffer);
     if (bytesWritten != remaining) {
       throw Exceptions.nonBlockingChannelDetected();
     }
@@ -31,7 +31,7 @@ public final class ChannelSinkProvider implements MessageSink.Provider<Void> {
 
   @Override
   public void write(ByteBuffer[] buffers) throws IOException {
-    if (blockingChannel instanceof GatheringByteChannel channel) {
+    if (sinkChannel instanceof GatheringByteChannel channel) {
       channel.write(buffers);
       return;
     }
@@ -41,13 +41,16 @@ public final class ChannelSinkProvider implements MessageSink.Provider<Void> {
   @Override
   public long transferFrom(ReadableByteChannel channel, long length, ByteBuffer buffer)
       throws IOException {
-    if (blockingChannel instanceof FileChannel fileChannel) {
+    if (length == 0) return 0; // avoid writing buffer in this case
+    if (sinkChannel instanceof FileChannel fileChannel) {
+      write(buffer);
       var bytesTransferred = fileChannel.transferFrom(channel, fileChannel.position(), length);
       fileChannel.position(fileChannel.position() + bytesTransferred);
       return bytesTransferred;
     }
     if (channel instanceof FileChannel fileChannel) {
-      return fileChannel.transferTo(fileChannel.position(), length, blockingChannel);
+      write(buffer);
+      return fileChannel.transferTo(fileChannel.position(), length, sinkChannel);
     }
     return MessageSink.Provider.super.transferFrom(channel, length, buffer);
   }
@@ -57,6 +60,6 @@ public final class ChannelSinkProvider implements MessageSink.Provider<Void> {
 
   @Override
   public void close() throws IOException {
-    blockingChannel.close();
+    sinkChannel.close();
   }
 }
