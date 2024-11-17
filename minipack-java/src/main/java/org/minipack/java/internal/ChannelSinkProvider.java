@@ -39,18 +39,17 @@ public final class ChannelSinkProvider implements MessageSink.Provider<Void> {
   }
 
   @Override
-  public long transferFrom(ReadableByteChannel channel, long maxBytesToTransfer)
+  public long transferFrom(ReadableByteChannel channel, long length, ByteBuffer buffer)
       throws IOException {
     if (blockingChannel instanceof FileChannel fileChannel) {
-      var bytesTransferred =
-          fileChannel.transferFrom(channel, fileChannel.position(), maxBytesToTransfer);
+      var bytesTransferred = fileChannel.transferFrom(channel, fileChannel.position(), length);
       fileChannel.position(fileChannel.position() + bytesTransferred);
       return bytesTransferred;
     }
     if (channel instanceof FileChannel fileChannel) {
-      return fileChannel.transferTo(fileChannel.position(), maxBytesToTransfer, blockingChannel);
+      return fileChannel.transferTo(fileChannel.position(), length, blockingChannel);
     }
-    return MessageSink.Provider.super.transferFrom(channel, maxBytesToTransfer);
+    return MessageSink.Provider.super.transferFrom(channel, length, buffer);
   }
 
   @Override

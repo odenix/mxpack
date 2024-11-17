@@ -14,16 +14,16 @@ import org.minipack.java.MessageSource;
 
 /** A source provider that reads from a blocking {@link ReadableByteChannel}. */
 public final class ChannelSourceProvider implements MessageSource.Provider {
-  private final ReadableByteChannel blockingChannel;
+  private final ReadableByteChannel sourceChannel;
 
-  public ChannelSourceProvider(ReadableByteChannel blockingChannel) {
-    this.blockingChannel = blockingChannel;
+  public ChannelSourceProvider(ReadableByteChannel sourceChannel) {
+    this.sourceChannel = sourceChannel;
   }
 
   @Override
   public int read(ByteBuffer buffer, int minBytesHint) throws IOException {
     var remaining = buffer.remaining();
-    var bytesRead = blockingChannel.read(buffer);
+    var bytesRead = sourceChannel.read(buffer);
     if (bytesRead == 0 && remaining > 0) {
       throw Exceptions.nonBlockingChannelDetected();
     }
@@ -31,37 +31,42 @@ public final class ChannelSourceProvider implements MessageSource.Provider {
   }
 
   @Override
-  public void skip(int length) throws IOException {
-    ByteBuffer buffer = ByteBuffer.allocate(0); // TODO: where to get this temp buffer from?
-    if (length == 0) return;
-    if (blockingChannel instanceof SeekableByteChannel channel) {
-      channel.position(channel.position() + length);
+  public void close() throws IOException {
+    sourceChannel.close();
+  }
+
+  @Override
+  public void skip(int length, ByteBuffer buffer) throws IOException {
+    var remaining = buffer.remaining();
+    if (length > remaining && sourceChannel instanceof SeekableByteChannel seekableChannel) {
+      buffer.clear();
+      seekableChannel.position(seekableChannel.position() + (length - remaining));
       return;
     }
-    var capacity = buffer.capacity();
-    var bytesToSkip = length;
-    while (bytesToSkip > 0) {
-      buffer.position(0).limit(Math.min(bytesToSkip, capacity));
-      bytesToSkip -= read(buffer, bytesToSkip);
-    }
+    MessageSource.Provider.super.skip(length, buffer);
   }
 
   @Override
-  public void close() throws IOException {
-    blockingChannel.close();
-  }
-
-  @Override
-  public long transferTo(WritableByteChannel channel, long maxBytesToTransfer) throws IOException {
-    if (blockingChannel instanceof FileChannel fileChannel) {
+  public long transferTo(WritableByteChannel destination, long length, ByteBuffer buffer)
+      throws IOException {
+    var remaining = buffer.remaining();
+    if (length > remaining && sourceChannel instanceof FileChannel fileChannel) {
+      var bytesWritten = destination.write(buffer);
+      if (bytesWritten != length) {
+        throw Exceptions.nonBlockingChannelDetected();
+      }
       var bytesTransferred =
-          fileChannel.transferTo(fileChannel.position(), maxBytesToTransfer, channel);
+          fileChannel.transferTo(fileChannel.position(), length - remaining, destination);
       fileChannel.position(fileChannel.position() + bytesTransferred);
       return bytesTransferred;
     }
-    if (channel instanceof FileChannel fileChannel) {
-      return fileChannel.transferFrom(blockingChannel, fileChannel.position(), maxBytesToTransfer);
+    if (length > remaining && destination instanceof FileChannel fileChannel) {
+      var bytesWritten = destination.write(buffer);
+      if (bytesWritten != length) {
+        throw Exceptions.nonBlockingChannelDetected();
+      }
+      return fileChannel.transferFrom(sourceChannel, fileChannel.position(), length - remaining);
     }
-    return MessageSource.Provider.super.transferTo(channel, maxBytesToTransfer);
+    return MessageSource.Provider.super.transferTo(destination, length, buffer);
   }
 }

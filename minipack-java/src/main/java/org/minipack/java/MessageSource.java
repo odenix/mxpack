@@ -57,13 +57,49 @@ public interface MessageSource extends Closeable {
   interface Provider {
     int read(ByteBuffer buffer, int minBytesHint) throws IOException;
 
-    void skip(int length) throws IOException;
-
     void close() throws IOException;
 
-    default long transferTo(WritableByteChannel channel, long maxBytesToTransfer)
+    default void skip(int length, ByteBuffer buffer) throws IOException {
+      var bytesLeft = length;
+      for (var remaining = buffer.remaining(); bytesLeft > buffer.remaining(); ) {
+        bytesLeft -= remaining;
+        assert bytesLeft > 0;
+        buffer.clear();
+        var bytesRead = read(buffer, 1);
+        buffer.flip();
+        if (bytesRead == -1) {
+          throw Exceptions.unexpectedEndOfInput(bytesLeft);
+        }
+      }
+      buffer.position(buffer.position() + bytesLeft);
+    }
+
+    default long transferTo(WritableByteChannel destination, long length, ByteBuffer buffer)
         throws IOException {
-      throw Exceptions.TODO();
+      var bytesLeft = length;
+      for (var remaining = buffer.remaining(); bytesLeft > buffer.remaining(); ) {
+        var bytesWritten = destination.write(buffer);
+        if (bytesWritten != remaining) {
+          throw Exceptions.nonBlockingChannelDetected();
+        }
+        bytesLeft -= bytesWritten;
+        assert bytesLeft > 0;
+        buffer.clear();
+        var bytesRead = read(buffer, 1);
+        buffer.flip();
+        if (bytesRead == -1) {
+          return length - bytesLeft;
+        }
+      }
+      assert bytesLeft <= buffer.remaining();
+      var savedLimit = buffer.limit();
+      buffer.limit(buffer.position() + (int) bytesLeft);
+      var bytesWritten = destination.write(buffer);
+      if (bytesWritten != bytesLeft) {
+        throw Exceptions.nonBlockingChannelDetected();
+      }
+      buffer.limit(savedLimit);
+      return length;
     }
   }
 
@@ -71,12 +107,35 @@ public interface MessageSource extends Closeable {
 
   BufferAllocator allocator();
 
+  /**
+   * Reads between 1 and {@linkplain ByteBuffer#remaining() remaining} bytes from this source into
+   * the given buffer, returning the actual number of bytes read.
+   *
+   * <p>Returns {@code -1} if no more bytes can be read from this source.
+   *
+   * <p>{@code minBytesHint} indicates the minimum number of bytes that the caller would like to
+   * read. However, unlike {@link #readAtLeast}, this method does not guarantee that more than 1
+   * byte will be read.
+   */
   int read(ByteBuffer buffer) throws IOException;
 
+  /**
+   * Reads between {@code minBytes} and {@linkplain ByteBuffer#remaining() remaining} bytes from
+   * this source into the given buffer, returning the actual number of bytes read.
+   *
+   * <p>Throws {@link java.io.EOFException} if the end of input is reached before {@code minBytes}
+   * bytes have been read.
+   */
   int readAtLeast(ByteBuffer buffer, int minBytes) throws IOException;
 
   long transferTo(WritableByteChannel destination, long maxBytesToTransfer) throws IOException;
 
+  /**
+   * Reads enough bytes from this source into the given buffer for {@linkplain ByteBuffer#get()
+   * getting} at least {@code length} bytes from the buffer.
+   *
+   * <p>The number of bytes read is between 0 and {@link ByteBuffer#remaining()}.
+   */
   void ensureRemaining(int length) throws IOException;
 
   void skip(int length) throws IOException;

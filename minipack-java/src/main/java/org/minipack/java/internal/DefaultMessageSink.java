@@ -97,19 +97,18 @@ public final class DefaultMessageSink<T> implements MessageSink.InMemory<T> {
   }
 
   @Override
-  public long transferFrom(ReadableByteChannel channel, final long maxBytesToTransfer)
-      throws IOException {
-    var bytesLeft = maxBytesToTransfer;
+  public long transferFrom(ReadableByteChannel channel, final long length) throws IOException {
+    var bytesLeft = length;
     while (bytesLeft > 0) {
       var remaining = sinkBuffer.remaining();
       sinkBuffer.limit((int) Math.min(bytesLeft, remaining));
       var bytesRead = channel.read(sinkBuffer);
-      if (bytesRead == -1) return maxBytesToTransfer - bytesLeft;
+      if (bytesRead == -1) return length - bytesLeft;
       if (bytesRead == 0 && remaining > 0) throw Exceptions.nonBlockingChannelDetected();
       bytesLeft -= bytesRead;
       flushBuffer();
     }
-    return maxBytesToTransfer;
+    return length;
   }
 
   @Override
@@ -139,65 +138,20 @@ public final class DefaultMessageSink<T> implements MessageSink.InMemory<T> {
     return provider.output();
   }
 
-  /**
-   * Writes enough bytes from the given buffer to this sink for {@linkplain ByteBuffer#put putting}
-   * at least {@code byteCount} bytes into the buffer.
-   *
-   * <p>The number of bytes written is between 0 and {@linkplain ByteBuffer#remaining() remaining}.
-   */
   @Override
-  public void ensureRemaining(int byteCount) throws IOException {
-    if (byteCount > sinkBuffer.remaining()) {
-      if (byteCount > sinkBuffer.capacity()) {
-        throw Exceptions.bufferSizeLimitExceeded(byteCount, sinkBuffer.capacity());
+  public void ensureRemaining(int length) throws IOException {
+    if (length > sinkBuffer.remaining()) {
+      if (length > sinkBuffer.capacity()) {
+        throw Exceptions.bufferSizeLimitExceeded(length, sinkBuffer.capacity());
       }
       flushBuffer();
     }
   }
 
-  /**
-   * Puts a byte value into the given buffer, ensuring that the buffer has enough space remaining.
-   */
   @Override
   public void write(byte value) throws IOException {
     ensureRemaining(1);
     sinkBuffer.put(value);
-  }
-
-  /**
-   * Puts two byte values into the given buffer, ensuring that the buffer has enough space
-   * remaining.
-   */
-  @Override
-  public void write(byte value1, byte value2) throws IOException {
-    ensureRemaining(2);
-    sinkBuffer.put(value1);
-    sinkBuffer.put(value2);
-  }
-
-  /**
-   * Puts three byte values into the given buffer, ensuring that the buffer has enough space
-   * remaining.
-   */
-  @Override
-  public void write(byte value1, byte value2, byte value3) throws IOException {
-    ensureRemaining(3);
-    sinkBuffer.put(value1);
-    sinkBuffer.put(value2);
-    sinkBuffer.put(value3);
-  }
-
-  /**
-   * Puts four byte values into the given buffer, ensuring that the buffer has enough space
-   * remaining.
-   */
-  @Override
-  public void write(byte value1, byte value2, byte value3, byte value4) throws IOException {
-    ensureRemaining(4);
-    sinkBuffer.put(value1);
-    sinkBuffer.put(value2);
-    sinkBuffer.put(value3);
-    sinkBuffer.put(value4);
   }
 
   @Override
@@ -234,6 +188,13 @@ public final class DefaultMessageSink<T> implements MessageSink.InMemory<T> {
   public void write(double value) throws IOException {
     ensureRemaining(8);
     sinkBuffer.putDouble(value);
+  }
+
+  @Override
+  public void write(byte value1, byte value2) throws IOException {
+    ensureRemaining(2);
+    sinkBuffer.put(value1);
+    sinkBuffer.put(value2);
   }
 
   @Override

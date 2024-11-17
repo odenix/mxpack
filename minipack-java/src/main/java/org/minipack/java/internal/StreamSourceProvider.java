@@ -7,7 +7,6 @@ package org.minipack.java.internal;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
-import java.nio.channels.WritableByteChannel;
 import org.minipack.java.MessageSource;
 
 /** A source provider that reads from an {@link InputStream}. */
@@ -36,17 +35,18 @@ public final class StreamSourceProvider implements MessageSource.Provider {
   }
 
   @Override
-  public void skip(int length) throws IOException {
-    stream.skipNBytes(length);
-  }
-
-  @Override
   public void close() throws IOException {
     stream.close();
   }
 
   @Override
-  public long transferTo(WritableByteChannel channel, long maxBytesToTransfer) {
-    throw Exceptions.TODO();
+  public void skip(int length, ByteBuffer buffer) throws IOException {
+    var remaining = buffer.remaining();
+    if (length <= remaining) {
+      buffer.position(buffer.position() + length);
+      return;
+    }
+    buffer.clear();
+    stream.skipNBytes(length - remaining);
   }
 }

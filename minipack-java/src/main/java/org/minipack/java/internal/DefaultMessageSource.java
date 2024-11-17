@@ -74,28 +74,11 @@ public final class DefaultMessageSource implements MessageSource {
     return allocator;
   }
 
-  /**
-   * Reads between 1 and {@linkplain ByteBuffer#remaining() remaining} bytes from this source into
-   * the given buffer, returning the actual number of bytes read.
-   *
-   * <p>Returns {@code -1} if no more bytes can be read from this source.
-   *
-   * <p>{@code minBytesHint} indicates the minimum number of bytes that the caller would like to
-   * read. However, unlike {@link #readAtLeast}, this method does not guarantee that more than 1
-   * byte will be read.
-   */
   @Override
   public int read(ByteBuffer buffer) throws IOException {
     return provider.read(buffer, 1);
   }
 
-  /**
-   * Reads between {@code minBytes} and {@linkplain ByteBuffer#remaining() remaining} bytes from
-   * this source into the given buffer, returning the actual number of bytes read.
-   *
-   * <p>Throws {@link java.io.EOFException} if the end of input is reached before {@code minBytes}
-   * bytes have been read.
-   */
   @Override
   public int readAtLeast(ByteBuffer buffer, int minBytes) throws IOException {
     assert minBytes <= buffer.remaining();
@@ -113,38 +96,9 @@ public final class DefaultMessageSource implements MessageSource {
   @Override
   public long transferTo(WritableByteChannel destination, final long maxBytesToTransfer)
       throws IOException {
-    var bytesLeft = maxBytesToTransfer;
-    for (var remaining = sourceBuffer.remaining(); bytesLeft > sourceBuffer.remaining(); ) {
-      var bytesWritten = destination.write(sourceBuffer);
-      if (bytesWritten != remaining) {
-        throw Exceptions.nonBlockingChannelDetected();
-      }
-      bytesLeft -= bytesWritten;
-      assert bytesLeft > 0;
-      sourceBuffer.clear();
-      var bytesRead = provider.read(sourceBuffer, 1);
-      sourceBuffer.flip();
-      if (bytesRead == -1) {
-        return maxBytesToTransfer - bytesLeft;
-      }
-    }
-    assert bytesLeft <= sourceBuffer.remaining();
-    var savedLimit = sourceBuffer.limit();
-    sourceBuffer.limit(sourceBuffer.position() + (int) bytesLeft);
-    var bytesWritten = destination.write(sourceBuffer);
-    if (bytesWritten != bytesLeft) {
-      throw Exceptions.nonBlockingChannelDetected();
-    }
-    sourceBuffer.limit(savedLimit);
-    return maxBytesToTransfer;
+    return provider.transferTo(destination, maxBytesToTransfer, sourceBuffer);
   }
 
-  /**
-   * Reads enough bytes from this source into the given buffer for {@linkplain ByteBuffer#get()
-   * getting} at least {@code length} bytes from the buffer.
-   *
-   * <p>The number of bytes read is between 0 and {@link ByteBuffer#remaining()}.
-   */
   @Override
   public void ensureRemaining(int length) throws IOException {
     var minBytesToRead = length - sourceBuffer.remaining();
@@ -156,13 +110,7 @@ public final class DefaultMessageSource implements MessageSource {
 
   @Override
   public void skip(int length) throws IOException {
-    var remaining = sourceBuffer.remaining();
-    if (remaining >= length) {
-      sourceBuffer.position(sourceBuffer.position() + length);
-      return;
-    }
-    provider.skip(length - remaining);
-    sourceBuffer.position(sourceBuffer.limit());
+    provider.skip(length, sourceBuffer);
   }
 
   @Override
