@@ -10,43 +10,42 @@ import org.minipack.java.BufferAllocator;
 import org.minipack.java.MessageSink;
 
 /** A sink provider that writes to a {@link java.nio.ByteBuffer}. */
-public final class BufferSinkProvider implements MessageSink.Provider<ByteBuffer> {
+public final class BufferSinkProvider implements MessageSink.Provider {
   private final BufferAllocator allocator;
-  private ByteBuffer output;
+  private final SinkOutput<ByteBuffer> output;
+  private ByteBuffer outputBuffer;
 
-  public BufferSinkProvider() {
-    this(options -> {});
+  public BufferSinkProvider(SinkOutput<ByteBuffer> output) {
+    this(output, options -> {});
   }
 
-  public BufferSinkProvider(Consumer<MessageSink.Options> consumer) {
+  public BufferSinkProvider(SinkOutput<ByteBuffer> output, Consumer<MessageSink.Options> consumer) {
+    this.output = output;
     var options = new DefaultMessageSink.DefaultOptions();
     consumer.accept(options);
     this.allocator = options.allocator;
-    output = allocator.acquireByteBuffer(0); // TODO: initial size
+    outputBuffer = allocator.pooledByteBuffer(options.bufferCapacity);
   }
 
   @Override
   public void write(ByteBuffer buffer) {
-    output = allocator.ensureRemaining(output, buffer.remaining());
-    output.put(buffer);
+    outputBuffer = allocator.ensureRemaining(outputBuffer, buffer.remaining());
+    outputBuffer.put(buffer);
   }
 
   @Override
   public void write(ByteBuffer[] buffers) {
     var remaining = 0;
     for (var buffer : buffers) remaining += buffer.remaining();
-    output = allocator.ensureRemaining(output, remaining);
-    for (var buffer : buffers) output.put(buffer);
+    outputBuffer = allocator.ensureRemaining(outputBuffer, remaining);
+    for (var buffer : buffers) outputBuffer.put(buffer);
   }
 
   @Override
   public void flush() {} // nothing to do
 
   @Override
-  public void close() {} // nothing to do
-
-  @Override
-  public ByteBuffer output() {
-    return output;
+  public void close() {
+    output.set(outputBuffer.flip());
   }
 }

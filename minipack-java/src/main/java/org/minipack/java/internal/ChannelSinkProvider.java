@@ -13,7 +13,7 @@ import java.nio.channels.WritableByteChannel;
 import org.minipack.java.MessageSink;
 
 /** A source provider that writes to a blocking {@link WritableByteChannel}. */
-public final class ChannelSinkProvider implements MessageSink.Provider<Void> {
+public final class ChannelSinkProvider implements MessageSink.Provider {
   private final WritableByteChannel sinkChannel;
 
   public ChannelSinkProvider(WritableByteChannel sinkChannel) {

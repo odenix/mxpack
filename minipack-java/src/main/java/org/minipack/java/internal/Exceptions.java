@@ -146,7 +146,15 @@ public final class Exceptions {
     return new UnsupportedOperationException("This sink does not produce in-memory output.");
   }
 
+  public static IllegalStateException outputNotAvailable() {
+    return new IllegalStateException("Sink must be closed before obtaining its output.");
+  }
+
   public static UnsupportedOperationException TODO() {
     return new UnsupportedOperationException("TODO");
+  }
+
+  public static IllegalStateException pooledBufferAlreadyClosed() {
+    return new IllegalStateException("This pooled buffer has already already closed.");
   }
 }

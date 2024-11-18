@@ -11,58 +11,56 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
+
 import org.minipack.java.internal.*;
 
 /** The underlying sink of a {@link MessageWriter}. */
 public interface MessageSink extends Closeable {
   static MessageSink of(WritableByteChannel channel) {
-    return new DefaultMessageSink<>(new ChannelSinkProvider(channel));
+    return new DefaultMessageSink(new ChannelSinkProvider(channel));
   }
 
   static MessageSink of(WritableByteChannel channel, Consumer<Options> consumer) {
-    return new DefaultMessageSink<>(new ChannelSinkProvider(channel), consumer);
+    return new DefaultMessageSink(new ChannelSinkProvider(channel), consumer);
   }
 
   static MessageSink of(OutputStream stream) {
-    return new DefaultMessageSink<>(new StreamSinkProvider(stream));
+    return new DefaultMessageSink(new StreamSinkProvider(stream));
   }
 
   static MessageSink of(OutputStream stream, Consumer<Options> consumer) {
-    return new DefaultMessageSink<>(new StreamSinkProvider(stream), consumer);
+    return new DefaultMessageSink(new StreamSinkProvider(stream), consumer);
   }
 
   static MessageSink ofDebug(ByteBuffer buffer) {
-    return new DefaultMessageSink<>(new ErrorSinkProvider(), options -> {}, buffer);
+    return new DefaultMessageSink(new ErrorSinkProvider(), options -> {}, buffer);
   }
 
   static MessageSink ofDebug(ByteBuffer buffer, Consumer<Options> consumer) {
-    return new DefaultMessageSink<>(new ErrorSinkProvider(), consumer, buffer);
+    return new DefaultMessageSink(new ErrorSinkProvider(), consumer, buffer);
   }
 
   /** Note: This sink performs buffer copying. */
-  static MessageSink.InMemory<ByteBuffer> ofBuffer() {
-    return new DefaultMessageSink<>(new BufferSinkProvider());
+  static MessageSink.WithOutput<ByteBuffer> ofBuffer() {
+    var output = new SinkOutput<ByteBuffer>();
+    var sink = new DefaultMessageSink(new BufferSinkProvider(output));
+    return new WithOutput<>(sink, output);
   }
 
   /** Note: This sink performs buffer copying. */
-  static MessageSink.InMemory<ByteBuffer> ofBuffer(Consumer<Options> consumer) {
-    return new DefaultMessageSink<>(new BufferSinkProvider(consumer), consumer);
+  static MessageSink.WithOutput<ByteBuffer> ofBuffer(Consumer<Options> consumer) {
+    var output = new SinkOutput<ByteBuffer>();
+    var sink = new DefaultMessageSink(new BufferSinkProvider(output, consumer), consumer);
+    return new WithOutput<>(sink, output);
   }
 
-  static MessageSink of(Provider<Void> provider) {
-    return new DefaultMessageSink<>(provider);
+  static MessageSink of(Provider provider) {
+    return new DefaultMessageSink(provider);
   }
 
-  static MessageSink of(Provider<Void> provider, Consumer<Options> consumer) {
-    return new DefaultMessageSink<>(provider, consumer);
-  }
-
-  static <T> MessageSink.InMemory<T> ofInMemory(Provider<T> provider) {
-    return new DefaultMessageSink<>(provider);
-  }
-
-  static <T> MessageSink.InMemory<T> ofInMemory(Provider<T> provider, Consumer<Options> consumer) {
-    return new DefaultMessageSink<>(provider, consumer);
+  static MessageSink of(Provider provider, Consumer<Options> consumer) {
+    return new DefaultMessageSink(provider, consumer);
   }
 
   interface Options {
@@ -72,11 +70,9 @@ public interface MessageSink extends Closeable {
     Options bufferCapacity(int capacity);
   }
 
-  interface InMemory<T> extends MessageSink {
-    T output();
-  }
+  record WithOutput<T>(MessageSink sink, Supplier<T> output) {}
 
-  interface Provider<T> {
+  interface Provider {
     void write(ByteBuffer buffer) throws IOException;
 
     void write(ByteBuffer... buffers) throws IOException;
@@ -101,10 +97,6 @@ public interface MessageSink extends Closeable {
         bytesLeft -= bytesRead;
       }
       return length;
-    }
-
-    default T output() {
-      throw Exceptions.notAnInMemorySink();
     }
   }
 

@@ -12,11 +12,11 @@ import org.minipack.java.BufferAllocator;
 import org.minipack.java.MessageSink;
 
 /** Default implementation of {@link MessageSink}. */
-public final class DefaultMessageSink<T> implements MessageSink.InMemory<T> {
+public final class DefaultMessageSink implements MessageSink {
   private static final int MIN_BUFFER_CAPACITY = 9; // MessageFormat + long/double
   private static final int DEFAULT_BUFFER_CAPACITY = 1024 * 8;
 
-  static final class DefaultOptions implements MessageSink.Options {
+  static final class DefaultOptions implements Options {
     BufferAllocator allocator = BufferAllocator.ofUnpooled();
     int bufferCapacity = DEFAULT_BUFFER_CAPACITY;
 
@@ -34,25 +34,24 @@ public final class DefaultMessageSink<T> implements MessageSink.InMemory<T> {
     }
   }
 
-  private final MessageSink.Provider<T> provider;
+  private final Provider provider;
   private final BufferAllocator allocator;
   private final ByteBuffer sinkBuffer;
   private boolean isClosed;
 
-  public DefaultMessageSink(MessageSink.Provider<T> provider) {
+  public DefaultMessageSink(Provider provider) {
     this(provider, options -> {});
   }
 
-  public DefaultMessageSink(MessageSink.Provider<T> provider, Consumer<Options> consumer) {
+  public DefaultMessageSink(Provider provider, Consumer<Options> consumer) {
     this.provider = provider;
     var options = new DefaultOptions();
     consumer.accept(options);
     allocator = options.allocator;
-    sinkBuffer = allocator.acquireByteBuffer(options.bufferCapacity);
+    sinkBuffer = allocator.pooledByteBuffer(options.bufferCapacity);
   }
 
-  public DefaultMessageSink(
-      MessageSink.Provider<T> provider, Consumer<Options> consumer, ByteBuffer buffer) {
+  public DefaultMessageSink(Provider provider, Consumer<Options> consumer, ByteBuffer buffer) {
     this.provider = provider;
     var options = new DefaultOptions();
     consumer.accept(options);
@@ -116,16 +115,6 @@ public final class DefaultMessageSink<T> implements MessageSink.InMemory<T> {
     } finally {
       allocator.release(sinkBuffer);
     }
-  }
-
-  @Override
-  public T output() {
-    if (!isClosed) {
-      // TODO: move to Exceptions
-      throw new IllegalStateException(
-          "In-memory sink must be closed before obtaining output buffer.");
-    }
-    return provider.output();
   }
 
   @Override

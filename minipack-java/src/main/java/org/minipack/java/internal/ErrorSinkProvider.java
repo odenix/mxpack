@@ -8,7 +8,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import org.minipack.java.MessageSink;
 
-public final class ErrorSinkProvider implements MessageSink.Provider<Void> {
+public final class ErrorSinkProvider implements MessageSink.Provider {
   @Override
   public void write(ByteBuffer buffer) throws IOException {
     throw Exceptions.fixedByteBufferOverflow();

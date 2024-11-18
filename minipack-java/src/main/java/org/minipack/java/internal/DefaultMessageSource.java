@@ -52,7 +52,7 @@ public final class DefaultMessageSource implements MessageSource {
     var options = new DefaultOptions();
     consumer.accept(options);
     allocator = options.allocator;
-    sourceBuffer = allocator.acquireByteBuffer(options.bufferCapacity);
+    sourceBuffer = allocator.pooledByteBuffer(options.bufferCapacity);
   }
 
   public DefaultMessageSource(

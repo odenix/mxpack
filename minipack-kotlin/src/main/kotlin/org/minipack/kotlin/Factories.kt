@@ -15,116 +15,126 @@ import java.nio.channels.WritableByteChannel
 import java.nio.charset.CharsetDecoder
 import java.nio.charset.CharsetEncoder
 import java.nio.charset.StandardCharsets
+import java.util.function.Supplier
 
-fun bufferAllocatorOfUnpooled(
-  maxBufferCapacity: Int = 1024 * 1024,
-  useDirectBuffers: Boolean = false
-) = BufferAllocator.ofUnpooled { options ->
-  options.maxBufferCapacity(maxBufferCapacity).useDirectBuffers(useDirectBuffers)
+object BufferAllocators {
+  fun ofPooled(
+    maxBufferCapacity: Int = 1024 * 1024,
+    useDirectBuffers: Boolean = false
+  ) = BufferAllocator.ofUnpooled { options ->
+    options.maxBufferCapacity(maxBufferCapacity).useDirectBuffers(useDirectBuffers)
+  }
+
+  fun ofUnpooled(
+    maxBufferCapacity: Int = 1024 * 1024,
+    useDirectBuffers: Boolean = false
+  ) = BufferAllocator.ofPooled { options ->
+    options.maxBufferCapacity(maxBufferCapacity).useDirectBuffers(useDirectBuffers)
+  }
 }
 
-fun bufferAllocatorOfPooled(
-  maxBufferCapacity: Int = 1024 * 1024,
-  useDirectBuffers: Boolean = false
-) = BufferAllocator.ofPooled { options ->
-  options.maxBufferCapacity(maxBufferCapacity).useDirectBuffers(useDirectBuffers)
+object MessageReaders {
+  fun of(
+    source: MessageSource,
+    stringDecoder: MessageDecoder<String> = MessageDecoders.ofStrings(),
+    identifierDecoder: MessageDecoder<String> = MessageDecoders.ofStrings()
+  ): MessageReader = MessageReader.of(source) { options ->
+    options.stringDecoder(stringDecoder).identifierDecoder(identifierDecoder)
+  }
 }
 
-fun messageReaderOf(
-  source: MessageSource,
-  stringDecoder: MessageDecoder<String> = messageDecoderOfStrings(),
-  identifierDecoder: MessageDecoder<String> = messageDecoderOfStrings()
-): MessageReader = MessageReader.of(source) { options ->
-  options.stringDecoder(stringDecoder).identifierDecoder(identifierDecoder)
+object MessageWriters {
+  fun of(
+    sink: MessageSink,
+    stringEncoder: MessageEncoder<CharSequence> = MessageEncoders.ofStrings(),
+    identifierEncoder: MessageEncoder<in String> = MessageEncoders.ofStrings()
+  ): MessageWriter = MessageWriter.of(sink) { options ->
+    options.stringEncoder(stringEncoder).identifierEncoder(identifierEncoder)
+  }
 }
 
-fun messageWriterOf(
-  sink: MessageSink,
-  stringEncoder: MessageEncoder<CharSequence> = messageEncoderOfStrings(),
-  identifierEncoder: MessageEncoder<in String> = messageEncoderOfStrings()
-): MessageWriter = MessageWriter.of(sink) { options ->
-  options.stringEncoder(stringEncoder).identifierEncoder(identifierEncoder)
+object MessageSources {
+  fun of(
+    channel: ReadableByteChannel,
+    allocator: BufferAllocator = BufferAllocators.ofUnpooled(),
+    bufferCapacity: Int = 8192
+  ): MessageSource = MessageSource.of(channel) { options ->
+    options.allocator(allocator).bufferCapacity(bufferCapacity)
+  }
+
+  fun of(
+    stream: InputStream,
+    allocator: BufferAllocator = BufferAllocators.ofUnpooled(),
+    bufferCapacity: Int = 8192
+  ): MessageSource = MessageSource.of(stream) { options ->
+    options.allocator(allocator).bufferCapacity(bufferCapacity)
+  }
+
+  fun of(
+    buffer: ByteBuffer,
+    allocator: BufferAllocator = BufferAllocators.ofUnpooled(),
+    bufferCapacity: Int = 8192
+  ): MessageSource = MessageSource.of(buffer) { options ->
+    options.allocator(allocator).bufferCapacity(bufferCapacity)
+  }
+
+  fun of(
+    provider: MessageSource.Provider,
+    allocator: BufferAllocator = BufferAllocators.ofUnpooled(),
+    bufferCapacity: Int = 8192
+  ): MessageSource = MessageSource.of(provider) { options ->
+    options.allocator(allocator).bufferCapacity(bufferCapacity)
+  }
 }
 
-fun messageSourceOf(
-  channel: ReadableByteChannel,
-  allocator: BufferAllocator = bufferAllocatorOfUnpooled(),
-  bufferCapacity: Int = 1024 * 8
-): MessageSource = MessageSource.of(channel) { options ->
-  options.allocator(allocator).bufferCapacity(bufferCapacity)
+object MessageSinks {
+  fun of(
+    channel: WritableByteChannel,
+    allocator: BufferAllocator = BufferAllocators.ofUnpooled(),
+    bufferCapacity: Int = 8192
+  ): MessageSink = MessageSink.of(channel) { options ->
+    options.allocator(allocator).bufferCapacity(bufferCapacity)
+  }
+
+  fun of(
+    stream: OutputStream,
+    allocator: BufferAllocator = BufferAllocators.ofUnpooled(),
+    bufferCapacity: Int = 8192
+  ): MessageSink = MessageSink.of(stream) { options ->
+    options.allocator(allocator).bufferCapacity(bufferCapacity)
+  }
+
+  fun ofBuffer(
+    allocator: BufferAllocator = BufferAllocators.ofUnpooled(),
+    bufferCapacity: Int = 8192
+  ): Pair<MessageSink, Supplier<ByteBuffer>> {
+    val sinkWithOutput = MessageSink.ofBuffer { options ->
+      options.allocator(allocator).bufferCapacity(bufferCapacity)
+    }
+    return sinkWithOutput.sink to sinkWithOutput.output
+  }
+
+  fun of(
+    provider: MessageSink.Provider,
+    allocator: BufferAllocator = BufferAllocators.ofUnpooled(),
+    bufferCapacity: Int = 8192
+  ): MessageSink = MessageSink.of(provider) { options ->
+    options.allocator(allocator).bufferCapacity(bufferCapacity)
+  }
 }
 
-fun messageSourceOf(
-  stream: InputStream,
-  allocator: BufferAllocator = bufferAllocatorOfUnpooled(),
-  bufferCapacity: Int = 1024 * 8
-): MessageSource = MessageSource.of(stream) { options ->
-  options.allocator(allocator).bufferCapacity(bufferCapacity)
+object MessageEncoders {
+  fun ofStrings(
+    charsetEncoder: CharsetEncoder = StandardCharsets.UTF_8.newEncoder()
+  ): MessageEncoder<CharSequence> = MessageEncoder.ofStrings { options ->
+    options.charsetEncoder(charsetEncoder)
+  }
 }
 
-fun messageSourceOf(
-  buffer: ByteBuffer,
-  allocator: BufferAllocator = bufferAllocatorOfUnpooled(),
-  bufferCapacity: Int = 1024 * 8
-): MessageSource = MessageSource.of(buffer) { options ->
-  options.allocator(allocator).bufferCapacity(bufferCapacity)
-}
-
-fun messageSourceOf(
-  provider: MessageSource.Provider,
-  allocator: BufferAllocator = bufferAllocatorOfUnpooled(),
-  bufferCapacity: Int = 1024 * 8
-): MessageSource = MessageSource.of(provider) { options ->
-  options.allocator(allocator).bufferCapacity(bufferCapacity)
-}
-
-fun messageSinkOf(
-  channel: WritableByteChannel,
-  allocator: BufferAllocator = bufferAllocatorOfUnpooled(),
-  bufferCapacity: Int = 1024 * 8
-): MessageSink = MessageSink.of(channel) { options ->
-  options.allocator(allocator).bufferCapacity(bufferCapacity)
-}
-
-fun messageSinkOf(
-  stream: OutputStream,
-  allocator: BufferAllocator = bufferAllocatorOfUnpooled(),
-  bufferCapacity: Int = 1024 * 8
-): MessageSink = MessageSink.of(stream) { options ->
-  options.allocator(allocator).bufferCapacity(bufferCapacity)
-}
-
-fun messageSinkOfBuffer(
-  allocator: BufferAllocator = bufferAllocatorOfUnpooled(),
-  bufferCapacity: Int = 1024 * 8
-): MessageSink.InMemory<ByteBuffer> = MessageSink.ofBuffer { options ->
-  options.allocator(allocator).bufferCapacity(bufferCapacity)
-}
-
-fun messageSinkOf(
-  provider: MessageSink.Provider<Void>,
-  allocator: BufferAllocator = bufferAllocatorOfUnpooled(),
-  bufferCapacity: Int = 1024 * 8
-): MessageSink = MessageSink.of(provider) { options ->
-  options.allocator(allocator).bufferCapacity(bufferCapacity)
-}
-
-fun <T: Any> messageSinkOfInMemory(
-  provider: MessageSink.Provider<T>,
-  allocator: BufferAllocator = bufferAllocatorOfUnpooled(),
-  bufferCapacity: Int = 1024 * 8
-): MessageSink.InMemory<T> = MessageSink.ofInMemory(provider) { options ->
-  options.allocator(allocator).bufferCapacity(bufferCapacity)
-}
-
-fun messageEncoderOfStrings(
-  charsetEncoder: CharsetEncoder = StandardCharsets.UTF_8.newEncoder()
-): MessageEncoder<CharSequence> = MessageEncoder.ofStrings { options ->
-  options.charsetEncoder(charsetEncoder)
-}
-
-fun messageDecoderOfStrings(
-  charsetDecoder: CharsetDecoder = StandardCharsets.UTF_8.newDecoder()
-): MessageDecoder<String> = MessageDecoder.ofStrings { options ->
-  options.charsetDecoder(charsetDecoder)
+object MessageDecoders {
+  fun ofStrings(
+    charsetDecoder: CharsetDecoder = StandardCharsets.UTF_8.newDecoder()
+  ): MessageDecoder<String> = MessageDecoder.ofStrings { options ->
+    options.charsetDecoder(charsetDecoder)
+  }
 }

@@ -64,7 +64,7 @@ public final class CharsetStringEncoder implements MessageEncoder<CharSequence> 
       // Copy string to char array because CharsetEncoder.encode() is up to
       // 10x faster if both charBuffer and byteBuffer have accessible array.
       // https://cl4es.github.io/2021/10/17/Faster-Charset-Encoding.html
-      charBuffer = allocator.acquireCharBuffer(charLength).limit(charLength);
+      charBuffer = allocator.pooledCharBuffer(charLength).limit(charLength);
       string.getChars(0, charLength, charBuffer.array(), 0);
       allocatedCharBuffer = charBuffer;
     } else if (charSeq instanceof CharBuffer buffer) {
@@ -78,7 +78,7 @@ public final class CharsetStringEncoder implements MessageEncoder<CharSequence> 
       var result = charsetEncoder.encode(charBuffer, byteBuffer, true);
       if (result.isOverflow()) {
         byteBuffer =
-            allocator.acquireByteBuffer(
+            allocator.pooledByteBuffer(
                 headerLength + maxByteLength - byteBuffer.position() + headerPosition);
         result = charsetEncoder.encode(charBuffer, byteBuffer, true);
       }
@@ -87,7 +87,7 @@ public final class CharsetStringEncoder implements MessageEncoder<CharSequence> 
       }
       result = charsetEncoder.flush(byteBuffer);
       if (result.isOverflow()) {
-        byteBuffer = allocator.acquireByteBuffer(MAX_ENCODER_SUFFIX_SIZE);
+        byteBuffer = allocator.pooledByteBuffer(MAX_ENCODER_SUFFIX_SIZE);
         charsetEncoder.flush(byteBuffer);
       }
       fillInHeader(headerPosition, headerLength, sinkBuffer, byteBuffer);
