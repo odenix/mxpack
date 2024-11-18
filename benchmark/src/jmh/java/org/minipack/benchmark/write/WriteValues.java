@@ -18,6 +18,7 @@ import org.openjdk.jmh.infra.Blackhole;
 @State(Scope.Thread)
 public abstract class WriteValues {
   BufferAllocator allocator;
+  BufferAllocator.PooledByteBuffer pooledBuffer;
   ByteBuffer buffer;
   MessageWriter writer;
   ArrayBufferOutput bufferOutput;
@@ -34,12 +35,19 @@ public abstract class WriteValues {
   @Setup
   public void setUp() {
     allocator = BufferAllocator.ofUnpooled();
-    buffer = allocator.newByteBuffer(1024 * 16);
-    var sink = MessageSink.ofDebug(buffer, options -> options.allocator(allocator));
+    pooledBuffer = allocator.getByteBuffer(1024 * 16);
+    buffer = pooledBuffer.value();
+    var sink = MessageSink.ofDiscarding(options -> options.allocator(allocator), pooledBuffer);
     writer = MessageWriter.of(sink);
     bufferOutput = new ArrayBufferOutput(1024 * 16);
     packer = MessagePack.newDefaultPacker(bufferOutput);
     generate256Values();
+  }
+
+  @TearDown
+  public void tearDown() {
+    pooledBuffer.close();
+    allocator.close();
   }
 
   @Benchmark

@@ -1,6 +1,7 @@
 package org.minipack.kotlin
 
 import org.minipack.java.BufferAllocator
+import org.minipack.java.BufferAllocator.PooledByteBuffer
 import org.minipack.java.MessageDecoder
 import org.minipack.java.MessageEncoder
 import org.minipack.java.MessageReader
@@ -21,14 +22,14 @@ object BufferAllocators {
   fun ofPooled(
     maxBufferCapacity: Int = 1024 * 1024,
     useDirectBuffers: Boolean = false
-  ) = BufferAllocator.ofUnpooled { options ->
+  ) = BufferAllocator.ofPooled { options ->
     options.maxBufferCapacity(maxBufferCapacity).useDirectBuffers(useDirectBuffers)
   }
 
   fun ofUnpooled(
     maxBufferCapacity: Int = 1024 * 1024,
     useDirectBuffers: Boolean = false
-  ) = BufferAllocator.ofPooled { options ->
+  ) = BufferAllocator.ofUnpooled { options ->
     options.maxBufferCapacity(maxBufferCapacity).useDirectBuffers(useDirectBuffers)
   }
 }
@@ -57,7 +58,7 @@ object MessageSources {
   fun of(
     channel: ReadableByteChannel,
     allocator: BufferAllocator = BufferAllocators.ofUnpooled(),
-    bufferCapacity: Int = 8192
+    bufferCapacity: Int = 1024 * 8
   ): MessageSource = MessageSource.of(channel) { options ->
     options.allocator(allocator).bufferCapacity(bufferCapacity)
   }
@@ -65,15 +66,23 @@ object MessageSources {
   fun of(
     stream: InputStream,
     allocator: BufferAllocator = BufferAllocators.ofUnpooled(),
-    bufferCapacity: Int = 8192
+    bufferCapacity: Int = 1024 * 8
   ): MessageSource = MessageSource.of(stream) { options ->
+    options.allocator(allocator).bufferCapacity(bufferCapacity)
+  }
+
+  fun of(
+    buffer: PooledByteBuffer,
+    allocator: BufferAllocator = BufferAllocators.ofUnpooled(),
+    bufferCapacity: Int = 1024 * 8
+  ): MessageSource = MessageSource.of(buffer) { options ->
     options.allocator(allocator).bufferCapacity(bufferCapacity)
   }
 
   fun of(
     buffer: ByteBuffer,
     allocator: BufferAllocator = BufferAllocators.ofUnpooled(),
-    bufferCapacity: Int = 8192
+    bufferCapacity: Int = 1024 * 8
   ): MessageSource = MessageSource.of(buffer) { options ->
     options.allocator(allocator).bufferCapacity(bufferCapacity)
   }
@@ -81,7 +90,7 @@ object MessageSources {
   fun of(
     provider: MessageSource.Provider,
     allocator: BufferAllocator = BufferAllocators.ofUnpooled(),
-    bufferCapacity: Int = 8192
+    bufferCapacity: Int = 1024 * 8
   ): MessageSource = MessageSource.of(provider) { options ->
     options.allocator(allocator).bufferCapacity(bufferCapacity)
   }
@@ -91,7 +100,7 @@ object MessageSinks {
   fun of(
     channel: WritableByteChannel,
     allocator: BufferAllocator = BufferAllocators.ofUnpooled(),
-    bufferCapacity: Int = 8192
+    bufferCapacity: Int = 1024 * 8
   ): MessageSink = MessageSink.of(channel) { options ->
     options.allocator(allocator).bufferCapacity(bufferCapacity)
   }
@@ -99,25 +108,34 @@ object MessageSinks {
   fun of(
     stream: OutputStream,
     allocator: BufferAllocator = BufferAllocators.ofUnpooled(),
-    bufferCapacity: Int = 8192
+    bufferCapacity: Int = 1024 * 8
   ): MessageSink = MessageSink.of(stream) { options ->
     options.allocator(allocator).bufferCapacity(bufferCapacity)
   }
 
   fun ofBuffer(
     allocator: BufferAllocator = BufferAllocators.ofUnpooled(),
-    bufferCapacity: Int = 8192
-  ): Pair<MessageSink, Supplier<ByteBuffer>> {
+    bufferCapacity: Int = 1024 * 8
+  ): Pair<MessageSink, Supplier<PooledByteBuffer>> {
     val sinkWithOutput = MessageSink.ofBuffer { options ->
       options.allocator(allocator).bufferCapacity(bufferCapacity)
     }
     return sinkWithOutput.sink to sinkWithOutput.output
   }
 
+  fun ofDiscarding(
+    allocator: BufferAllocator = BufferAllocators.ofUnpooled(),
+    bufferCapacity: Int = 1024 * 8
+  ): MessageSink {
+    return MessageSink.ofDiscarding { options ->
+      options.allocator(allocator).bufferCapacity(bufferCapacity)
+    }
+  }
+
   fun of(
     provider: MessageSink.Provider,
     allocator: BufferAllocator = BufferAllocators.ofUnpooled(),
-    bufferCapacity: Int = 8192
+    bufferCapacity: Int = 1024 * 8
   ): MessageSink = MessageSink.of(provider) { options ->
     options.allocator(allocator).bufferCapacity(bufferCapacity)
   }

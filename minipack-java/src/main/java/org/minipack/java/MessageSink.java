@@ -12,7 +12,6 @@ import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-
 import org.minipack.java.internal.*;
 
 /** The underlying sink of a {@link MessageWriter}. */
@@ -33,24 +32,30 @@ public interface MessageSink extends Closeable {
     return new DefaultMessageSink(new StreamSinkProvider(stream), consumer);
   }
 
-  static MessageSink ofDebug(ByteBuffer buffer) {
-    return new DefaultMessageSink(new ErrorSinkProvider(), options -> {}, buffer);
+  static MessageSink ofDiscarding() {
+    return new DefaultMessageSink(new DiscardingSinkProvider(), options -> {});
   }
 
-  static MessageSink ofDebug(ByteBuffer buffer, Consumer<Options> consumer) {
-    return new DefaultMessageSink(new ErrorSinkProvider(), consumer, buffer);
+  static MessageSink ofDiscarding(Consumer<Options> consumer) {
+    return new DefaultMessageSink(new DiscardingSinkProvider(), consumer);
+  }
+
+  static MessageSink ofDiscarding(
+      Consumer<Options> consumer, BufferAllocator.PooledByteBuffer sinkBuffer) {
+    return new DefaultMessageSink(new DiscardingSinkProvider(), consumer, sinkBuffer);
   }
 
   /** Note: This sink performs buffer copying. */
-  static MessageSink.WithOutput<ByteBuffer> ofBuffer() {
-    var output = new SinkOutput<ByteBuffer>();
+  static MessageSink.WithOutput<BufferAllocator.PooledByteBuffer> ofBuffer() {
+    var output = new SinkOutput<BufferAllocator.PooledByteBuffer>();
     var sink = new DefaultMessageSink(new BufferSinkProvider(output));
     return new WithOutput<>(sink, output);
   }
 
   /** Note: This sink performs buffer copying. */
-  static MessageSink.WithOutput<ByteBuffer> ofBuffer(Consumer<Options> consumer) {
-    var output = new SinkOutput<ByteBuffer>();
+  static MessageSink.WithOutput<BufferAllocator.PooledByteBuffer> ofBuffer(
+      Consumer<Options> consumer) {
+    var output = new SinkOutput<BufferAllocator.PooledByteBuffer>();
     var sink = new DefaultMessageSink(new BufferSinkProvider(output, consumer), consumer);
     return new WithOutput<>(sink, output);
   }

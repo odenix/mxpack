@@ -17,6 +17,7 @@ import org.openjdk.jmh.infra.Blackhole;
 @State(Scope.Thread)
 public abstract class ReadValue {
   BufferAllocator allocator;
+  BufferAllocator.PooledByteBuffer pooledBuffer;
   ByteBuffer buffer;
   MessageReader reader;
   MessageBuffer messageBuffer;
@@ -34,16 +35,24 @@ public abstract class ReadValue {
   @Setup
   public void setUp() throws IOException {
     allocator = BufferAllocator.ofUnpooled();
-    buffer = allocator.pooledByteBuffer(1024 * 16);
-    var sink = MessageSink.ofDebug(buffer, options -> options.allocator(allocator));
+    pooledBuffer = allocator.getByteBuffer(1024 * 16);
+    buffer = pooledBuffer.value();
+    var sink = MessageSink.ofDiscarding(options -> options.allocator(allocator), pooledBuffer);
     var writer = MessageWriter.of(sink);
     writeValue(writer);
     buffer.flip();
-    var source = MessageSource.of(buffer, options -> options.allocator(allocator));
+    var source = MessageSource.of(pooledBuffer, options -> options.allocator(allocator));
     reader = MessageReader.of(source);
+
     messageBuffer = MessageBuffer.wrap(buffer.array());
     bufferInput = new ArrayBufferInput(messageBuffer);
     unpacker = MessagePack.newDefaultUnpacker(bufferInput);
+  }
+
+  @TearDown
+  public void tearDown() throws IOException {
+    pooledBuffer.close();
+    allocator.close();
   }
 
   @Benchmark

@@ -31,6 +31,14 @@ public interface MessageSource extends Closeable {
     return new DefaultMessageSource(new StreamSourceProvider(stream), consumer);
   }
 
+  static MessageSource of(BufferAllocator.PooledByteBuffer buffer) {
+    return new DefaultMessageSource(new EmptySourceProvider(), options -> {}, buffer);
+  }
+
+  static MessageSource of(BufferAllocator.PooledByteBuffer buffer, Consumer<Options> consumer) {
+    return new DefaultMessageSource(new EmptySourceProvider(), consumer, buffer);
+  }
+
   static MessageSource of(ByteBuffer buffer) {
     return new DefaultMessageSource(new EmptySourceProvider(), options -> {}, buffer);
   }

@@ -37,25 +37,30 @@ public interface BufferAllocator extends Closeable {
   interface UnpooledOptions {
     UnpooledOptions maxBufferCapacity(int capacity);
 
-    @SuppressWarnings("UnusedReturnValue")
     UnpooledOptions useDirectBuffers(boolean flag);
   }
 
-  ByteBuffer acquireByteBuffer(long minCapacity);
+  interface PooledByteBuffer extends AutoCloseable {
+    ByteBuffer value();
 
-  ByteBuffer newByteBuffer(long capacity);
+    @Override
+    void close();
+  }
 
-  CharBuffer acquireCharBuffer(long minCapacity);
+  interface PooledCharBuffer extends AutoCloseable {
+    CharBuffer value();
 
-  CharBuffer acquireCharBuffer(double minCapacity);
+    @Override
+    void close();
+  }
 
-  CharBuffer newCharBuffer(long minCapacity);
+  PooledByteBuffer getByteBuffer(long minCapacity);
 
-  ByteBuffer ensureRemaining(ByteBuffer buffer, long remaining);
+  PooledCharBuffer getCharBuffer(long minCapacity);
 
-  void release(ByteBuffer buffer);
+  PooledCharBuffer getCharBuffer(double minCapacity);
 
-  void release(CharBuffer buffer);
+  PooledByteBuffer ensureRemaining(PooledByteBuffer buffer, long remaining);
 
   void close();
 }

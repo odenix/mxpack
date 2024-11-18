@@ -8,7 +8,7 @@ class FactoriesTest {
   @Test
   fun `create unpooled allocator`() {
     BufferAllocators.ofUnpooled().use { allocator ->
-      val buffer = allocator.pooledByteBuffer(42)
+      val buffer = allocator.getByteBuffer(42).value()
       assertThat(buffer.isDirect).isFalse
       assertThat(buffer.capacity()).isEqualTo(42)
     }
@@ -16,12 +16,15 @@ class FactoriesTest {
 
   @Test
   fun `create pooled allocator`() {
-    BufferAllocators.ofPooled(useDirectBuffers = true).use { allocator ->
-      val buffer = allocator.pooledByteBuffer(42)
-      assertThat(buffer.isDirect).isFalse
+    BufferAllocators.ofPooled().use { allocator ->
+      val pooled = allocator.getByteBuffer(42)
+      val buffer = pooled.value()
+      assertThat(buffer.isDirect).isFalse()
       assertThat(buffer.capacity()).isGreaterThanOrEqualTo(42)
-      allocator.release(buffer)
-      val buffer2 = allocator.pooledByteBuffer(42)
+      pooled.close()
+      val pooled2 = allocator.getByteBuffer(42)
+      val buffer2 = pooled2.value()
+      assertThat(pooled2).isNotSameAs(pooled)
       assertThat(buffer2).isSameAs(buffer)
     }
   }
@@ -42,7 +45,7 @@ class FactoriesTest {
       writer.write(42)
       writer.flush()
     }
-    val buffer = output.get()
+    val buffer = output.get().value()
     assertThat(buffer.get()).isEqualTo(42)
   }
 }

@@ -9,6 +9,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
 import java.util.Objects;
 import java.util.function.Consumer;
+import org.jspecify.annotations.Nullable;
 import org.minipack.java.BufferAllocator;
 import org.minipack.java.MessageSource;
 import org.minipack.java.MessageType;
@@ -40,6 +41,7 @@ public final class DefaultMessageSource implements MessageSource {
 
   private final MessageSource.Provider provider;
   private final BufferAllocator allocator;
+  private final BufferAllocator.@Nullable PooledByteBuffer pooledSourceBuffer;
   private final ByteBuffer sourceBuffer;
   private boolean isClosed;
 
@@ -52,7 +54,20 @@ public final class DefaultMessageSource implements MessageSource {
     var options = new DefaultOptions();
     consumer.accept(options);
     allocator = options.allocator;
-    sourceBuffer = allocator.pooledByteBuffer(options.bufferCapacity);
+    pooledSourceBuffer = allocator.getByteBuffer(options.bufferCapacity);
+    sourceBuffer = pooledSourceBuffer.value();
+  }
+
+  public DefaultMessageSource(
+      MessageSource.Provider provider,
+      Consumer<Options> consumer,
+      BufferAllocator.PooledByteBuffer buffer) {
+    this.provider = provider;
+    var options = new DefaultOptions();
+    consumer.accept(options);
+    allocator = options.allocator;
+    pooledSourceBuffer = buffer;
+    sourceBuffer = buffer.value();
   }
 
   public DefaultMessageSource(
@@ -61,6 +76,7 @@ public final class DefaultMessageSource implements MessageSource {
     var options = new DefaultOptions();
     consumer.accept(options);
     allocator = options.allocator;
+    pooledSourceBuffer = null;
     sourceBuffer = buffer;
   }
 
@@ -202,7 +218,9 @@ public final class DefaultMessageSource implements MessageSource {
     try {
       provider.close();
     } finally {
-      allocator.release(sourceBuffer);
+      if (pooledSourceBuffer != null) {
+        pooledSourceBuffer.close();
+      }
     }
   }
 }

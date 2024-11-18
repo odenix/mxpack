@@ -155,6 +155,6 @@ public final class Exceptions {
   }
 
   public static IllegalStateException pooledBufferAlreadyClosed() {
-    return new IllegalStateException("This pooled buffer has already already closed.");
+    return new IllegalStateException("This PooledByteBuffer has already already closed.");
   }
 }

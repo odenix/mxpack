@@ -35,20 +35,23 @@ public final class UnpooledBufferAllocator extends AbstractBufferAllocator {
   }
 
   @Override
-  public ByteBuffer acquireByteBuffer(long minCapacity) {
-    return newByteBuffer(minCapacity);
+  public DefaultPooledByteBuffer getByteBuffer(long minCapacity) {
+    var cap = checkCapacity(minCapacity);
+    var buffer = preferDirect ? ByteBuffer.allocateDirect(cap) : ByteBuffer.allocate(cap);
+    return new DefaultPooledByteBuffer(buffer, null);
   }
 
   @Override
-  public CharBuffer acquireCharBuffer(long minCapacity) {
-    return newCharBuffer(minCapacity);
+  public DefaultPooledCharBuffer getCharBuffer(long minCapacity) {
+    var cap = checkCharCapacity(minCapacity);
+    var buffer = CharBuffer.allocate(cap);
+    return new DefaultPooledCharBuffer(buffer, null);
   }
 
   @Override
-  public void release(ByteBuffer buffer) {} // nothing to do
-
-  @Override
-  public void release(CharBuffer buffer) {} // nothing to do
+  public DefaultPooledCharBuffer getCharBuffer(double minCapacity) {
+    return getCharBuffer((long) Math.ceil(minCapacity));
+  }
 
   @Override
   public void close() {} // nothing to do

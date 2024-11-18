@@ -36,6 +36,7 @@ public final class DefaultMessageSink implements MessageSink {
 
   private final Provider provider;
   private final BufferAllocator allocator;
+  private final BufferAllocator.PooledByteBuffer pooledSinkBuffer;
   private final ByteBuffer sinkBuffer;
   private boolean isClosed;
 
@@ -48,15 +49,18 @@ public final class DefaultMessageSink implements MessageSink {
     var options = new DefaultOptions();
     consumer.accept(options);
     allocator = options.allocator;
-    sinkBuffer = allocator.pooledByteBuffer(options.bufferCapacity);
+    pooledSinkBuffer = allocator.getByteBuffer(options.bufferCapacity);
+    sinkBuffer = pooledSinkBuffer.value();
   }
 
-  public DefaultMessageSink(Provider provider, Consumer<Options> consumer, ByteBuffer buffer) {
+  public DefaultMessageSink(
+      Provider provider, Consumer<Options> consumer, BufferAllocator.PooledByteBuffer buffer) {
     this.provider = provider;
     var options = new DefaultOptions();
     consumer.accept(options);
     allocator = options.allocator;
-    sinkBuffer = buffer;
+    pooledSinkBuffer = buffer;
+    sinkBuffer = pooledSinkBuffer.value();
   }
 
   @Override
@@ -113,7 +117,7 @@ public final class DefaultMessageSink implements MessageSink {
     try {
       provider.close();
     } finally {
-      allocator.release(sinkBuffer);
+      pooledSinkBuffer.close();
     }
   }
 

@@ -42,9 +42,9 @@ public final class CharsetStringDecoder implements MessageDecoder<String> {
     var byteLength = reader.readStringHeader();
     if (byteLength == 0) return "";
     var byteBuffer = source.buffer();
-    var charBuffer =
-        source.allocator().pooledCharBuffer(byteLength * charsetDecoder.maxCharsPerByte());
-    try {
+    try (var pooledCharBuffer =
+        source.allocator().getCharBuffer(byteLength * charsetDecoder.maxCharsPerByte())) {
+      var charBuffer = pooledCharBuffer.value();
       charsetDecoder.reset();
       var bytesLeft = byteLength;
       int remaining;
@@ -65,8 +65,6 @@ public final class CharsetStringDecoder implements MessageDecoder<String> {
       byteBuffer.limit(savedLimit);
       charsetDecoder.flush(charBuffer);
       return charBuffer.flip().toString();
-    } finally {
-      source.allocator().release(charBuffer);
     }
   }
 }

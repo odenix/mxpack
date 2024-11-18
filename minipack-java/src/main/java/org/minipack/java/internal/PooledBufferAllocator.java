@@ -8,6 +8,7 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 public final class PooledBufferAllocator extends AbstractBufferAllocator {
@@ -16,6 +17,8 @@ public final class PooledBufferAllocator extends AbstractBufferAllocator {
 
   @SuppressWarnings("unchecked")
   private final Queue<CharBuffer>[] charBufferBuckets = new Queue[32];
+
+  private final AtomicBoolean isClosed = new AtomicBoolean();
 
   private static final class DefaultPooledOptions implements PooledOptions {
     private int maxCapacity = 1024 * 1024;
@@ -47,46 +50,59 @@ public final class PooledBufferAllocator extends AbstractBufferAllocator {
   }
 
   @Override
-  public ByteBuffer acquireByteBuffer(long minCapacity) {
+  public DefaultPooledByteBuffer getByteBuffer(long minCapacity) {
     var capacity = checkCapacity(minCapacity);
     var index = getBucketIndex(capacity);
     var bucket = byteBufferBuckets[index];
     var buffer = bucket.poll();
-    return buffer != null
-        ? buffer.clear()
-        : preferDirect ? ByteBuffer.allocateDirect(1 << index) : ByteBuffer.allocate(1 << index);
+    var result =
+        buffer != null
+            ? buffer.clear()
+            : preferDirect
+                ? ByteBuffer.allocateDirect(1 << index)
+                : ByteBuffer.allocate(1 << index);
+    return new DefaultPooledByteBuffer(result, this);
   }
 
   @Override
-  public CharBuffer acquireCharBuffer(long minCapacity) {
+  public DefaultPooledCharBuffer getCharBuffer(long minCapacity) {
     var capacity = checkCharCapacity(minCapacity);
     var index = getBucketIndex(capacity);
     var bucket = charBufferBuckets[index];
     var buffer = bucket.poll();
-    return buffer != null ? buffer.clear() : CharBuffer.allocate(1 << index);
+    var result = buffer != null ? buffer.clear() : CharBuffer.allocate(1 << index);
+    return new DefaultPooledCharBuffer(result, this);
   }
 
   @Override
-  public void release(ByteBuffer buffer) {
-    var index = getBucketIndex(buffer.capacity());
-    var bucket = byteBufferBuckets[index];
-    bucket.add(buffer);
-  }
-
-  @Override
-  public void release(CharBuffer buffer) {
-    var index = getBucketIndex(buffer.capacity());
-    var bucket = charBufferBuckets[index];
-    bucket.add(buffer);
+  public DefaultPooledCharBuffer getCharBuffer(double minCapacity) {
+    return getCharBuffer((long) Math.ceil(minCapacity));
   }
 
   @Override
   @SuppressWarnings("DataFlowIssue")
   public void close() {
+    if (isClosed.getAndSet(true)) return;
     for (int i = 0; i < 32; i++) {
       byteBufferBuckets[i] = null;
       charBufferBuckets[i] = null;
     }
+  }
+
+  void release(DefaultPooledByteBuffer pooled) {
+    if (isClosed.get()) return;
+    var buffer = pooled.value;
+    var index = getBucketIndex(buffer.capacity());
+    var bucket = byteBufferBuckets[index];
+    bucket.add(buffer);
+  }
+
+  void release(DefaultPooledCharBuffer pooled) {
+    if (isClosed.get()) return;
+    var buffer = pooled.value;
+    var index = getBucketIndex(buffer.capacity());
+    var bucket = charBufferBuckets[index];
+    bucket.add(buffer);
   }
 
   private static DefaultPooledOptions createOptions(Consumer<PooledOptions> consumer) {

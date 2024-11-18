@@ -1,8 +1,11 @@
+/*
+ * Copyright 2024 the MiniPack contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
 package org.minipack.java.internal;
 
-import org.jspecify.annotations.Nullable;
-
 import java.util.function.Supplier;
+import org.jspecify.annotations.Nullable;
 
 public final class SinkOutput<T> implements Supplier<T> {
   private volatile @Nullable T value;

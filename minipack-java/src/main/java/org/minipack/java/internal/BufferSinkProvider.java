@@ -12,25 +12,26 @@ import org.minipack.java.MessageSink;
 /** A sink provider that writes to a {@link java.nio.ByteBuffer}. */
 public final class BufferSinkProvider implements MessageSink.Provider {
   private final BufferAllocator allocator;
-  private final SinkOutput<ByteBuffer> output;
-  private ByteBuffer outputBuffer;
+  private final SinkOutput<BufferAllocator.PooledByteBuffer> output;
+  private BufferAllocator.PooledByteBuffer outputBuffer;
 
-  public BufferSinkProvider(SinkOutput<ByteBuffer> output) {
+  public BufferSinkProvider(SinkOutput<BufferAllocator.PooledByteBuffer> output) {
     this(output, options -> {});
   }
 
-  public BufferSinkProvider(SinkOutput<ByteBuffer> output, Consumer<MessageSink.Options> consumer) {
+  public BufferSinkProvider(
+      SinkOutput<BufferAllocator.PooledByteBuffer> output, Consumer<MessageSink.Options> consumer) {
     this.output = output;
     var options = new DefaultMessageSink.DefaultOptions();
     consumer.accept(options);
     this.allocator = options.allocator;
-    outputBuffer = allocator.pooledByteBuffer(options.bufferCapacity);
+    outputBuffer = allocator.getByteBuffer(options.bufferCapacity);
   }
 
   @Override
   public void write(ByteBuffer buffer) {
     outputBuffer = allocator.ensureRemaining(outputBuffer, buffer.remaining());
-    outputBuffer.put(buffer);
+    outputBuffer.value().put(buffer);
   }
 
   @Override
@@ -38,7 +39,7 @@ public final class BufferSinkProvider implements MessageSink.Provider {
     var remaining = 0;
     for (var buffer : buffers) remaining += buffer.remaining();
     outputBuffer = allocator.ensureRemaining(outputBuffer, remaining);
-    for (var buffer : buffers) outputBuffer.put(buffer);
+    for (var buffer : buffers) outputBuffer.value().put(buffer);
   }
 
   @Override
@@ -46,6 +47,7 @@ public final class BufferSinkProvider implements MessageSink.Provider {
 
   @Override
   public void close() {
-    output.set(outputBuffer.flip());
+    outputBuffer.value().flip();
+    output.set(outputBuffer);
   }
 }
