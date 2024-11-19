@@ -6,17 +6,16 @@ package org.minipack.java.internal;
 
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
+import org.minipack.java.internal.util.LockFreePool;
 
 public final class PooledBufferAllocator extends AbstractBufferAllocator {
   @SuppressWarnings("unchecked")
-  private final Queue<ByteBuffer>[] byteBufferBuckets = new Queue[32];
+  private final LockFreePool<ByteBuffer>[] byteBufferBuckets = new LockFreePool[32];
 
   @SuppressWarnings("unchecked")
-  private final Queue<CharBuffer>[] charBufferBuckets = new Queue[32];
+  private final LockFreePool<CharBuffer>[] charBufferBuckets = new LockFreePool[32];
 
   private final AtomicBoolean isClosed = new AtomicBoolean();
 
@@ -44,8 +43,8 @@ public final class PooledBufferAllocator extends AbstractBufferAllocator {
   public PooledBufferAllocator(Consumer<PooledOptions> consumer) {
     super(createOptions(consumer).maxCapacity, createOptions(consumer).directBuffers);
     for (int i = 0; i < 32; i++) {
-      byteBufferBuckets[i] = new ConcurrentLinkedQueue<>();
-      charBufferBuckets[i] = new ConcurrentLinkedQueue<>();
+      byteBufferBuckets[i] = new LockFreePool<>();
+      charBufferBuckets[i] = new LockFreePool<>();
     }
   }
 
@@ -54,7 +53,7 @@ public final class PooledBufferAllocator extends AbstractBufferAllocator {
     var capacity = checkCapacity(minCapacity);
     var index = getBucketIndex(capacity);
     var bucket = byteBufferBuckets[index];
-    var buffer = bucket.poll();
+    var buffer = bucket.get();
     var result =
         buffer != null
             ? buffer.clear()
@@ -69,7 +68,7 @@ public final class PooledBufferAllocator extends AbstractBufferAllocator {
     var capacity = checkCharCapacity(minCapacity);
     var index = getBucketIndex(capacity);
     var bucket = charBufferBuckets[index];
-    var buffer = bucket.poll();
+    var buffer = bucket.get();
     var result = buffer != null ? buffer.clear() : CharBuffer.allocate(1 << index);
     return new DefaultPooledCharBuffer(result, this);
   }
