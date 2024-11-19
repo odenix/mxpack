@@ -55,7 +55,7 @@ public final class DefaultMessageSource implements MessageSource {
     consumer.accept(options);
     allocator = options.allocator;
     pooledSourceBuffer = allocator.getByteBuffer(options.bufferCapacity);
-    sourceBuffer = pooledSourceBuffer.value();
+    sourceBuffer = pooledSourceBuffer.value().limit(0);
   }
 
   public DefaultMessageSource(
@@ -67,7 +67,7 @@ public final class DefaultMessageSource implements MessageSource {
     consumer.accept(options);
     allocator = options.allocator;
     pooledSourceBuffer = buffer;
-    sourceBuffer = buffer.value();
+    sourceBuffer = buffer.value().limit(0);
   }
 
   public DefaultMessageSource(

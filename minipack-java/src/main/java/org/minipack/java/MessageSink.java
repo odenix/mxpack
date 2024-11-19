@@ -98,6 +98,7 @@ public interface MessageSink extends Closeable {
         if (bytesRead == -1) {
           return length - bytesLeft;
         }
+        buffer.flip();
         write(buffer);
         bytesLeft -= bytesRead;
       }

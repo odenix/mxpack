@@ -37,9 +37,10 @@ public final class ChannelSourceProvider implements MessageSource.Provider {
 
   @Override
   public void skip(int length, ByteBuffer buffer) throws IOException {
+    if (length == 0) return;
     var remaining = buffer.remaining();
     if (length > remaining && sourceChannel instanceof SeekableByteChannel seekableChannel) {
-      buffer.clear();
+      buffer.position(buffer.limit());
       seekableChannel.position(seekableChannel.position() + (length - remaining));
       return;
     }
@@ -49,10 +50,11 @@ public final class ChannelSourceProvider implements MessageSource.Provider {
   @Override
   public long transferTo(WritableByteChannel destination, long length, ByteBuffer buffer)
       throws IOException {
+    if (length == 0) return 0;
     var remaining = buffer.remaining();
     if (length > remaining && sourceChannel instanceof FileChannel fileChannel) {
       var bytesWritten = destination.write(buffer);
-      if (bytesWritten != length) {
+      if (bytesWritten != remaining) {
         throw Exceptions.nonBlockingChannelDetected();
       }
       var bytesTransferred =
@@ -62,7 +64,7 @@ public final class ChannelSourceProvider implements MessageSource.Provider {
     }
     if (length > remaining && destination instanceof FileChannel fileChannel) {
       var bytesWritten = destination.write(buffer);
-      if (bytesWritten != length) {
+      if (bytesWritten != remaining) {
         throw Exceptions.nonBlockingChannelDetected();
       }
       return fileChannel.transferFrom(sourceChannel, fileChannel.position(), length - remaining);

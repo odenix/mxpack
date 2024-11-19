@@ -101,7 +101,10 @@ public final class DefaultMessageSink implements MessageSink {
 
   @Override
   public long transferFrom(ReadableByteChannel channel, long length) throws IOException {
-    return provider.transferFrom(channel, length, sinkBuffer);
+    sinkBuffer.flip();
+    var bytesTransferred = provider.transferFrom(channel, length, sinkBuffer);
+    sinkBuffer.clear();
+    return bytesTransferred;
   }
 
   @Override

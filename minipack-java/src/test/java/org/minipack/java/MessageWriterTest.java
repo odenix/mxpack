@@ -21,7 +21,8 @@ import net.jqwik.api.ForAll;
 import net.jqwik.api.Property;
 import net.jqwik.api.constraints.CharRange;
 import net.jqwik.api.constraints.StringLength;
-import net.jqwik.api.lifecycle.AfterProperty;
+import net.jqwik.api.lifecycle.AfterTry;
+import net.jqwik.api.lifecycle.BeforeTry;
 import org.msgpack.core.MessageFormat;
 import org.msgpack.core.MessagePack;
 import org.msgpack.core.MessageUnpacker;
@@ -30,31 +31,37 @@ import org.msgpack.value.ValueType;
 /** Tests {@link MessageWriter} against {@link org.msgpack.core.MessageUnpacker}. */
 public abstract sealed class MessageWriterTest {
   private final BufferAllocator allocator;
-  private final MessageWriter writer;
-  private final MessageUnpacker unpacker;
+  private final boolean isChannel;
+  private MessageWriter writer;
+  private MessageUnpacker unpacker;
 
   public static final class OutputStreamHeapBufferTest extends MessageWriterTest {
-    public OutputStreamHeapBufferTest() throws IOException {
+    public OutputStreamHeapBufferTest() {
       super(false, false);
     }
   }
 
   public static final class ChannelHeapBufferTest extends MessageWriterTest {
-    public ChannelHeapBufferTest() throws IOException {
+    public ChannelHeapBufferTest() {
       super(true, false);
     }
   }
 
   public static final class ChannelDirectBufferTest extends MessageWriterTest {
-    public ChannelDirectBufferTest() throws IOException {
+    public ChannelDirectBufferTest() {
       super(true, true);
     }
   }
 
-  public MessageWriterTest(boolean isChannel, boolean isDirect) throws IOException {
-    var in = new PipedInputStream(1 << 16);
-    var out = new PipedOutputStream(in);
+  public MessageWriterTest(boolean isChannel, boolean isDirect) {
+    this.isChannel = isChannel;
     allocator = BufferAllocator.ofUnpooled(options -> options.useDirectBuffers(isDirect));
+  }
+
+  @BeforeTry
+  public void beforeProperty() throws IOException {
+    var in = new PipedInputStream(1 << 19);
+    var out = new PipedOutputStream(in);
     var sink =
         isChannel
             ? MessageSink.of(
@@ -65,10 +72,13 @@ public abstract sealed class MessageWriterTest {
     unpacker = MessagePack.newDefaultUnpacker(in);
   }
 
-  @AfterProperty
-  public void afterProperty() throws IOException {
+  @AfterTry
+  public void afterTry() throws IOException {
     writer.close();
     unpacker.close();
+  }
+
+  public void afterProperty() {
     allocator.close();
   }
 

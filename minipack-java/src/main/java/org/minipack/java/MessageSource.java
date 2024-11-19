@@ -68,22 +68,28 @@ public interface MessageSource extends Closeable {
     void close() throws IOException;
 
     default void skip(int length, ByteBuffer buffer) throws IOException {
-      var bytesLeft = length;
-      for (var remaining = buffer.remaining(); bytesLeft > buffer.remaining(); ) {
-        bytesLeft -= remaining;
-        assert bytesLeft > 0;
-        buffer.clear();
-        var bytesRead = read(buffer, 1);
-        buffer.flip();
+      if (length == 0) return;
+      var remaining = buffer.remaining();
+      if (length <= remaining) {
+        buffer.position(buffer.position() + length);
+        return;
+      }
+      var capacity = buffer.capacity();
+      var bytesLeft = length - remaining;
+      while (bytesLeft > 0) {
+        var bytesToRead = Math.min(bytesLeft, capacity);
+        buffer.position(0).limit(bytesToRead);
+        var bytesRead = read(buffer, bytesToRead);
         if (bytesRead == -1) {
           throw Exceptions.unexpectedEndOfInput(bytesLeft);
         }
+        bytesLeft -= bytesRead;
       }
-      buffer.position(buffer.position() + bytesLeft);
     }
 
     default long transferTo(WritableByteChannel destination, long length, ByteBuffer buffer)
         throws IOException {
+      if (length == 0) return 0;
       var bytesLeft = length;
       for (var remaining = buffer.remaining(); bytesLeft > buffer.remaining(); ) {
         var bytesWritten = destination.write(buffer);

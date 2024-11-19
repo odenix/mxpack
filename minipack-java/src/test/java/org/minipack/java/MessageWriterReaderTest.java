@@ -23,50 +23,60 @@ import net.jqwik.api.constraints.CharRange;
 import net.jqwik.api.constraints.Size;
 import net.jqwik.api.constraints.StringLength;
 import net.jqwik.api.lifecycle.AfterProperty;
+import net.jqwik.api.lifecycle.AfterTry;
+import net.jqwik.api.lifecycle.BeforeTry;
 import org.minipack.java.internal.DefaultMessageReader;
 import org.minipack.java.internal.MessageFormat;
 
 /** Tests {@link MessageReader} against {@link MessageWriter}. */
 public abstract sealed class MessageWriterReaderTest {
   private final BufferAllocator allocator;
-  private final MessageWriter writer;
-  private final MessageReader reader;
+  private final boolean isWriterChannel;
+  private final boolean isReaderChannel;
+  private MessageWriter writer;
+  private MessageReader reader;
 
   public static final class StreamToStreamTest extends MessageWriterReaderTest {
-    public StreamToStreamTest() throws IOException {
+    public StreamToStreamTest() {
       super(false, false, false);
     }
   }
 
   public static final class ChannelToStreamTest extends MessageWriterReaderTest {
-    public ChannelToStreamTest() throws IOException {
+    public ChannelToStreamTest() {
       super(true, false, false);
     }
   }
 
   public static final class StreamToChannelTest extends MessageWriterReaderTest {
-    public StreamToChannelTest() throws IOException {
+    public StreamToChannelTest() {
       super(false, true, false);
     }
   }
 
   public static final class ChannelToChannelHeapBufferTest extends MessageWriterReaderTest {
-    public ChannelToChannelHeapBufferTest() throws IOException {
+    public ChannelToChannelHeapBufferTest() {
       super(true, true, false);
     }
   }
 
   public static final class ChannelToChannelDirectBufferTest extends MessageWriterReaderTest {
-    public ChannelToChannelDirectBufferTest() throws IOException {
+    public ChannelToChannelDirectBufferTest() {
       super(true, true, true);
     }
   }
 
-  public MessageWriterReaderTest(boolean isWriterChannel, boolean isReaderChannel, boolean isDirect)
-      throws IOException {
-    var in = new PipedInputStream(1 << 16);
-    var out = new PipedOutputStream(in);
+  public MessageWriterReaderTest(
+      boolean isWriterChannel, boolean isReaderChannel, boolean isDirect) {
+    this.isWriterChannel = isWriterChannel;
+    this.isReaderChannel = isReaderChannel;
     allocator = BufferAllocator.ofUnpooled(options -> options.useDirectBuffers(isDirect));
+  }
+
+  @BeforeTry
+  public void beforeTry() throws IOException {
+    var in = new PipedInputStream(1 << 19);
+    var out = new PipedOutputStream(in);
     var sink =
         isWriterChannel
             ? MessageSink.of(
@@ -83,10 +93,14 @@ public abstract sealed class MessageWriterReaderTest {
     reader = MessageReader.of(source);
   }
 
-  @AfterProperty
-  public void afterProperty() throws IOException {
+  @AfterTry
+  public void afterTry() throws IOException {
     writer.close();
     reader.close();
+  }
+
+  @AfterProperty
+  public void afterProperty() {
     allocator.close();
   }
 
@@ -94,7 +108,7 @@ public abstract sealed class MessageWriterReaderTest {
   public void roundtripNil() throws IOException {
     writer.writeNil();
     writer.flush();
-    //    assertThat(reader.nextFormat()).isEqualTo(MessageFormat.NIL);
+    assertThat(nextFormat()).isEqualTo(MessageFormat.NIL);
     assertThat(reader.nextType()).isEqualTo(MessageType.NIL);
     assertThatNoException().isThrownBy(reader::readNil);
   }
@@ -103,8 +117,7 @@ public abstract sealed class MessageWriterReaderTest {
   public void roundtripBoolean(@ForAll boolean input) throws IOException {
     writer.write(input);
     writer.flush();
-    //    assertThat(reader.nextFormat()).isEqualTo(input ? MessageFormat.TRUE :
-    // MessageFormat.FALSE);
+    assertThat(nextFormat()).isEqualTo(input ? MessageFormat.TRUE : MessageFormat.FALSE);
     assertThat(reader.nextType()).isEqualTo(MessageType.BOOLEAN);
     var output = reader.readBoolean();
     assertThat(output).isEqualTo(input);
@@ -114,7 +127,7 @@ public abstract sealed class MessageWriterReaderTest {
   public void roundtripByte(@ForAll byte input) throws IOException {
     writer.write(input);
     writer.flush();
-    assertThat(((DefaultMessageReader) reader).nextFormat())
+    assertThat(nextFormat())
         .satisfiesAnyOf(
             format -> assertThat(MessageFormat.isFixInt(format)).isTrue(),
             format ->
@@ -129,7 +142,7 @@ public abstract sealed class MessageWriterReaderTest {
   public void roundtripShort(@ForAll short input) throws IOException {
     writer.write(input);
     writer.flush();
-    assertThat(((DefaultMessageReader) reader).nextFormat())
+    assertThat(nextFormat())
         .satisfiesAnyOf(
             format -> assertThat(MessageFormat.isFixInt(format)).isTrue(),
             format ->
@@ -146,7 +159,7 @@ public abstract sealed class MessageWriterReaderTest {
   public void roundtripInt(@ForAll int input) throws IOException {
     writer.write(input);
     writer.flush();
-    assertThat(((DefaultMessageReader) reader).nextFormat())
+    assertThat(nextFormat())
         .satisfiesAnyOf(
             format -> assertThat(MessageFormat.isFixInt(format)).isTrue(),
             format ->
@@ -166,7 +179,7 @@ public abstract sealed class MessageWriterReaderTest {
   public void roundtripLong(@ForAll long input) throws IOException {
     writer.write(input);
     writer.flush();
-    assertThat(((DefaultMessageReader) reader).nextFormat())
+    assertThat(nextFormat())
         .satisfiesAnyOf(
             format -> assertThat(MessageFormat.isFixInt(format)).isTrue(),
             format ->
@@ -189,7 +202,7 @@ public abstract sealed class MessageWriterReaderTest {
   public void roundtripFloat(@ForAll float input) throws IOException {
     writer.write(input);
     writer.flush();
-    //    assertThat(reader.nextFormat()).isEqualTo(MessageFormat.FLOAT32);
+    assertThat(nextFormat()).isEqualTo(MessageFormat.FLOAT32);
     assertThat(reader.nextType()).isEqualTo(MessageType.FLOAT);
     var output = reader.readFloat();
     assertThat(output).isEqualTo(input);
@@ -199,7 +212,7 @@ public abstract sealed class MessageWriterReaderTest {
   public void roundtripDouble(@ForAll double input) throws IOException {
     writer.write(input);
     writer.flush();
-    //    assertThat(reader.nextFormat()).isEqualTo(MessageFormat.FLOAT64);
+    assertThat(nextFormat()).isEqualTo(MessageFormat.FLOAT64);
     assertThat(reader.nextType()).isEqualTo(MessageType.FLOAT);
     var output = reader.readDouble();
     assertThat(output).isEqualTo(input);
@@ -687,7 +700,7 @@ public abstract sealed class MessageWriterReaderTest {
   private void doRoundtripString(CharSequence input) throws IOException {
     writer.write(input);
     writer.flush();
-    assertThat(((DefaultMessageReader) reader).nextFormat())
+    assertThat(nextFormat())
         .satisfiesAnyOf(
             format -> assertThat(MessageFormat.isFixStr(format)).isTrue(),
             format -> assertThat(format).isEqualTo(MessageFormat.STR8),
@@ -704,5 +717,9 @@ public abstract sealed class MessageWriterReaderTest {
     assertThat(reader.nextType()).isEqualTo(MessageType.STRING);
     var output = reader.readIdentifier();
     assertThat(output).isEqualTo(input);
+  }
+
+  private byte nextFormat() throws IOException {
+    return ((DefaultMessageReader) reader).nextFormat();
   }
 }

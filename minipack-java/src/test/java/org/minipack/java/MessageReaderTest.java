@@ -24,6 +24,8 @@ import net.jqwik.api.constraints.CharRange;
 import net.jqwik.api.constraints.Size;
 import net.jqwik.api.constraints.StringLength;
 import net.jqwik.api.lifecycle.AfterProperty;
+import net.jqwik.api.lifecycle.AfterTry;
+import net.jqwik.api.lifecycle.BeforeTry;
 import org.minipack.java.internal.DefaultMessageReader;
 import org.minipack.java.internal.MessageFormat;
 import org.msgpack.core.MessagePack;
@@ -32,32 +34,38 @@ import org.msgpack.core.MessagePacker;
 /** Tests {@link MessageReader} against {@link org.msgpack.core.MessagePacker}. */
 public abstract sealed class MessageReaderTest {
   private final BufferAllocator allocator;
-  private final MessagePacker packer;
-  private final MessageReader reader;
+  private final boolean isChannel;
+  private MessagePacker packer;
+  private MessageReader reader;
 
   public static final class InputStreamHeapBufferTest extends MessageReaderTest {
-    public InputStreamHeapBufferTest() throws IOException {
+    public InputStreamHeapBufferTest() {
       super(false, false);
     }
   }
 
   public static final class ChannelHeapBufferTest extends MessageReaderTest {
-    public ChannelHeapBufferTest() throws IOException {
+    public ChannelHeapBufferTest() {
       super(true, false);
     }
   }
 
   public static final class ChannelDirectBufferTest extends MessageReaderTest {
-    public ChannelDirectBufferTest() throws IOException {
+    public ChannelDirectBufferTest() {
       super(true, true);
     }
   }
 
-  public MessageReaderTest(boolean isChannel, boolean isDirect) throws IOException {
-    var in = new PipedInputStream(1 << 16);
+  public MessageReaderTest(boolean isChannel, boolean isDirect) {
+    this.isChannel = isChannel;
+    allocator = BufferAllocator.ofUnpooled(options -> options.useDirectBuffers(isDirect));
+  }
+
+  @BeforeTry
+  public void beforeTry() throws IOException {
+    var in = new PipedInputStream(1 << 19);
     var out = new PipedOutputStream(in);
     packer = MessagePack.newDefaultPacker(out);
-    allocator = BufferAllocator.ofUnpooled(options -> options.useDirectBuffers(isDirect));
     reader =
         MessageReader.of(
             isChannel
@@ -68,17 +76,21 @@ public abstract sealed class MessageReaderTest {
                     in, options -> options.allocator(allocator).bufferCapacity(1 << 8)));
   }
 
-  @AfterProperty
-  public void afterProperty() throws IOException {
+  @AfterTry
+  public void afterTry() throws IOException {
     packer.close();
     reader.close();
+  }
+
+  @AfterProperty
+  public void afterProperty() {
     allocator.close();
   }
 
   @Example
   public void readNil() throws IOException {
     packer.packNil().flush();
-    //    assertThat(reader.nextFormat()).isEqualTo(MessageFormat.NIL);
+    assertThat(nextFormat()).isEqualTo(MessageFormat.NIL);
     assertThat(reader.nextType()).isEqualTo(MessageType.NIL);
     assertThatNoException().isThrownBy(reader::readNil);
   }
@@ -86,8 +98,7 @@ public abstract sealed class MessageReaderTest {
   @Property
   public void readBoolean(@ForAll boolean input) throws IOException {
     packer.packBoolean(input).flush();
-    //    assertThat(reader.nextFormat()).isEqualTo(input ? MessageFormat.TRUE :
-    // MessageFormat.FALSE);
+    assertThat(nextFormat()).isEqualTo(input ? MessageFormat.TRUE : MessageFormat.FALSE);
     assertThat(reader.nextType()).isEqualTo(MessageType.BOOLEAN);
     var output = reader.readBoolean();
     assertThat(output).isEqualTo(input);
@@ -96,7 +107,7 @@ public abstract sealed class MessageReaderTest {
   @Property
   public void readByte(@ForAll byte input) throws IOException {
     packer.packByte(input).flush();
-    assertThat(((DefaultMessageReader) reader).nextFormat())
+    assertThat(nextFormat())
         .satisfiesAnyOf(
             format -> assertThat(MessageFormat.isFixInt(format)).isTrue(),
             format -> assertThat(format).isEqualTo(MessageFormat.INT8),
@@ -109,7 +120,7 @@ public abstract sealed class MessageReaderTest {
   @Property
   public void readShort(@ForAll short input) throws IOException {
     packer.packShort(input).flush();
-    assertThat(((DefaultMessageReader) reader).nextFormat())
+    assertThat(nextFormat())
         .satisfiesAnyOf(
             format -> assertThat(MessageFormat.isFixInt(format)).isTrue(),
             format -> assertThat(format).isEqualTo(MessageFormat.INT8),
@@ -124,7 +135,7 @@ public abstract sealed class MessageReaderTest {
   @Property
   public void readInt(@ForAll int input) throws IOException {
     packer.packInt(input).flush();
-    assertThat(((DefaultMessageReader) reader).nextFormat())
+    assertThat(nextFormat())
         .satisfiesAnyOf(
             format -> assertThat(MessageFormat.isFixInt(format)).isTrue(),
             format -> assertThat(format).isEqualTo(MessageFormat.INT8),
@@ -141,7 +152,7 @@ public abstract sealed class MessageReaderTest {
   @Property
   public void readLong(@ForAll long input) throws IOException {
     packer.packLong(input).flush();
-    assertThat(((DefaultMessageReader) reader).nextFormat())
+    assertThat(nextFormat())
         .satisfiesAnyOf(
             format -> assertThat(MessageFormat.isFixInt(format)).isTrue(),
             format -> assertThat(format).isEqualTo(MessageFormat.INT8),
@@ -160,7 +171,7 @@ public abstract sealed class MessageReaderTest {
   @Property
   public void readFloat(@ForAll float input) throws IOException {
     packer.packFloat(input).flush();
-    //    assertThat(reader.nextFormat()).isEqualTo(MessageFormat.FLOAT32);
+    assertThat(nextFormat()).isEqualTo(MessageFormat.FLOAT32);
     assertThat(reader.nextType()).isEqualTo(MessageType.FLOAT);
     var output = reader.readFloat();
     assertThat(output).isEqualTo(input);
@@ -169,7 +180,7 @@ public abstract sealed class MessageReaderTest {
   @Property
   public void readDouble(@ForAll double input) throws IOException {
     packer.packDouble(input).flush();
-    //    assertThat(reader.nextFormat()).isEqualTo(MessageFormat.FLOAT64);
+    assertThat(nextFormat()).isEqualTo(MessageFormat.FLOAT64);
     assertThat(reader.nextType()).isEqualTo(MessageType.FLOAT);
     var output = reader.readDouble();
     assertThat(output).isEqualTo(input);
@@ -537,7 +548,7 @@ public abstract sealed class MessageReaderTest {
   private void doReadString(String input) throws IOException {
     packer.packString(input);
     packer.flush();
-    assertThat(((DefaultMessageReader) reader).nextFormat())
+    assertThat(nextFormat())
         .satisfiesAnyOf(
             format -> assertThat(MessageFormat.isFixStr(format)).isTrue(),
             format -> assertThat(format).isEqualTo(MessageFormat.STR8),
@@ -551,7 +562,7 @@ public abstract sealed class MessageReaderTest {
   private void doReadIdentifier(String input) throws IOException {
     packer.packString(input);
     packer.flush();
-    assertThat(((DefaultMessageReader) reader).nextFormat())
+    assertThat(nextFormat())
         .satisfiesAnyOf(
             format -> assertThat(MessageFormat.isFixStr(format)).isTrue(),
             format -> assertThat(format).isEqualTo(MessageFormat.STR8),
@@ -560,5 +571,9 @@ public abstract sealed class MessageReaderTest {
     assertThat(reader.nextType()).isEqualTo(MessageType.STRING);
     var output = reader.readIdentifier();
     assertThat(output).isEqualTo(input);
+  }
+
+  private byte nextFormat() throws IOException {
+    return ((DefaultMessageReader) reader).nextFormat();
   }
 }

@@ -41,12 +41,13 @@ public final class StreamSourceProvider implements MessageSource.Provider {
 
   @Override
   public void skip(int length, ByteBuffer buffer) throws IOException {
+    if (length == 0) return;
     var remaining = buffer.remaining();
     if (length <= remaining) {
       buffer.position(buffer.position() + length);
       return;
     }
-    buffer.clear();
+    buffer.position(buffer.limit());
     stream.skipNBytes(length - remaining);
   }
 }
