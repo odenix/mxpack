@@ -13,7 +13,7 @@ import java.nio.charset.CoderResult;
 import java.util.Arrays;
 import org.minipack.java.MessageType;
 
-/** Factory methods for exceptions thrown by the minipack library. */
+/// Factory methods for exceptions thrown by the minipack library.
 public final class Exceptions {
   private Exceptions() {}
 

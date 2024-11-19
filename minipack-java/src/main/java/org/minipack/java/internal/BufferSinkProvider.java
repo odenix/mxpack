@@ -9,7 +9,7 @@ import java.util.function.Consumer;
 import org.minipack.java.BufferAllocator;
 import org.minipack.java.MessageSink;
 
-/** A sink provider that writes to a {@link java.nio.ByteBuffer}. */
+/// A sink provider that writes to a [java.nio.ByteBuffer].
 public final class BufferSinkProvider implements MessageSink.Provider {
   private final BufferAllocator allocator;
   private final SinkOutput<BufferAllocator.PooledByteBuffer> output;

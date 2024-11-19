@@ -7,7 +7,7 @@ package org.minipack.java.internal;
 import java.nio.ByteBuffer;
 import org.minipack.java.MessageSource;
 
-/** A source provider that reads nothing. */
+/// A source provider that reads nothing.
 public final class EmptySourceProvider implements MessageSource.Provider {
   @Override
   public int read(ByteBuffer buffer, int minBytesHint) {

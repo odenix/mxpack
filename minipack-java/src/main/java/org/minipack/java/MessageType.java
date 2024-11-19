@@ -4,10 +4,8 @@
  */
 package org.minipack.java;
 
-/**
- * The <a href="https://github.com/msgpack/msgpack/blob/master/spec.md#type-system">type</a> of a
- * MessagePack message.
- */
+/// The <a href="https://github.com/msgpack/msgpack/blob/master/spec.md#type-system">type</a> of a
+/// MessagePack message.
 public enum MessageType {
   NIL,
   BOOLEAN,

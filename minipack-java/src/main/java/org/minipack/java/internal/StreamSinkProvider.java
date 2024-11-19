@@ -9,7 +9,7 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import org.minipack.java.MessageSink;
 
-/** A sink provider that writes to an {@link OutputStream}. */
+/// A sink provider that writes to an [OutputStream].
 public final class StreamSinkProvider implements MessageSink.Provider {
   private final OutputStream stream;
 

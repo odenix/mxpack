@@ -11,7 +11,7 @@ import java.util.function.Consumer;
 import org.minipack.java.BufferAllocator;
 import org.minipack.java.MessageSink;
 
-/** Default implementation of {@link MessageSink}. */
+/// Default implementation of [MessageSink].
 public final class DefaultMessageSink implements MessageSink {
   private static final int MIN_BUFFER_CAPACITY = 9; // MessageFormat + long/double
   private static final int DEFAULT_BUFFER_CAPACITY = 1024 * 8;

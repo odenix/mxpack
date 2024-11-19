@@ -31,11 +31,15 @@ import org.minipack.java.internal.MessageFormat;
 import org.msgpack.core.MessagePack;
 import org.msgpack.core.MessagePacker;
 
-/** Tests {@link MessageReader} against {@link org.msgpack.core.MessagePacker}. */
+/// Tests [MessageReader] against [org.msgpack.core.MessagePacker].
 public abstract sealed class MessageReaderTest {
   private final BufferAllocator allocator;
   private final boolean isChannel;
+
+  @SuppressWarnings("NotNullFieldNotInitialized")
   private MessagePacker packer;
+
+  @SuppressWarnings("NotNullFieldNotInitialized")
   private MessageReader reader;
 
   public static final class InputStreamHeapBufferTest extends MessageReaderTest {

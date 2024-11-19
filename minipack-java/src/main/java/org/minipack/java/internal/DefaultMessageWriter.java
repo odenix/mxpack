@@ -13,7 +13,7 @@ import java.util.function.Consumer;
 import org.jspecify.annotations.Nullable;
 import org.minipack.java.*;
 
-/** Default implementation of {@link MessageWriter}. */
+/// Default implementation of [MessageWriter].
 public final class DefaultMessageWriter implements MessageWriter {
   private static final int MAX_IDENTIFIER_CACHE_SIZE = 1024 * 1024; // in bytes
 

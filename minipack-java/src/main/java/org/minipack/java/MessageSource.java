@@ -13,7 +13,7 @@ import java.nio.channels.WritableByteChannel;
 import java.util.function.Consumer;
 import org.minipack.java.internal.*;
 
-/** The underlying source of a {@link DefaultMessageReader}. */
+/// The underlying source of a [DefaultMessageReader].
 public interface MessageSource extends Closeable {
   static MessageSource of(ReadableByteChannel channel) {
     return new DefaultMessageSource(new ChannelSourceProvider(channel));
@@ -121,35 +121,29 @@ public interface MessageSource extends Closeable {
 
   BufferAllocator allocator();
 
-  /**
-   * Reads between 1 and {@linkplain ByteBuffer#remaining() remaining} bytes from this source into
-   * the given buffer, returning the actual number of bytes read.
-   *
-   * <p>Returns {@code -1} if no more bytes can be read from this source.
-   *
-   * <p>{@code minBytesHint} indicates the minimum number of bytes that the caller would like to
-   * read. However, unlike {@link #readAtLeast}, this method does not guarantee that more than 1
-   * byte will be read.
-   */
+  /// Reads between 1 and {@linkplain ByteBuffer#remaining() remaining} bytes from this source into
+  /// the given buffer, returning the actual number of bytes read.
+  ///
+  /// Returns `-1` if no more bytes can be read from this source.
+  ///
+  /// `minBytesHint` indicates the minimum number of bytes that the caller would like to
+  /// read. However, unlike [#readAtLeast], this method does not guarantee that more than 1
+  /// byte will be read.
   int read(ByteBuffer buffer) throws IOException;
 
-  /**
-   * Reads between {@code minBytes} and {@linkplain ByteBuffer#remaining() remaining} bytes from
-   * this source into the given buffer, returning the actual number of bytes read.
-   *
-   * <p>Throws {@link java.io.EOFException} if the end of input is reached before {@code minBytes}
-   * bytes have been read.
-   */
+  /// Reads between `minBytes` and {@linkplain ByteBuffer#remaining() remaining} bytes from
+  /// this source into the given buffer, returning the actual number of bytes read.
+  ///
+  /// Throws [java.io.EOFException] if the end of input is reached before `minBytes`
+  /// bytes have been read.
   int readAtLeast(ByteBuffer buffer, int minBytes) throws IOException;
 
   long transferTo(WritableByteChannel destination, long maxBytesToTransfer) throws IOException;
 
-  /**
-   * Reads enough bytes from this source into the given buffer for {@linkplain ByteBuffer#get()
-   * getting} at least {@code length} bytes from the buffer.
-   *
-   * <p>The number of bytes read is between 0 and {@link ByteBuffer#remaining()}.
-   */
+  /// Reads enough bytes from this source into the given buffer for {@linkplain ByteBuffer#get()
+  ///  getting} at least `length` bytes from the buffer.
+  ///
+  /// The number of bytes read is between 0 and [#remaining()].
   void ensureRemaining(int length) throws IOException;
 
   void skip(int length) throws IOException;

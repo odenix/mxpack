@@ -14,7 +14,7 @@ import java.util.function.Consumer;
 import org.jspecify.annotations.Nullable;
 import org.minipack.java.*;
 
-/** Default implementation of {@link MessageReader}. */
+/// Default implementation of [MessageReader].
 public final class DefaultMessageReader implements MessageReader {
   private final MessageSource source;
   private final MessageDecoder<String> stringDecoder;

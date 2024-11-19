@@ -14,7 +14,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.minipack.java.internal.*;
 
-/** The underlying sink of a {@link MessageWriter}. */
+/// The underlying sink of a [MessageWriter].
 public interface MessageSink extends Closeable {
   static MessageSink of(WritableByteChannel channel) {
     return new DefaultMessageSink(new ChannelSinkProvider(channel));
@@ -45,14 +45,14 @@ public interface MessageSink extends Closeable {
     return new DefaultMessageSink(new DiscardingSinkProvider(), consumer, sinkBuffer);
   }
 
-  /** Note: This sink performs buffer copying. */
+  /// Note: This sink performs buffer copying.
   static MessageSink.WithOutput<BufferAllocator.PooledByteBuffer> ofBuffer() {
     var output = new SinkOutput<BufferAllocator.PooledByteBuffer>();
     var sink = new DefaultMessageSink(new BufferSinkProvider(output));
     return new WithOutput<>(sink, output);
   }
 
-  /** Note: This sink performs buffer copying. */
+  /// Note: This sink performs buffer copying.
   static MessageSink.WithOutput<BufferAllocator.PooledByteBuffer> ofBuffer(
       Consumer<Options> consumer) {
     var output = new SinkOutput<BufferAllocator.PooledByteBuffer>();
@@ -121,17 +121,13 @@ public interface MessageSink extends Closeable {
   @Override
   void close() throws IOException;
 
-  /**
-   * Writes enough bytes from the given buffer to this sink for {@linkplain ByteBuffer#put putting}
-   * at least {@code length} bytes into the buffer.
-   *
-   * <p>The number of bytes written is between 0 and {@linkplain ByteBuffer#remaining() remaining}.
-   */
+  /// Writes enough bytes from the given buffer to this sink for [putting][ByteBuffer#put]
+  /// at least `length` bytes into the buffer.
+  ///
+  /// The number of bytes written is between 0 and [remaining][ByteBuffer#remaining()].
   void ensureRemaining(int length) throws IOException;
 
-  /**
-   * Puts a byte value into the given buffer, ensuring that the buffer has enough space remaining.
-   */
+  /// Puts a byte value into the given buffer, ensuring that the buffer has enough space remaining.
   void write(byte value) throws IOException;
 
   void write(byte[] values) throws IOException;
@@ -146,10 +142,8 @@ public interface MessageSink extends Closeable {
 
   void write(double value) throws IOException;
 
-  /**
-   * Puts two byte values into the given buffer, ensuring that the buffer has enough space
-   * remaining.
-   */
+  /// Puts two byte values into the given buffer, ensuring that the buffer has enough space
+  /// remaining.
   void write(byte value1, byte value2) throws IOException;
 
   void write(byte value1, short value2) throws IOException;

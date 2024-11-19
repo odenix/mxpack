@@ -12,7 +12,7 @@ import java.nio.channels.SeekableByteChannel;
 import java.nio.channels.WritableByteChannel;
 import org.minipack.java.MessageSource;
 
-/** A source provider that reads from a blocking {@link ReadableByteChannel}. */
+/// A source provider that reads from a blocking [ReadableByteChannel].
 public final class ChannelSourceProvider implements MessageSource.Provider {
   private final ReadableByteChannel sourceChannel;
 

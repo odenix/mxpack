@@ -28,12 +28,16 @@ import net.jqwik.api.lifecycle.BeforeTry;
 import org.minipack.java.internal.DefaultMessageReader;
 import org.minipack.java.internal.MessageFormat;
 
-/** Tests {@link MessageReader} against {@link MessageWriter}. */
+/// Tests [MessageReader] against [MessageWriter].
 public abstract sealed class MessageWriterReaderTest {
   private final BufferAllocator allocator;
   private final boolean isWriterChannel;
   private final boolean isReaderChannel;
+
+  @SuppressWarnings("NotNullFieldNotInitialized")
   private MessageWriter writer;
+
+  @SuppressWarnings("NotNullFieldNotInitialized")
   private MessageReader reader;
 
   public static final class StreamToStreamTest extends MessageWriterReaderTest {

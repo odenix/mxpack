@@ -4,7 +4,7 @@
  */
 package org.minipack.java.internal;
 
-/** The type requested when reading a MessagePack value. */
+/// The type requested when reading a MessagePack value.
 public enum RequestedType {
   NIL,
   BOOLEAN,

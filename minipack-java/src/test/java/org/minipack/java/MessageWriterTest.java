@@ -28,11 +28,15 @@ import org.msgpack.core.MessagePack;
 import org.msgpack.core.MessageUnpacker;
 import org.msgpack.value.ValueType;
 
-/** Tests {@link MessageWriter} against {@link org.msgpack.core.MessageUnpacker}. */
+/// Tests [MessageWriter] against [org.msgpack.core.MessageUnpacker].
 public abstract sealed class MessageWriterTest {
   private final BufferAllocator allocator;
   private final boolean isChannel;
+
+  @SuppressWarnings("NotNullFieldNotInitialized")
   private MessageWriter writer;
+
+  @SuppressWarnings("NotNullFieldNotInitialized")
   private MessageUnpacker unpacker;
 
   public static final class OutputStreamHeapBufferTest extends MessageWriterTest {

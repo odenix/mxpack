@@ -14,7 +14,7 @@ import org.minipack.java.BufferAllocator;
 import org.minipack.java.MessageSource;
 import org.minipack.java.MessageType;
 
-/** Default implementation of {@link MessageSource}. */
+/// Default implementation of [MessageSource].
 public final class DefaultMessageSource implements MessageSource {
   private static final int MIN_BUFFER_CAPACITY = 9; // MessageFormat + long/double
   private static final int DEFAULT_BUFFER_CAPACITY = 1024 * 8;

@@ -9,7 +9,7 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import org.minipack.java.MessageSource;
 
-/** A source provider that reads from an {@link InputStream}. */
+/// A source provider that reads from an [InputStream].
 public final class StreamSourceProvider implements MessageSource.Provider {
   private final InputStream stream;
 

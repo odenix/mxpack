@@ -1,4 +1,4 @@
-/** Internal implementation of org.minipack.java. */
+/// Internal implementation of org.minipack.java.
 @NullMarked
 package org.minipack.java.internal;
 

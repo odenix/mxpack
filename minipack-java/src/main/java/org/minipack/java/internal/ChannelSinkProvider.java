@@ -12,7 +12,7 @@ import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
 import org.minipack.java.MessageSink;
 
-/** A source provider that writes to a blocking {@link WritableByteChannel}. */
+/// A source provider that writes to a blocking [WritableByteChannel].
 public final class ChannelSinkProvider implements MessageSink.Provider {
   private final WritableByteChannel sinkChannel;
 

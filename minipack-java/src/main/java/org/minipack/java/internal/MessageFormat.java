@@ -7,10 +7,8 @@ package org.minipack.java.internal;
 import java.util.Arrays;
 import org.minipack.java.MessageType;
 
-/**
- * The <a href="https://github.com/msgpack/msgpack/blob/master/spec.md#formats">format</a> of a
- * MessagePack value.
- */
+/// The <a href="https://github.com/msgpack/msgpack/blob/master/spec.md#formats">format</a> of a
+/// MessagePack value.
 public final class MessageFormat {
   private static final MessageType[] TYPE_LOOKUP;
 
