@@ -4,6 +4,7 @@ site_name: MiniPack
 site_url: https://odenix.github.io/minipack
 repo_url: https://github.com/odenix/minipack
 edit_uri: edit/main/docs/
+site_dir: build/website
 nav:
   - 'index.md'
   - 'getting-started.md'
