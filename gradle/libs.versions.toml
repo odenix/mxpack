@@ -1,0 +1,35 @@
+[versions]
+assertj = "3.26.3"
+dokkaHtml = "2.4.0"
+dokkaJava = "1.9.20"
+googleJavaFormat = "1.24.0"
+jmh = "0.7.2"
+jqwik = "1.9.1"
+jspecify = "1.0.0"
+junit = "5.11.3"
+junitLauncher = "1.11.3"
+kotlin = "2.0.21"
+ktfmt = "0.53"
+mavenPublish = "0.30.0"
+messagePack = "0.9.8"
+spotless = "6.25.0"
+
+[libraries]
+assertj = { module = "org.assertj:assertj-core", version.ref = "assertj" }
+dokkaJava = { module = "org.jetbrains.dokka:kotlin-as-java-plugin", version.ref = "dokkaJava" }
+jqwikApi = { module = "net.jqwik:jqwik-api", version.ref = "jqwik" }
+jqwikEngine = { module = "net.jqwik:jqwik-engine", version.ref = "jqwik" }
+jqwikTime = { module = "net.jqwik:jqwik-time", version.ref = "jqwik" }
+jspecify = { module = "org.jspecify:jspecify", version.ref = "jspecify" }
+junitJupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
+junitLauncher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junitLauncher" }
+messagePack = { module = "org.msgpack:msgpack-core", version.ref = "messagePack" }
+
+[plugins]
+# https://github.com/adamko-dev/dokkatoo
+dokkaHtml = { id = "dev.adamko.dokkatoo-html", version.ref = "dokkaHtml" }
+jmh = { id = "me.champeau.jmh", version.ref =  "jmh" }
+# https://vanniktech.github.io/gradle-maven-publish-plugin/
+mavenPublish = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublish" }
+# https://github.com/diffplug/spotless/tree/main/plugin-gradle
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
