@@ -1,5 +1,5 @@
-[![Build Status](https://img.shields.io/github/actions/workflow/status/translatenix/minipack/run-dev-build)](https://github.com/translatenix/minipack/actions/workflows/run-dev-build.yml)
 [![License](https://img.shields.io/:license-apache-31c653.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/translatenix/minipack/.github%2Fworkflows%2Frun-dev-build.yml)](https://github.com/translatenix/minipack/actions/workflows/run-dev-build.yml)
 # MiniPack
 
 MiniPack is a modern, efficient, and extensible Java library 
