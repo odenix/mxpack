@@ -10,7 +10,7 @@
 /// tab | pom.xml
 ```xml
 <dependency>
-  <groupId>org.minipack</groupId>
+  <groupId>io.github.odenix</groupId>
   <artifactId>minipack-kotlin</artifactId>
   <version>${minipackVersion}</version>
 </dependency>
@@ -20,7 +20,7 @@
 /// tab | build.gradle.kts
 ```{.kotlin}
 dependencies {
-  implementation("org.minipack:minipack-kotlin:${minipackVersion}")
+  implementation("io.github.odenix:minipack-kotlin:${minipackVersion}")
 }
 ```
 ///
@@ -28,7 +28,7 @@ dependencies {
 /// tab | build.gradle
 ```groovy
 dependencies {
-  implementation "org.minipack:minipack-kotlin:${minipackVersion}"
+  implementation "io.github.odenix:minipack-kotlin:${minipackVersion}"
 }
 ```
 ///
@@ -40,8 +40,8 @@ dependencies {
 The Kotlin API's factory methods mirror the Java API's factory methods
 but use named arguments with default values instead of option builders.
 
-For example, `:::kotlin org.minipack.kotlin.BufferAllocators.ofPooled()` (note the plural form)
-mirrors `:::kotlin org.minipack.core.BufferAllocator.ofPooled()`.
+For example, `:::kotlin BufferAllocators.ofPooled()` (note the plural form)
+mirrors `:::kotlin BufferAllocator.ofPooled()`.
 
 /// tab | Java
 ```{.java}

@@ -58,7 +58,7 @@ tasks.javadoc {
     val sourceSetDirectories = sourceSets.main.get().java.sourceDirectories.joinToString(":")
     addStringOption("-source-path", sourceSetDirectories)
   }
-  exclude("org/minipack/java/internal/**")
+  exclude("io/github/odenix/minipack/java/internal/**")
 }
 
 spotless {
@@ -66,7 +66,7 @@ spotless {
     licenseHeaderFile(file("../gradle/spotless/license.java"))
   }
   format("javaCode", com.diffplug.gradle.spotless.JavaExtension::class.java) {
-    targetExclude("src/test/java/org/minipack/java/example/**")
+    targetExclude("src/test/java/io/github/odenix/minipack/java/example/**")
     // https://github.com/google/google-java-format/issues/1193
     // googleJavaFormat(libs.versions.googleJavaFormat.get()).reflowLongStrings()
   }
@@ -76,12 +76,12 @@ spotless {
 mavenPublishing {
   publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
 
-  //coordinates("org.minipack", "minipack-core")
+  //coordinates("io.github.odenix", "minipack-core")
 
   pom {
     name = "MiniPack Core"
     description = "A modern, efficient, and extensible Java library for reading and writing the MessagePack serialization format."
-    url = "https://github.com/translatenix/minipack"
+    url = "https://github.com/odenix/minipack"
     licenses {
       license {
         name = "The Apache License, Version 2.0"
@@ -90,15 +90,15 @@ mavenPublishing {
     }
     developers {
       developer {
-        id = "translatenix"
-        name = "translatenix"
-        email = "119817707+translatenix@users.noreply.github.com"
+        id = "odenix"
+        name = "odenix"
+        email = "119817707+odenix@users.noreply.github.com"
       }
     }
     scm {
-      connection = "scm:git:https://github.com/translatenix/minipack.git"
-      developerConnection = "scm:git:ssh://git@github.com/translatenix/minipack.git"
-      url = "https://github.com/translatenix/minipack"
+      connection = "scm:git:https://github.com/odenix/minipack.git"
+      developerConnection = "scm:git:ssh://git@github.com/odenix/minipack.git"
+      url = "https://github.com/odenix/minipack"
     }
   }
 }

@@ -1,11 +1,11 @@
-# Module org.minipack.kotlin
+# Module io.github.odenix.minipack.kotlin
 
 Kotlin integration for MiniPack, a Java library for reading and writing the MessagePack serialization format.
 
-For further documentation, see [Kotlin Integration](https://translatenix.github.io/minipack/kotlin-integration/).
+For further documentation, see [Kotlin Integration](https://odenix.github.io/minipack/kotlin-integration/).
 
-# Package org.minipack.kotlin
+# Package io.github.odenix.minipack.kotlin
 
 The Kotlin API of MiniPack.
 
-For further documentation, see [Kotlin Integration](https://translatenix.github.io/minipack/kotlin-integration/).
+For further documentation, see [Kotlin Integration](https://odenix.github.io/minipack/kotlin-integration/).

@@ -355,7 +355,7 @@ See [Kotlin Integration](kotlin-integration.md/#read-unsigned-integers).
 
 See [Kotlin Integration](kotlin-integration.md/#write-unsigned-integers).
 
-[1]: https://translatenix.github.io/minipack/api/org/minipack/java/MessageWriter.html
-[2]: https://translatenix.github.io/minipack/api/org/minipack/java/MessageReader.html
-[3]: https://translatenix.github.io/minipack/api/org/minipack/java/BufferAllocator#of.html
-[4]: https://translatenix.github.io/minipack/api/org/minipack/kotlin/BufferAllocator#of.html
+[1]: https://odenix.github.io/minipack/api/io/github/odenix/minipack/java/MessageWriter.html
+[2]: https://odenix.github.io/minipack/api/io/github/odenix/minipack/java/MessageReader.html
+[3]: https://odenix.github.io/minipack/api/io/github/odenix/minipack/java/BufferAllocator#of.html
+[4]: https://odenix.github.io/minipack/api/io/github/odenix/minipack/kotlin/BufferAllocator#of.html

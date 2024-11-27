@@ -53,7 +53,7 @@ spotless {
     licenseHeaderFile(file("../gradle/spotless/license.java"))
   }
   format("kotlinCode", com.diffplug.gradle.spotless.KotlinExtension::class.java) {
-    targetExclude("src/test/kotlin/org/minipack/kotlin/example/**")
+    targetExclude("src/test/kotlin/io/github/odenix/minipack/kotlin/example/**")
     ktfmt(libs.versions.ktfmt.get()).googleStyle()
   }
 }
@@ -70,7 +70,7 @@ configurations.matching {
 // For configuration options see:
 // https://adamko-dev.github.io/dokkatoo/kdoc/modules/dokkatoo-plugin/dev.adamko.dokkatoo/-dokkatoo-extension/index.html
 dokkatoo {
-  moduleName = "org.minipack.kotlin"
+  moduleName = "io.github.odenix.minipack.kotlin"
   pluginsConfiguration.html {
     footerMessage = "Copyright 2024 the MiniPack contributors"
 
@@ -81,7 +81,7 @@ dokkatoo {
       documentedVisibilities(VisibilityModifier.PUBLIC, VisibilityModifier.PROTECTED)
       includes.from("src/main/dokka/minipack-kotlin.md")
       sourceRoots = fileTree("src/main/kotlin") {
-        include("org/minipack/kotlin/**")
+        include("io/github/odenix/minipack/kotlin/**")
       }
     }
   }
@@ -91,7 +91,7 @@ mavenPublishing {
   pom {
     name = "MiniPack for Kotlin"
     description = "Kotlin integration for MiniPack, a Java library for reading and writing the MessagePack serialization format."
-    url = "https://github.com/translatenix/minipack"
+    url = "https://github.com/odenix/minipack"
     licenses {
       license {
         name = "The Apache License, Version 2.0"
@@ -100,15 +100,15 @@ mavenPublishing {
     }
     developers {
       developer {
-        id = "translatenix"
-        name = "translatenix"
-        email = "119817707+translatenix@users.noreply.github.com"
+        id = "odenix"
+        name = "odenix"
+        email = "119817707+odenix@users.noreply.github.com"
       }
     }
     scm {
-      connection = "scm:git:https://github.com/translatenix/minipack.git"
-      developerConnection = "scm:git:ssh://git@github.com/translatenix/minipack.git"
-      url = "https://github.com/translatenix/minipack"
+      connection = "scm:git:https://github.com/odenix/minipack.git"
+      developerConnection = "scm:git:ssh://git@github.com/odenix/minipack.git"
+      url = "https://github.com/odenix/minipack"
     }
   }
 }

@@ -1,8 +1,8 @@
 # yaml-language-server: $schema=https://squidfunk.github.io/mkdocs-material/schema.json
 copyright: Copyright &copy; 2024 the MiniPack contributors
 site_name: MiniPack
-site_url: https://translatenix.github.io/minipack
-repo_url: https://github.com/translatenix/minipack
+site_url: https://odenix.github.io/minipack
+repo_url: https://github.com/odenix/minipack
 edit_uri: edit/main/docs/
 nav:
   - 'index.md'
@@ -17,10 +17,10 @@ nav:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/translatenix/minipack
+      link: https://github.com/odenix/minipack
 watch:
-  - minipack-core/src/test/java/org/minipack/core/example
-  - minipack-kotlin/src/test/kotlin/org/minipack/kotlin/example
+  - minipack-core/src/test/java/io/github/odenix/minipack/core/example
+  - minipack-kotlin/src/test/kotlin/io/github/odenix/minipack/kotlin/example
 theme:
   name: material
   language: en
@@ -66,7 +66,7 @@ markdown_extensions:
       check_paths: true
       dedent_subsections: true
       base_path:
-        - minipack-core/src/test/java/org/minipack/core/example
-        - minipack-kotlin/src/test/kotlin/org/minipack/kotlin/example
+        - minipack-core/src/test/java/io/github/odenix/minipack/core/example
+        - minipack-kotlin/src/test/kotlin/io/github/odenix/minipack/kotlin/example
   - pymdownx.superfences:
       disable_indented_code_blocks: true

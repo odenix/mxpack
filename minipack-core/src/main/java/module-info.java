@@ -7,11 +7,10 @@ import org.jspecify.annotations.NullMarked;
 /// A modern, efficient, and extensible Java library for reading and writing
 /// the <a href="https://msgpack.org/">MessagePack</a> serialization format.
 ///
-/// For further documentation, see the [MiniPack website](https://translatenix.github.io/minipack/).
+/// For further documentation, see the [MiniPack website](https://odenix.github.io/minipack/).
 @NullMarked
-module org.minipack.core {
-  exports org.minipack.core;
+module io.github.odenix.minipack.core {
+  exports io.github.odenix.minipack.core;
 
   requires static transitive org.jspecify;
-  requires java.desktop;
 }

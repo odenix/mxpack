@@ -1,4 +1,4 @@
 # API Documentation
 
-* [Java API](https://translatenix.github.io/minipack/javadoc/)
-* [Kotlin API](https://translatenix.github.io/minipack/kdoc/)
+* [Java API](https://odenix.github.io/minipack/javadoc/)
+* [Kotlin API](https://odenix.github.io/minipack/kdoc/)

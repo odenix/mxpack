@@ -14,10 +14,10 @@
 
 [1]: https://jspecify.dev/docs/api/org/jspecify/annotations/Nullable.html
 [2]: https://jspecify.dev/docs/api/org/jspecify/annotations/NonNull.html
-[3]: https://translatenix.github.io/minipack/api/org/minipack/MiniPackException.html
-[4]: https://translatenix.github.io/minipack/api/org/minipack/MessageSource.html
-[5]: https://translatenix.github.io/minipack/api/org/minipack/MessageSink.html
+[3]: https://odenix.github.io/minipack/api/io/github/odenix/minipack/MiniPackException.html
+[4]: https://odenix.github.io/minipack/api/io/github/odenix/minipack/MessageSource.html
+[5]: https://odenix.github.io/minipack/api/io/github/odenix/minipack/MessageSink.html
 [6]: https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/nio/channels/Channel.html
 [7]: https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/nio/ByteBuffer.html
 [8]: https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/nio/LeasedByteBuffer.html
-[9]: https://translatenix.github.io/minipack/api/org/minipack/BufferAllocator.html
+[9]: https://odenix.github.io/minipack/api/io/github/odenix/minipack/BufferAllocator.html

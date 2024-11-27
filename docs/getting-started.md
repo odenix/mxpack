@@ -11,7 +11,7 @@ MiniPack is available from Maven Central.
 /// tab | pom.xml
 ```xml
 <dependency>
-  <groupId>org.minipack</groupId>
+  <groupId>io.github.odenix</groupId>
   <artifactId>minipack-core</artifactId>
   <version>${minipackVersion}</version>
 </dependency>
@@ -21,7 +21,7 @@ MiniPack is available from Maven Central.
 /// tab | build.gradle.kts
 ```{.kotlin}
 dependencies {
-  implementation("org.minipack:minipack-core:${minipackVersion}")
+  implementation("io.github.odenix:minipack-core:${minipackVersion}")
 }
 ```
 ///
@@ -29,7 +29,7 @@ dependencies {
 /// tab | build.gradle
 ```groovy
 dependencies {
-  implementation "org.minipack:minipack-kotlin:${minipackVersion}"
+  implementation "io.github.odenix:minipack-kotlin:${minipackVersion}"
 }
 ```
 ///

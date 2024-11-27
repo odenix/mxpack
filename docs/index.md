@@ -14,11 +14,11 @@ The following code writes a string and number to `path`, then reads them back:
 -8<- "HelloMiniPack.java:snippet"
 ```
 
-1. Creates an `:::java org.minipack.core.MessageWriter` that writes to `:::java out`.
+1. Creates a `:::java MessageWriter` that writes to `:::java out`.
    The `:::java try` block ensures that the writer is always closed and not used thereafter.
 2. Encodes string `:::java "Hello, MiniPack!"` and writes it to `:::java out`.
 3. Encodes number `:::java 42` and writes it to `:::java out`.
-4. Creates an `:::java org.minipack.core.MessageReader` that reads from `:::java in`.
+4. Creates a `:::java MessageReader` that reads from `:::java in`.
    The `:::java try` block ensures that the reader is always closed and not used thereafter.
 5. Reads a string from `:::java in` and decodes it to `:::java "Hello, MiniPack!"`.
 6. Reads a number from `:::java in` and decodes it to `:::java 42`.
@@ -29,13 +29,13 @@ The following code writes a string and number to `path`, then reads them back:
 -8<- "HelloMiniPack.kt:snippet"
 ```
 
-1. Creates an `:::kotlin org.minipack.core.MessageWriter` that writes to `:::kotlin out`.
-   The preferred Kotlin way to create a writer is `:::kotlin org.minipack.kotlin.MessageWriters.of()`.
+1. Creates a `:::kotlin MessageWriter` that writes to `:::kotlin out`.
+   The preferred Kotlin way to create a writer is `:::kotlin MessageWriters.of()` (note the plural form).
    The `:::kotlin use {}` block ensures that the writer is always closed and not used thereafter.
 2. Encodes string `:::kotlin "Hello, MiniPack!"` and writes it to `:::kotlin out`.
 3. Encodes number `:::kotlin 42` and writes it to `:::kotlin out`.
-4. Creates an `:::kotlin org.minipack.core.MessageReader` that reads from `:::kotlin in`.
-   The preferred Kotlin way to create a reader is `:::kotlin org.minipack.kotlin.MessageReaders.of()`.
+4. Creates a `:::kotlin MessageReader` that reads from `:::kotlin in`.
+   The preferred Kotlin way to create a reader is `:::kotlin MessageReaders.of()` (note the plural form).
    The `:::kotlin use {}` block ensures that the reader is always closed and not used thereafter.
 5. Reads a string from `:::kotlin in` and decodes it to `:::kotlin "Hello, MiniPack!"`.
 6. Reads a number from `:::kotlin in` and decodes it to `:::kotlin 42`.
