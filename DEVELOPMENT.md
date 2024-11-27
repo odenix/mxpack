@@ -87,6 +87,17 @@
 * Tool: [GitHub Actions](https://github.com/features/actions)
 * Config files: [.github/workflows/](.github/workflows/)
 
+### Delete all workflow runs
+
+Requirements: PowerShell, gh
+
+```shell
+gh run list --limit 999 --json databaseId -q '.[].databaseId' |
+ForEach-Object {
+gh api "repos/$(gh repo view --json nameWithOwner -q .nameWithOwner)/actions/runs/$_" -X DELETE
+}
+```
+
 ## Dependency Updates
 
 * Tool: [Renovate](https://docs.renovatebot.com/)
