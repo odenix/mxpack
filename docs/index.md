@@ -1,7 +1,6 @@
 # Introduction
 
-MiniPack is a modern, efficient, and extensible Java library
-for reading and writing the [MessagePack](https://msgpack.org/) serialization format.
+MiniPack is a modern Java library for reading and writing the [MessagePack](https://msgpack.org/) serialization format.
 
 The Kotlin examples on this website use MiniPack's [Kotlin integration](kotlin-integration.md).
 

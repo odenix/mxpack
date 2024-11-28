@@ -76,11 +76,9 @@ spotless {
 mavenPublishing {
   publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
 
-  //coordinates("io.github.odenix", "minipack-core")
-
   pom {
-    name = "MiniPack Core"
-    description = "A modern, efficient, and extensible Java library for reading and writing the MessagePack serialization format."
+    name = "minipack-core"
+    description = "A modern Java library for reading and writing the MessagePack serialization format."
     url = "https://github.com/odenix/minipack"
     licenses {
       license {

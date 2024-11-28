@@ -89,8 +89,8 @@ dokkatoo {
 
 mavenPublishing {
   pom {
-    name = "MiniPack for Kotlin"
-    description = "Kotlin integration for MiniPack, a Java library for reading and writing the MessagePack serialization format."
+    name = "minipack-kotlin"
+    description = "Kotlin integration for MiniPack, a modern Java library for reading and writing the MessagePack serialization format."
     url = "https://github.com/odenix/minipack"
     licenses {
       license {

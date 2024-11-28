@@ -2,8 +2,7 @@
 [![Build Status](https://img.shields.io/github/actions/workflow/status/odenix/minipack/.github%2Fworkflows%2Frun-dev-build.yml)](https://github.com/odenix/minipack/actions/workflows/run-dev-build.yml)
 # MiniPack
 
-MiniPack is a modern, efficient, and extensible Java library 
-for reading and writing the [MessagePack](https://msgpack.org/) serialization format.
+MiniPack is a modern Java library for reading and writing the [MessagePack](https://msgpack.org/) serialization format.
 
 * [Introduction](https://odenix.github.io/minipack/)
 * [Getting Started](https://odenix.github.io/minipack/getting-started/)
