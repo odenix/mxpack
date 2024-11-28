@@ -5,4 +5,5 @@
 package io.github.odenix.minipack.kotlin;
 
 // required for module-info.java to compile
+@SuppressWarnings("unused")
 final class __ {}
