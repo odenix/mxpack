@@ -1,0 +1,73 @@
+# yaml-language-server: $schema=https://squidfunk.github.io/mkdocs-material/schema.json
+copyright: Copyright &copy; 2024 the MxPack project authors
+site_name: MxPack
+site_url: https://odenix.github.io/mxpack
+repo_url: https://github.com/odenix/mxpack
+edit_uri: edit/main/docs/
+site_dir: build/site
+nav:
+  - 'index.md'
+  - 'getting-started.md'
+  - 'examples.md'
+  - 'features.md'
+  - 'extension-points.md'
+  - 'kotlin-integration.md'
+  - 'design-principles.md'
+  - 'api-documentation.md'
+  - 'changelog.md'
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/odenix/mxpack
+watch:
+  - mxpack-core/src/test/java/org/odenix/mxpack/core/example
+  - mxpack-kotlin/src/test/kotlin/org/odenix/mxpack/kotlin/example
+theme:
+  name: material
+  language: en
+  features:
+    - content.action.edit
+    - content.code.annotate
+    - content.code.copy
+    - content.tabs.link
+    - navigation.footer
+  icon:
+    edit: material/lead-pencil
+  palette:
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+plugins:
+  - search
+markdown_extensions:
+  - attr_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: '#'
+  - pymdownx.blocks.admonition
+  - pymdownx.blocks.tab:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.smartsymbols
+  - pymdownx.snippets:
+      check_paths: true
+      dedent_subsections: true
+      base_path:
+        - mxpack-core/src/test/java/org/odenix/mxpack/core/example
+        - mxpack-kotlin/src/test/kotlin/org/odenix/mxpack/kotlin/example
+  - pymdownx.superfences:
+      disable_indented_code_blocks: true

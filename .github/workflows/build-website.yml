@@ -1,0 +1,67 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/refs/heads/master/src/schemas/json/github-workflow.json
+name: Build/deploy website
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: "website"
+  cancel-in-progress: false
+env:
+  JDK_VERSION: 23
+jobs:
+  build:
+    name: Build website
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Validate Gradle wrapper
+        uses: gradle/wrapper-validation-action@v3
+      - name: Set up JDK ${{ env.JDK_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: oracle
+          java-version: ${{ env.JDK_VERSION }}
+          cache: gradle
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.x
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+      - run: echo "CACHE_ID=$(date --utc '+%V')" >> $GITHUB_ENV
+      - uses: actions/cache@v4
+        with:
+          key: mkdocs-material-${{ env.CACHE_ID }}
+          path: .cache
+          restore-keys: |
+            mkdocs-material-
+      - name: Install mkdocs-material
+        run: pip install mkdocs-material
+      - name: Build website
+        run: mkdocs build
+      - name: Build Javadoc
+        run: ./gradlew javadoc dokkaGen -DjavadocDir=build/site/javadoc -DdokkaDir=build/site/kdoc
+      - name: Upload pages artifact
+        id: deployment
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/site/
+  deploy:
+    name: Deploy to GitHub Pages
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

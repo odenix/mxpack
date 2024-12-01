@@ -1,0 +1,40 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/refs/heads/master/src/schemas/json/github-workflow.json
+name: Run release build
+on:
+  workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+jobs:
+  gradle:
+    strategy:
+      matrix:
+        java_version: [23]
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Validate Gradle wrapper
+        uses: gradle/wrapper-validation-action@v3
+      - name: Set up JDK ${{ matrix.java_version }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: oracle
+          java-version: ${{ matrix.java_version }}
+          cache: gradle
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: Run Gradle build
+        run: ./gradlew build centralBundle
+        env:
+          SIGNING_KEY: ${{ secrets.MXPACK_ODENIX_ORG_SIGNING_KEY }}
+          PASSPHRASE: ${{ secrets.MXPACK_ODENIX_ORG_PASSPHRASE }}
+      - name: Publish to Maven Central
+        run: |
+          curl --request POST \
+          --header 'Authorization: ${{ secrets.MAVEN_CENTRAL_AUTH_TOKEN }}' \
+          --form bundle=@build/centralBundle.zip \
+          https://central.sonatype.com/api/v1/publisher/upload
+
