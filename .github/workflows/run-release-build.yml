@@ -27,7 +27,7 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
       - name: Run Gradle build
-        run: ./gradlew build centralBundle
+        run: ./gradlew buildRelease
         env:
           SIGNING_KEY: ${{ secrets.MXPACK_ODENIX_ORG_SIGNING_KEY }}
           PASSPHRASE: ${{ secrets.MXPACK_ODENIX_ORG_PASSPHRASE }}
@@ -35,6 +35,6 @@ jobs:
         run: |
           curl --request POST \
           --header 'Authorization: ${{ secrets.MAVEN_CENTRAL_AUTH_TOKEN }}' \
-          --form bundle=@build/centralBundle.zip \
-          https://central.sonatype.com/api/v1/publisher/upload
+          --form bundle=@build/buildRelease.zip \
+          https://central.sonatype.com/api/v1/publisher/upload?publishingType=USER_MANAGED
 
