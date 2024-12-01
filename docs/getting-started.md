@@ -6,7 +6,7 @@
 
 ## Installation
 
-MxPack is available from Maven Central.
+MxPack is available from [Maven Central](https://central.sonatype.com/namespace/org.odenix.mxpack).
 
 /// tab | pom.xml
 ```xml
