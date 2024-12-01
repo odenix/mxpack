@@ -25,7 +25,7 @@ import org.odenix.mxpack.core.internal.MessageWriterImpl;
 /// To close a message writer, call [#close()].
 /// **Continued use of a closed message writer can result in data corruption**.
 ///
-/// For usage examples, see [Writing data](https://odenix.github.io/mxpack/examples/#writing-data).
+/// For usage examples, see [Writing data](https://odenix.org/mxpack/examples/#writing-data).
 public sealed interface MessageWriter extends Closeable permits MessageWriterImpl {
   /// A builder of message writer options.
   sealed interface OptionBuilder permits MessageWriterImpl.OptionBuilderImpl {

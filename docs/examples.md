@@ -355,7 +355,7 @@ See [Kotlin Integration](kotlin-integration.md/#read-unsigned-integers).
 
 See [Kotlin Integration](kotlin-integration.md/#write-unsigned-integers).
 
-[1]: https://odenix.github.io/mxpack/javadoc/org/odenix/mxpack/java/MessageWriter.html
-[2]: https://odenix.github.io/mxpack/javadoc/org/odenix/mxpack/java/MessageReader.html
-[3]: https://odenix.github.io/mxpack/javadoc/org/odenix/mxpack/java/BufferAllocator#of.html
-[4]: https://odenix.github.io/mxpack/javdoc/org/odenix/mxpack/kotlin/BufferAllocator#of.html
+[1]: https://odenix.org/mxpack/javadoc/org/odenix/mxpack/java/MessageWriter.html
+[2]: https://odenix.org/mxpack/javadoc/org/odenix/mxpack/java/MessageReader.html
+[3]: https://odenix.org/mxpack/javadoc/org/odenix/mxpack/java/BufferAllocator#of.html
+[4]: https://odenix.org/mxpack/javdoc/org/odenix/mxpack/kotlin/BufferAllocator#of.html

@@ -35,7 +35,7 @@ import org.odenix.mxpack.core.internal.UnpooledBufferAllocator;
 ///
 /// When an allocator is no longer used, call [#close] to free its buffer pool.
 ///
-/// For usage examples, see [Buffer allocation](https://odenix.github.io/mxpack/examples/#buffer-allocation).
+/// For usage examples, see [Buffer allocation](https://odenix.org/mxpack/examples/#buffer-allocation).
 public sealed interface BufferAllocator extends Closeable
     permits AbstractBufferAllocator, UnpooledBufferAllocator, PooledBufferAllocator {
   /// Options for creating [unpooled][#ofUnpooled()] buffer allocators.

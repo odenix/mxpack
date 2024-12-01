@@ -1,4 +1,4 @@
 # API Documentation
 
-* [Java API](https://odenix.github.io/mxpack/javadoc/)
-* [Kotlin API](https://odenix.github.io/mxpack/kdoc/)
+* [Java API](https://odenix.org/mxpack/javadoc/)
+* [Kotlin API](https://odenix.org/mxpack/kdoc/)

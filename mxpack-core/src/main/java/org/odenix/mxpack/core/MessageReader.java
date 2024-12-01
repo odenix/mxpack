@@ -21,7 +21,7 @@ import org.odenix.mxpack.core.internal.MessageReaderImpl;
 /// To close a message reader, call [#close()].
 /// **Continued use of a closed message reader can result in data corruption.**
 ///
-/// For usage examples, see [Reading data](https://odenix.github.io/mxpack/examples/#reading-data).
+/// For usage examples, see [Reading data](https://odenix.org/mxpack/examples/#reading-data).
 public sealed interface MessageReader extends Closeable permits MessageReaderImpl {
   /// A builder of message reader options.
   sealed interface OptionBuilder permits MessageReaderImpl.OptionBuilderImpl {

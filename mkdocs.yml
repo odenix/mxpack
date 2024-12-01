@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://squidfunk.github.io/mkdocs-material/schema.json
 copyright: Copyright &copy; 2024 the MxPack project authors
 site_name: MxPack
-site_url: https://odenix.github.io/mxpack
+site_url: https://odenix.org/mxpack
 repo_url: https://github.com/odenix/mxpack
 edit_uri: edit/main/docs/
 site_dir: build/site

@@ -14,10 +14,10 @@
 
 [1]: https://jspecify.dev/docs/api/org/jspecify/annotations/Nullable.html
 [2]: https://jspecify.dev/docs/api/org/jspecify/annotations/NonNull.html
-[3]: https://odenix.github.io/mxpack/javadoc/org/odenix/mxpack/MxPackException.html
-[4]: https://odenix.github.io/mxpack/javadoc/org/odenix/mxpack/MessageSource.html
-[5]: https://odenix.github.io/mxpack/javadoc/org/odenix/mxpack/MessageSink.html
+[3]: https://odenix.org/mxpack/javadoc/org/odenix/mxpack/MxPackException.html
+[4]: https://odenix.org/mxpack/javadoc/org/odenix/mxpack/MessageSource.html
+[5]: https://odenix.org/mxpack/javadoc/org/odenix/mxpack/MessageSink.html
 [6]: https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/nio/channels/Channel.html
 [7]: https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/nio/ByteBuffer.html
 [8]: https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/nio/LeasedByteBuffer.html
-[9]: https://odenix.github.io/mxpack/javdoc/org/odenix/mxpack/BufferAllocator.html
+[9]: https://odenix.org/mxpack/javdoc/org/odenix/mxpack/BufferAllocator.html
