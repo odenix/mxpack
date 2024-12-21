@@ -3,7 +3,7 @@
 * The Java API largely consists of interfaces with factory methods named `of` or `ofXxx`.
 * Nullable types are annotated with [org.jspecify.Nullable][1].
   Types not annotated with `Nullable` are implicitly [org.jspecify.NonNull][2].
-  Non-nullness of method arguments is *not* enforced with runtime checks.
+  Non-nullness of method arguments is *not* enforced through runtime checks.
 * MxPack throws the exception types listed in [MxPackException][3].
 * MxPack embraces Java NIO. 
   For best performance, use [MessageSource][4]s and [MessageSink][5]s

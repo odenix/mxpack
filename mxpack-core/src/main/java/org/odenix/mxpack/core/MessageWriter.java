@@ -14,7 +14,6 @@ import java.nio.channels.WritableByteChannel;
 import java.time.Instant;
 import java.util.function.Consumer;
 
-import org.odenix.mxpack.core.internal.MessageOutputImpl;
 import org.odenix.mxpack.core.internal.MessageWriterImpl;
 
 /// Writes values encoded in MessagePack to a channel, output stream, [MessageOutput], or [MessageSink.Provider].
