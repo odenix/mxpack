@@ -1,5 +1,5 @@
 [versions]
-assertj = "3.26.3"
+assertj = "3.27.0"
 dokkaHtml = "2.4.0"
 dokkaJava = "1.9.20"
 googleJavaFormat = "1.24.0"
