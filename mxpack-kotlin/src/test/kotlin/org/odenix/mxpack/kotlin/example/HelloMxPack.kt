@@ -16,13 +16,13 @@ class HelloMxPack : Example() {
   fun run(path: Path) {
     // -8<- [start:snippet]
     val out = FileChannel.open(path, WRITE, CREATE)
-    MessageWriter(out).use { writer -> //(1)
+    MessageWriter(out).use { writer ->     //(1)
       writer.write("Hello, MxPack!")       //(2)
       writer.write(42)                     //(3)
     }
 
     val ch = FileChannel.open(path)
-    MessageReader(ch).use { reader ->  //(4)
+    MessageReader(ch).use { reader ->      //(4)
       val string = reader.readString()     //(5)
       val number = reader.readInt()        //(6)
     }
