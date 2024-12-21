@@ -23,8 +23,8 @@ public final class MessageWriterImpl implements MessageWriter {
   public static final class OptionBuilderImpl implements OptionBuilder {
     private BufferAllocator allocator = BufferAllocator.ofUnpooled();
     private int writeBufferCapacity = 1024 * 8;
-    private MessageEncoder<CharSequence> stringEncoder = MessageEncoder.ofStrings();
-    private MessageEncoder<? super String> identifierEncoder = MessageEncoder.ofStrings();
+    private MessageEncoder<CharSequence> stringEncoder = MessageEncoder.ofString();
+    private MessageEncoder<? super String> identifierEncoder = MessageEncoder.ofString();
 
     private OptionBuilderImpl() {}
 

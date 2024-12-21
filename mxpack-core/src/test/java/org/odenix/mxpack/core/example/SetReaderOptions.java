@@ -19,8 +19,8 @@ class SetReaderOptions extends Example {
     try (var reader = MessageReader.of(channel, options -> options
         .allocator(BufferAllocator.ofUnpooled()) //(1)
         .readBufferCapacity(1024 * 8)
-        .stringDecoder(MessageDecoder.ofStrings())
-        .identifierDecoder(MessageDecoder.ofStrings()))
+        .stringDecoder(MessageDecoder.ofString())
+        .identifierDecoder(MessageDecoder.ofString()))
     ) { /* read some values */ }
   }
   // -8<- [end:snippet]

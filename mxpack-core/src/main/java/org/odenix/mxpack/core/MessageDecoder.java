@@ -15,7 +15,7 @@ public interface MessageDecoder<T> {
   /// Returns a new message decoder that decodes strings.
   ///
   /// @return a new message decoder that decodes strings
-  static MessageDecoder<String> ofStrings() {
+  static MessageDecoder<String> ofString() {
     return new CharsetStringDecoder();
   }
 

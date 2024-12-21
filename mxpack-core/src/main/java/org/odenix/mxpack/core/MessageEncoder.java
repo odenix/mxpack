@@ -15,7 +15,7 @@ public interface MessageEncoder<T> {
   /// Returns a new message encoder that encodes strings.
   ///
   /// @return a new message encoder that encodes strings
-  static MessageEncoder<CharSequence> ofStrings() {
+  static MessageEncoder<CharSequence> ofString() {
     return new CharsetStringEncoder();
   }
 

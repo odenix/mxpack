@@ -46,7 +46,7 @@ public sealed interface MessageWriter extends Closeable permits MessageWriterImp
 
     /// Sets the string encoder to be used by [MessageWriter#write(CharSequence)].
     ///
-    /// Default: [MessageEncoder#ofStrings()]
+    /// Default: [MessageEncoder#ofString()]
     ///
     /// @param encoder the string encoder to be used by [MessageWriter#write(CharSequence)]
     /// @return this builder
@@ -54,7 +54,7 @@ public sealed interface MessageWriter extends Closeable permits MessageWriterImp
 
     /// Sets the string encoder to be used by [MessageWriter#writeIdentifier].
     ///
-    /// Default: [MessageEncoder#ofStrings()]
+    /// Default: [MessageEncoder#ofString()]
     ///
     /// @param encoder the string encoder to be used by [MessageWriter#writeIdentifier]
     /// @return this builder

@@ -25,8 +25,8 @@ public final class MessageReaderImpl implements MessageReader {
   public static final class OptionBuilderImpl implements OptionBuilder {
     private BufferAllocator allocator = BufferAllocator.ofUnpooled();
     private int readBufferCapacity = 1024 * 8;
-    private MessageDecoder<String> stringDecoder = MessageDecoder.ofStrings();
-    private MessageDecoder<String> identifierDecoder = MessageDecoder.ofStrings();
+    private MessageDecoder<String> stringDecoder = MessageDecoder.ofString();
+    private MessageDecoder<String> identifierDecoder = MessageDecoder.ofString();
 
     private OptionBuilderImpl() {}
 

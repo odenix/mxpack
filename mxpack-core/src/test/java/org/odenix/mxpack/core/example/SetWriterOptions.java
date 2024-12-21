@@ -19,8 +19,8 @@ class SetWriterOptions extends Example {
     try (var writer = MessageWriter.of(channel, options -> options
         .allocator(BufferAllocator.ofUnpooled()) //(1)
         .writeBufferCapacity(1024 * 8)
-        .stringEncoder(MessageEncoder.ofStrings())
-        .identifierEncoder(MessageEncoder.ofStrings()))
+        .stringEncoder(MessageEncoder.ofString())
+        .identifierEncoder(MessageEncoder.ofString()))
     ) { /* write some values */ }
   }
   // -8<- [end:snippet]

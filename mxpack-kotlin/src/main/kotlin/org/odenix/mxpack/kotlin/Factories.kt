@@ -304,7 +304,7 @@ fun MessageWriter(
 fun DiscardingMessageWriter(): MessageWriter = MessageWriter.ofDiscarding()
 
 /** Returns a new message encoder that encodes strings. */
-fun StringEncoder(): MessageEncoder<CharSequence> = MessageEncoder.ofStrings()
+fun StringEncoder(): MessageEncoder<CharSequence> = MessageEncoder.ofString()
 
 /** Returns a new message decoder that decodes strings. */
-fun StringDecoder(): MessageDecoder<String> = MessageDecoder.ofStrings()
+fun StringDecoder(): MessageDecoder<String> = MessageDecoder.ofString()

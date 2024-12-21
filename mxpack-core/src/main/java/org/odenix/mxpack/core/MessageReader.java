@@ -46,7 +46,7 @@ public sealed interface MessageReader extends Closeable permits MessageReaderImp
 
     /// Sets the string decoder to be used by [MessageReader#readString()].
     ///
-    /// Default: [MessageDecoder#ofStrings()]
+    /// Default: [MessageDecoder#ofString()]
     ///
     /// @param decoder the string decoder to be used by [MessageReader#readString()]
     /// @return this builder
@@ -54,7 +54,7 @@ public sealed interface MessageReader extends Closeable permits MessageReaderImp
 
     /// Sets the string decoder to be used by [MessageReader#readIdentifier()].
     ///
-    /// Default: [MessageDecoder#ofStrings()]
+    /// Default: [MessageDecoder#ofString()]
     ///
     /// @param decoder the string decoder to be used by [MessageReader#readIdentifier()]
     /// @return this builder
