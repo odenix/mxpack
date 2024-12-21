@@ -13,7 +13,7 @@ class SetReaderOptions : Example() {
   fun read(channel: ReadableByteChannel) {
     MessageReader(
       channel,
-      allocator = UnpooledBufferAllocator(), //(1)
+      allocator = UnpooledAllocator(), //(1)
       readBufferCapacity = 1024 * 8,
       stringDecoder = StringDecoder(),
       identifierDecoder = StringDecoder(),

@@ -17,7 +17,7 @@ import org.odenix.mxpack.core.*
  *
  * For additional documentation of method parameters, see [BufferAllocator.UnpooledOptionBuilder].
  */
-fun UnpooledBufferAllocator(
+fun UnpooledAllocator(
   /** The maximum capacity, in bytes, that may be requested by [BufferAllocator.getByteBuffer]. */
   maxByteBufferCapacity: Int = Int.MAX_VALUE,
   /** The maximum capacity, in chars, that may be requested by [BufferAllocator.getCharBuffer]. */
@@ -34,7 +34,7 @@ fun UnpooledBufferAllocator(
  *
  * For additional documentation of method parameters, see [BufferAllocator.PooledOptionBuilder].
  */
-fun PooledBufferAllocator(
+fun PooledAllocator(
   /** The maximum capacity, in bytes, that may be requested by [BufferAllocator.getByteBuffer]. */
   maxByteBufferCapacity: Int = Int.MAX_VALUE,
   /** The maximum capacity, in chars, that may be requested by [BufferAllocator.getCharBuffer]. */
@@ -81,7 +81,7 @@ fun MessageReader(
   /** The channel to read from. */
   channel: ReadableByteChannel,
   /** The buffer allocator to be used by the message writer. */
-  allocator: BufferAllocator = UnpooledBufferAllocator(),
+  allocator: BufferAllocator = UnpooledAllocator(),
   /** The capacity of the message reader's [read buffer][MessageSink.buffer]. */
   readBufferCapacity: Int = 1024 * 8,
   /** The string decoder to be used by [MessageReader.readString]. */
@@ -106,7 +106,7 @@ fun MessageReader(
   /** The input stream to read from. */
   stream: InputStream,
   /** The buffer allocator to be used by the message writer. */
-  allocator: BufferAllocator = UnpooledBufferAllocator(),
+  allocator: BufferAllocator = UnpooledAllocator(),
   /** The capacity of the message reader's [read buffer][MessageSink.buffer]. */
   readBufferCapacity: Int = 1024 * 8,
   /** The string decoder to be used by [MessageReader.readString]. */
@@ -131,7 +131,7 @@ fun MessageReader(
   /** The byte buffer to read from. */
   buffer: LeasedByteBuffer,
   /** The buffer allocator to be used by the message writer. */
-  allocator: BufferAllocator = UnpooledBufferAllocator(),
+  allocator: BufferAllocator = UnpooledAllocator(),
   /** The capacity of the message reader's [read buffer][MessageSink.buffer]. */
   readBufferCapacity: Int = 1024 * 8,
   /** The string decoder to be used by [MessageReader.readString]. */
@@ -156,7 +156,7 @@ fun MessageReader(
   /** The byte buffer to read from. */
   buffer: ByteBuffer,
   /** The buffer allocator to be used by the message writer. */
-  allocator: BufferAllocator = UnpooledBufferAllocator(),
+  allocator: BufferAllocator = UnpooledAllocator(),
   /** The capacity of the message reader's [read buffer][MessageSink.buffer]. */
   readBufferCapacity: Int = 1024 * 8,
   /** The string decoder to be used by [MessageReader.readString]. */
@@ -181,7 +181,7 @@ fun MessageReader(
   /** The source provider to read from. */
   provider: MessageSource.Provider,
   /** The buffer allocator to be used by the message writer. */
-  allocator: BufferAllocator = UnpooledBufferAllocator(),
+  allocator: BufferAllocator = UnpooledAllocator(),
   /** The capacity of the message reader's [read buffer][MessageSink.buffer]. */
   readBufferCapacity: Int = 1024 * 8,
   /** The string decoder to be used by [MessageReader.readString]. */
@@ -209,7 +209,7 @@ fun MessageWriter(
   /** The channel to write to. */
   channel: WritableByteChannel,
   /** The buffer allocator to be used by the message writer. */
-  allocator: BufferAllocator = UnpooledBufferAllocator(),
+  allocator: BufferAllocator = UnpooledAllocator(),
   /** The capacity of the message writer's [write buffer][MessageSink.buffer]. */
   writeBufferCapacity: Int = 1024 * 8,
   /** The string encoder to be used by `MessageWriter.write(CharSequence)`. */
@@ -234,7 +234,7 @@ fun MessageWriter(
   /** The output stream to write to. */
   stream: OutputStream,
   /** The buffer allocator to be used by the message writer. */
-  allocator: BufferAllocator = UnpooledBufferAllocator(),
+  allocator: BufferAllocator = UnpooledAllocator(),
   /** The capacity of the message writer's [write buffer][MessageSink.buffer]. */
   writeBufferCapacity: Int = 1024 * 8,
   /** The string encoder to be used by `MessageWriter.write(CharSequence)`. */
@@ -259,7 +259,7 @@ fun MessageWriter(
   /** The buffer output to write to. */
   output: MessageOutput.Buffer,
   /** The buffer allocator to be used by the message writer. */
-  allocator: BufferAllocator = UnpooledBufferAllocator(),
+  allocator: BufferAllocator = UnpooledAllocator(),
   /** The capacity of the message writer's [write buffer][MessageSink.buffer]. */
   writeBufferCapacity: Int = 1024 * 8,
   /** The string encoder to be used by `MessageWriter.write(CharSequence)`. */
@@ -284,7 +284,7 @@ fun MessageWriter(
   /** The sink provider to write to. */
   provider: MessageSink.Provider,
   /** The buffer allocator to be used by the message writer. */
-  allocator: BufferAllocator = UnpooledBufferAllocator(),
+  allocator: BufferAllocator = UnpooledAllocator(),
   /** The capacity of the message writer's [write buffer][MessageSink.buffer]. */
   writeBufferCapacity: Int = 1024 * 8,
   /** The string encoder to be used by `MessageWriter.write(CharSequence)`. */

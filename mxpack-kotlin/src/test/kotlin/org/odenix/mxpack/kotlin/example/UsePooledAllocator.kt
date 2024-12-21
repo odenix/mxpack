@@ -8,13 +8,13 @@ import org.odenix.mxpack.core.BufferAllocator
 import java.nio.channels.ReadableByteChannel
 import org.junit.jupiter.api.Test
 import org.odenix.mxpack.kotlin.MessageReader
-import org.odenix.mxpack.kotlin.PooledBufferAllocator
+import org.odenix.mxpack.kotlin.PooledAllocator
 
 @Suppress("UNUSED_ANONYMOUS_PARAMETER")
 class UsePooledAllocator : Example() {
   // -8<- [start:snippet]
   class Example {
-    val allocator: BufferAllocator = PooledBufferAllocator( //(1)
+    val allocator: BufferAllocator = PooledAllocator( //(1)
       maxByteBufferCapacity = Integer.MAX_VALUE, //(2)
       maxCharBufferCapacity = Integer.MAX_VALUE,
       maxPooledByteBufferCapacity = 1024 * 1024,

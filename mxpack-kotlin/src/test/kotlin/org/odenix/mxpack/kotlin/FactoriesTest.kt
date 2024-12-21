@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test
 class FactoriesTest {
   @Test
   fun `create unpooled allocator`() {
-    UnpooledBufferAllocator().use { allocator ->
+    UnpooledAllocator().use { allocator ->
       val buffer = allocator.getByteBuffer(42).get()
       assertThat(buffer.isDirect).isFalse
       assertThat(buffer.capacity()).isEqualTo(42)
@@ -20,7 +20,7 @@ class FactoriesTest {
 
   @Test
   fun `create pooled allocator`() {
-    PooledBufferAllocator().use { allocator ->
+    PooledAllocator().use { allocator ->
       val leasedBuffer = allocator.getByteBuffer(42)
       val buffer = leasedBuffer.get()
       assertThat(buffer.isDirect).isFalse()

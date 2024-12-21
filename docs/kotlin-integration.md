@@ -43,9 +43,9 @@ Instead of option handlers, they use named arguments with default values.
 
 For example, to create a `:::kotlin MessageReader`, use the Kotlin factory method
 `:::kotlin MessageReader()` instead of the Java factory method `:::kotlin MessageReader.of()`.
-Occasionally, the Kotlin factory method name differs from the Java interface name.
+Occasionally, Kotlin factory method names differ from Java interface names.
 For example, to create a pooled `:::kotlin BufferAllocator`, use the Kotlin factory method
-`:::kotlin PooledBufferAllocator()` instead of the Java factory method `:::kotlin BufferAllocator.ofPooled()`.
+`:::kotlin PooledAllocator()` instead of the Java factory method `:::kotlin BufferAllocator.ofPooled()`.
 
 /// tab | Java
 ```{.java}

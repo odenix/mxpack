@@ -13,7 +13,7 @@ class SetWriterOptions : Example() {
   fun write(channel: WritableByteChannel) {
     MessageWriter(
       channel,
-      allocator = UnpooledBufferAllocator(), //(1)
+      allocator = UnpooledAllocator(), //(1)
       writeBufferCapacity = 1024 * 8,
       stringEncoder = StringEncoder(),
       identifierEncoder = StringEncoder()
