@@ -4,15 +4,15 @@
  */
 package org.odenix.mxpack.kotlin.example
 
-import org.odenix.mxpack.kotlin.MessageReaders
 import java.io.InputStream
 import org.junit.jupiter.api.Test
+import org.odenix.mxpack.kotlin.MessageReader
 
 @Suppress("UNUSED_VARIABLE")
 class ReadFromStream : Example() {
   // -8<- [start:snippet]
   fun read(stream: InputStream) {
-    MessageReaders.of(stream).use { reader ->
+    MessageReader(stream).use { reader ->
       val string = reader.readString()
       val number = reader.readInt()
     }

@@ -4,21 +4,19 @@
  */
 package org.odenix.mxpack.kotlin.example
 
-import org.odenix.mxpack.kotlin.BufferAllocators
-import org.odenix.mxpack.kotlin.MessageDecoders
-import org.odenix.mxpack.kotlin.MessageReaders
 import java.nio.channels.ReadableByteChannel
 import org.junit.jupiter.api.Test
+import org.odenix.mxpack.kotlin.*
 
 class SetReaderOptions : Example() {
   // -8<- [start:snippet]
   fun read(channel: ReadableByteChannel) {
-    MessageReaders.of(
+    MessageReader(
       channel,
-      allocator = BufferAllocators.ofUnpooled(), //(1)
+      allocator = UnpooledBufferAllocator(), //(1)
       readBufferCapacity = 1024 * 8,
-      stringDecoder = MessageDecoders.ofStrings(),
-      identifierDecoder = MessageDecoders.ofStrings(),
+      stringDecoder = StringDecoder(),
+      identifierDecoder = StringDecoder(),
     ).use { /* read some values */ }
   }
   // -8<- [end:snippet]

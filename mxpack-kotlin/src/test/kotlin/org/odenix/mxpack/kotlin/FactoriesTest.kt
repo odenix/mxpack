@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test
 class FactoriesTest {
   @Test
   fun `create unpooled allocator`() {
-    BufferAllocators.ofUnpooled().use { allocator ->
+    UnpooledBufferAllocator().use { allocator ->
       val buffer = allocator.getByteBuffer(42).get()
       assertThat(buffer.isDirect).isFalse
       assertThat(buffer.capacity()).isEqualTo(42)
@@ -20,7 +20,7 @@ class FactoriesTest {
 
   @Test
   fun `create pooled allocator`() {
-    BufferAllocators.ofPooled().use { allocator ->
+    PooledBufferAllocator().use { allocator ->
       val leasedBuffer = allocator.getByteBuffer(42)
       val buffer = leasedBuffer.get()
       assertThat(buffer.isDirect).isFalse()
@@ -36,13 +36,13 @@ class FactoriesTest {
   @Test
   fun `create message reader`() {
     val buffer = ByteBuffer.allocate(1).put(42).flip()
-    MessageReaders.of(buffer).use { reader -> assertThat(reader.readInt()).isEqualTo(42) }
+    MessageReader(buffer).use { reader -> assertThat(reader.readInt()).isEqualTo(42) }
   }
 
   @Test
   fun `create message writer`() {
-    val output = MessageOutputs.ofBuffer()
-    MessageWriters.of(output).use { writer -> writer.write(42) }
+    val output = BufferOutput()
+    MessageWriter(output).use { writer -> writer.write(42) }
     val leasedBuffer = output.get()
     val buffer = leasedBuffer.get()
     assertThat(buffer.get()).isEqualTo(42)
@@ -50,13 +50,13 @@ class FactoriesTest {
 
   @Test
   fun `create string encoder`() {
-    val encoder = MessageEncoders.ofStrings()
+    val encoder = StringEncoder()
     assertThat(encoder).isNotNull
   }
 
   @Test
   fun `create string decoder`() {
-    val decoder = MessageDecoders.ofStrings()
+    val decoder = StringDecoder()
     assertThat(decoder).isNotNull
   }
 }

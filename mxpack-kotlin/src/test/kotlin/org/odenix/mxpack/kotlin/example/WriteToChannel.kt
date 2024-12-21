@@ -4,15 +4,15 @@
  */
 package org.odenix.mxpack.kotlin.example
 
-import org.odenix.mxpack.kotlin.MessageWriters
 import java.nio.channels.WritableByteChannel
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import org.odenix.mxpack.kotlin.MessageWriter
 
 class WriteToChannel : Example() {
   // -8<- [start:snippet]
   fun write(channel: WritableByteChannel) {
-    MessageWriters.of(channel).use { writer ->
+    MessageWriter(channel).use { writer ->
       writer.write("Hello, MxPack!")
       writer.write(42)
     }

@@ -37,11 +37,15 @@ dependencies {
 
 ### Factory methods
 
-The Kotlin API's factory methods mirror the Java API's factory methods
-but use named arguments with default values instead of option builders.
+The Kotlin API offers factory methods that replace the Java API's factory methods.
+The factory methods are named after the Java interfaces they return.
+Instead of option handlers, they use named arguments with default values.
 
-For example, `:::kotlin BufferAllocators.ofPooled()` (note the plural form)
-mirrors `:::kotlin BufferAllocator.ofPooled()`.
+For example, to create a `:::kotlin MessageReader`, use the Kotlin factory method
+`:::kotlin MessageReader()` instead of the Java factory method `:::kotlin MessageReader.of()`.
+Occasionally, the Kotlin factory method name differs from the Java interface name.
+For example, to create a pooled `:::kotlin BufferAllocator`, use the Kotlin factory method
+`:::kotlin PooledBufferAllocator()` instead of the Java factory method `:::kotlin BufferAllocator.ofPooled()`.
 
 /// tab | Java
 ```{.java}

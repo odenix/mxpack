@@ -4,14 +4,14 @@
  */
 package org.odenix.mxpack.kotlin.example
 
-import org.odenix.mxpack.kotlin.BufferAllocators
 import org.junit.jupiter.api.Test
+import org.odenix.mxpack.kotlin.PooledBufferAllocator
 
 class KotlinFactoryMethods : Example() {
   @Suppress("UNUSED_VARIABLE")
   fun run() {
     // -8<- [start:snippet]
-    val allocator = BufferAllocators.ofPooled(
+    val allocator = PooledBufferAllocator(
       maxByteBufferCapacity = 1024 * 1024,
       maxByteBufferPoolCapacity = 1024 * 1024 * 32
     )

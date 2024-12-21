@@ -4,21 +4,19 @@
  */
 package org.odenix.mxpack.kotlin.example
 
-import org.odenix.mxpack.kotlin.BufferAllocators
-import org.odenix.mxpack.kotlin.MessageEncoders
-import org.odenix.mxpack.kotlin.MessageWriters
 import java.nio.channels.WritableByteChannel
 import org.junit.jupiter.api.Test
+import org.odenix.mxpack.kotlin.*
 
 class SetWriterOptions : Example() {
   // -8<- [start:snippet]
   fun write(channel: WritableByteChannel) {
-    MessageWriters.of(
+    MessageWriter(
       channel,
-      allocator = BufferAllocators.ofUnpooled(), //(1)
+      allocator = UnpooledBufferAllocator(), //(1)
       writeBufferCapacity = 1024 * 8,
-      stringEncoder = MessageEncoders.ofStrings(),
-      identifierEncoder = MessageEncoders.ofStrings()
+      stringEncoder = StringEncoder(),
+      identifierEncoder = StringEncoder()
     ).use { /* write some values */ }
   }
   // -8<- [end:snippet]

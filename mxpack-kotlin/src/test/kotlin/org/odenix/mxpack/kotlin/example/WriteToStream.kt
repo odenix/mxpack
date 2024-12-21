@@ -4,15 +4,15 @@
  */
 package org.odenix.mxpack.kotlin.example
 
-import org.odenix.mxpack.kotlin.MessageWriters
 import java.io.OutputStream
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import org.odenix.mxpack.kotlin.MessageWriter
 
 class WriteToStream : Example() {
   // -8<- [start:snippet]
   fun write(stream: OutputStream) {
-    MessageWriters.of(stream).use { writer ->
+    MessageWriter(stream).use { writer ->
       writer.write("Hello, MxPack!")
       writer.write(42)
     }

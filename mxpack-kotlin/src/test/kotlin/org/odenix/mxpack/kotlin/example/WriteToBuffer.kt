@@ -5,18 +5,16 @@
 package org.odenix.mxpack.kotlin.example
 
 import org.odenix.mxpack.core.LeasedByteBuffer
-import org.odenix.mxpack.kotlin.MessageReaders
-import org.odenix.mxpack.kotlin.MessageWriters
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.odenix.mxpack.core.MessageOutput
-import org.odenix.mxpack.kotlin.MessageOutputs
+import org.odenix.mxpack.kotlin.*
 
 class WriteToBuffer : Example() {
   // -8<- [start:snippet]
   fun write(): LeasedByteBuffer {
-    val output = MessageOutputs.ofBuffer()
-    MessageWriters.of(output).use { writer ->
+    val output = BufferOutput()
+    MessageWriter(output).use { writer ->
       writer.write("Hello, MxPack!")
       writer.write(42)
     }
@@ -27,7 +25,7 @@ class WriteToBuffer : Example() {
   @Test
   fun test() {
     val buffer = write()
-    val reader = MessageReaders.of(buffer)
+    val reader = MessageReader(buffer)
     assertThat(reader.readString()).isEqualTo("Hello, MxPack!")
     assertThat(reader.readInt()).isEqualTo(42)
   }
