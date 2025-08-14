@@ -2,7 +2,7 @@
 assertj = "3.27.4"
 dokkaHtml = "2.4.0"
 googleJavaFormat = "1.24.0"
-jmh = "0.7.2"
+jmh = "0.7.3"
 jqwik = "1.9.3"
 jspecify = "1.0.0"
 junit = "5.11.4"
