@@ -1,7 +1,6 @@
 [versions]
-assertj = "3.27.3"
+assertj = "3.27.4"
 dokkaHtml = "2.4.0"
-dokkaJava = "2.0.0"
 googleJavaFormat = "1.24.0"
 jmh = "0.7.2"
 jqwik = "1.9.2"
@@ -10,12 +9,11 @@ junit = "5.13.4"
 junitLauncher = "1.13.4"
 kotlin = "2.0.21"
 ktfmt = "0.53"
-messagePack = "0.9.9"
+messagePack = "0.9.10"
 spotless = "7.0.2"
 
 [libraries]
 assertj = { module = "org.assertj:assertj-core", version.ref = "assertj" }
-dokkaJava = { module = "org.jetbrains.dokka:kotlin-as-java-plugin", version.ref = "dokkaJava" }
 jqwikApi = { module = "net.jqwik:jqwik-api", version.ref = "jqwik" }
 jqwikEngine = { module = "net.jqwik:jqwik-engine", version.ref = "jqwik" }
 jqwikTime = { module = "net.jqwik:jqwik-time", version.ref = "jqwik" }

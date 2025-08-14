@@ -15,8 +15,6 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - name: Validate Gradle wrapper
-        uses: gradle/wrapper-validation-action@v3
       - name: Set up JDK ${{ matrix.java_version }}
         uses: actions/setup-java@v4
         with:
