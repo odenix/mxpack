@@ -13,7 +13,7 @@ concurrency:
   group: "website"
   cancel-in-progress: false
 env:
-  JDK_VERSION: 23
+  JDK_VERSION: 24
 jobs:
   build:
     name: Build website

@@ -9,7 +9,7 @@ jobs:
   gradle:
     strategy:
       matrix:
-        java_version: [23]
+        java_version: [24]
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
