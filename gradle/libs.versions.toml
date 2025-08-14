@@ -10,7 +10,7 @@ junitLauncher = "1.11.4"
 kotlin = "2.0.21"
 ktfmt = "0.53"
 messagePack = "0.9.10"
-spotless = "7.0.2"
+spotless = "7.2.1"
 
 [libraries]
 assertj = { module = "org.assertj:assertj-core", version.ref = "assertj" }
