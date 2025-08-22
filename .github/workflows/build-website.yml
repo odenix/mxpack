@@ -49,7 +49,7 @@ jobs:
         run: ./gradlew javadoc dokkaGen -DjavadocDir=build/site/javadoc -DdokkaDir=build/site/kdoc
       - name: Upload pages artifact
         id: deployment
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: build/site/
   deploy:
