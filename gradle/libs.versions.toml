@@ -9,7 +9,7 @@ junit = "6.0.3"
 junitLauncher = "6.0.3"
 kotlin = "2.3.21"
 ktfmt = "0.53"
-messagePack = "0.9.11"
+messagePack = "0.9.12"
 spotless = "7.2.1"
 
 [libraries]
